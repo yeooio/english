@@ -1,0 +1,865 @@
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+enhancing feature diversity with fewer parameters than standard
+convolution.
+
+2. Preliminaries
+2.1. Overview of the developed SOH estimation approach
+
+The remaining sections of this paper are arranged as follows. Sec­
+tion2 describes the major steps of the developed SOH estimation
+approach and the basic information of three different kinds of battery
+datasets. Section 3 introduces the structure and modules of BMSFormer.
+Section 4 presents comprehensive validations and compares BMSFormer
+with four prevailing deep learning models. Finally, the conclusions are
+summarized in Section 5.
+
+The SOH is a critical metric for evaluating health status of batteries.
+While there is still no standardized definition for SOH, battery capacity
+remains the most utilized representation [31], as illustrated below:
+SOH =
+
+Ccurrent
+× 100%,
+Crated
+
+(1)
+
+where Ccurrent and Crated are the current capacity and rated capacity,
+respectively.
+As illustrated in Fig. 1, the developed SOH estimation approach
+
+Fig. 1. Flowchart of developed SOH estimation approach.
+3
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+consists of four steps.
+
+Table 1
+Description of three battery datasets.
+
+(1) Data acquisition. Three types of batteries with different chemical
+materials were subjected to full lifecycle aging tests under various
+charge/discharge protocols to evaluate the proposed model. The
+high frequency of the intermediate SOC during daily battery
+operation, charge segment from 3.8 V to 4.2 V and discharge
+segment from 3.8 V to 3.4 V are selected for HI extraction.
+(2) Feature engineering. The constant current charge and discharge
+times for each cycle are extracted as health indicators (HIs).
+Starting from the selected segments, the HI search process is
+refined using progressively smaller windows and steps until a
+0.01V window is reached or no higher Pearson correlation coef­
+ficient (PCC) value is found. A sliding window is then used to
+divide the time series of HIs into subsets, moving forward one
+step at a time. The true SOH at the next step of each window
+serves as the label for its corresponding subset.
+(3) Model training. For convenience, Cell1, B0005, and CS2-35 are
+used as training sets, with the first 30 % of the data employed for
+training across 384 hyperparameter combinations including
+epochs, learning rate, number of blocks and layers, and dimen­
+sion of dense and embedding layer. The remaining 70 % data is
+used for validation and comparison to select the best-performing
+model. Then the best perform model is tested directly on the
+entire data of other batteries in the corresponding dataset to
+evaluate the model generalization and compare the performance
+of BMSFormer with four different deep learning models.
+(4) Model evaluation. The accuracy, efficiency, and stability of
+different models are evaluated. Four typical evaluation metrics
+are used to measure the accuracy, four common computational
+complexity metrics are used to evaluate the training efficiency,
+and the R2 results of 384 hyperparameter combinations are used
+to assess the stability of training results.
+
+Data Sources
+
+Oxford [48]
+
+NASA [49]
+
+CALCE [50]
+
+Manufacturer
+Cell types
+Cathode material
+Selected battery
+series
+Battery number
+Rated capacity
+(Ah)
+Capacity failure
+threshold (Ah)
+Charge protocol
+(rate)
+Discharge protocol
+(rate)
+Cut-off voltage (V)
+
+Kokam
+Pouch
+NCO-LCO
+Cell (1–8)
+
+LG Chem
+Prismatic
+LCO
+CS2 (35–38)
+
+8
+0.74
+
+LG Chem
+18650 Cylindrical
+NCA
+B00 (05–07 and
+18)
+4
+2
+
+70 %
+
+1.4 (70 %)
+
+0.84 (76.4 %)
+
+CC (2C)
+
+CC-CV
+(0.75C,4.2V)
+CC (1C)
+
+CC-CV
+(0.5C,4.2V)
+CC (1C)
+
+Cut-off current (A)
+
+–
+
+charge to 4.2
+discharge to 2.7/
+2.5/2.2/2.5
+charge to 0.02
+
+Experiment
+temperature (◦ C)
+Cycle numbers
+
+40
+
+24
+
+charge to 4.2
+discharge to
+2.7
+charge to
+0.05
+24
+
+8200/7700/8100/
+5100/5000/5000/
+8100/8100
+
+168/168/168/
+132
+
+881/935/
+971/995
+
+variance
+charge to 4.2
+discharge to 2.7
+
+4
+1.1
+
+of Excellence Data Set Repository-NASA. Four Lithium-ion 18650 cy­
+lindrical batteries (#5, 6, 7, and 18) from LG Chem, each with 2Ah
+nominal capacity, undergo three operational profiles at room tempera­
+ture: charging at 1.5A (0.75C) in CC mode to 4.2V, followed by CV mode
+until the current fell to 20 mA; discharging at 2A in CC mode down to
+2.7V, 2.5V, 2.2V and 2.5V, respectively. The aging process is accelerated
+through repeated cycles, with EOL defined as a 30 % capacity loss to
+1.4Ahr. The positive electrode material is lithium nickel cobalt
+aluminum oxide (NCA).
+
+2.2. Typical battery datasets acquisition
+
+2.2.3. CALCE lithium battery dataset
+The CALCE lithium-ion battery dataset originates from the Center for
+Advanced Life Cycle Engineering (CALCE) at the University of Mary­
+land. These batteries have a rated capacity of 1.1 Ah and utilize lithium
+cobalt oxide (LiCoO2) as the cathode material. The aging tests for bat­
+tery life are performed at room temperature. The charge strategy is to
+charge at a constant-current rate of 0.5 C (0.55A) until the voltage
+reaches 4.2 V and then hold at 4.2 V until the charging current drops
+below 0.02 A, then the batteries are discharged with a constant current
+of 2 A until the voltage decreases to 2.7 V.
+
+Three kinds of prevailing battery datasets from Oxford, NASA and
+CALCE are used in this paper, which are widely recognized and originate
+from leading battery research institutions, ensuring standardized
+experimental protocols and reliable data. They encompass various bat­
+tery materials, specifications, and work conditions. Hence, the applica­
+bility and precision of the proposed approach can be evaluated through
+evaluation on a diverse range of batteries with different materials and
+subjected to various operating conditions. The main characteristics of
+battery datasets used in this work are summarized in Table 1; Fig. 2(a)(c) illustrates the capacity degradation and increment phenomenon of
+three different batteries under various work conditions, while Fig. 2(d)–
+(f) displays the constant-current charge voltage curves in several cycle of
+the first battery from each dataset. Similar trends are observed within
+each battery type and distinct differences are noticeable between
+different types of batteries.
+
+2.3. Health indicators extraction
+The selected health indicators (HIs) are inspired by a range of ref­
+erences [51–58] serving various research purposes. Considering the high
+frequency of the intermediate SOC during daily battery operation,
+charge segment from 3.8 V to 4.2 V and discharge segment from 3.8 V to
+3.4 V are selected for HI extraction.
+As shown in Fig. 3, in the first step of our HIs extraction procedures, a
+0.2V window size with a 0.2V moving step size is utilized to divide the
+selected charge or discharge segment into shorter segments: 3.8–4.0V,
+3.9–4.1V, and 4.0–4.2V in charge segment (3.8–3.6V, 3.7–3.5V,
+3.6–3.4V in discharge segment). Then the minimum Pearson correlation
+coefficient (PCC) value across all batteries of each dataset is taken as the
+baseline, and the segment with the highest baseline value is selected as
+the search segment for the next step. In the 2nd, 3rd, and 4th steps, the
+search procedures are repeated with progressively smaller windows and
+steps until a 0.01V window is reached or no higher baseline is identified
+than in the previous step. Finally, the constant current charge time
+(CCCT) series from 4.16V to 4.17V and the constant current discharge
+time (CCDT) series from 3.8V to 3.4V are respectively confirmed as the
+
+2.2.1. Oxford lithium battery dataset
+The Oxford lithium-ion battery dataset is provided by the Battery
+Intelligence Laboratory at the University of Oxford including degrada­
+tion data from eight Kokam SLPB533459H4 lithium-ion pouch cells,
+each with a 0.74 Ah nominal capacity and test at 40 ◦ C. The negative
+electrode material of the Kokam pouch cells is graphite, the positive
+electrode material is a blend of lithium cobalt oxide (LCO) and lithium
+nickel cobalt oxide (NCO). The eight batteries are subjected to a
+constant-current and then constant-voltage charging profile up to 4.2 V,
+followed by a variance discharge current rate from the urban Artemisderived profile process down to 2.7 V.
+2.2.2. NASA lithium battery dataset
+The NASA lithium battery dataset is provided by Prognostics Center
+4
+
+Energy 313 (2024) 134030
+
+X. Li et al.
+
+Fig. 2. Three different kinds of battery datasets: (a)–(c) capacity degradation and temporary increment curves of the Oxford, NASA and CALCE cells, respectively.
+(d)–(f) constant current charge voltage curves of Oxford Cell1, NASA B0005 and CALCE CS2-35, respectively.
+
+indicating a stronger relationship. The PCC formula is shown as follows:
+n
+∑
+
+(xk − x)(yk − y)
+k
+PCC = √̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅
+n
+n
+∑
+∑
+(xk − x)2 (yk − y)2
+k
+
+(2)
+
+k
+
+where x, y, x, y and n represent the value of the selected HI sequence and
+the battery SOH sequence, the average value of x and y, the number of
+samples, respectively.
+As shown in Table 2, the selected HI, which is the constant current
+charging time from 4.16 to 4.17V, has the highest PCC compared to
+others of recent methods. Similarly, as shown in Table 3, the selected HI,
+which is the constant current discharge time from 3.8 to 3.4V, has the
+highest PCC compared to others.
+3. The developed BMSFormer
+In this section, the overall architecture and workflow of BMSFormer
+are first introduced. Then, the designed Multi-scale Depthwise Separable
+Convolution modules, including DSConv-L and DSConv-S, are described.
+Following that, the proposed Local-Global Fusion Attention (LGFA)
+module is detailed. Finally, several foundational modules are briefly
+introduced.
+
+Fig. 3. The extraction procedures of the selected HI in the selected
+charge segment.
+
+selected HIs.
+The PCC is a widely utilized statistical metric for evaluating the
+strength of linear association between HIs and true SOH [59,60]. The
+value of the PCC ranges from − 1 to 1, with the absolute value closer to 1
+Table 2
+PCC comparison of different HIs on Oxford datasets.
+Battery
+series
+
+selected
+HI
+
+CCCT from ICA
+[55]
+
+CCCT from DTA
+[56]
+
+CCCQ
+[57]
+
+CCDQ
+[55]
+
+IC peak
+[58]
+
+sample entropy
+[55]
+
+Discharge voltage curve slope
+[58]
+
+Cell1
+Cell2
+Cell3
+Cell4
+Cell5
+Cell6
+Cell7
+Cell8
+
+0.99996
+0.99999
+0.99996
+0.99998
+0.99992
+0.99998
+0.99999
+0.99999
+
+0.9999
+0.9999
+0.9999
+0.9104
+0.9999
+0.9999
+0.9999
+0.9999
+
+0.9989
+0.9959
+0.9993
+–
+–
+–
+–
+–
+
+0.99947
+0.98677
+0.99948
+0.99981
+0.99960
+0.99961
+0.99973
+0.99970
+
+0.9998
+0.9999
+0.9989
+0.9999
+0.9999
+0.9991
+0.9999
+0.9999
+
+0.9444
+–
+0.9375
+–
+–
+–
+0.9296
+0.9378
+
+− 0.9853
+− 0.9839
+− 0.9876
+− 0.9885
+− 0.9133
+− 0.9848
+− 0.9896
+− 0.9908
+
+0.9999
+–
+0.9998
+–
+–
+–
+0.9998
+0.9998
+
+5
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+Table 3
+PCC comparison of different HIs on NASA and CALCE datasets.
+Battery
+series
+
+selected
+HI
+
+CCCT
+[61]
+
+CCCQ
+[57]
+
+Max projection distance of start and end charge
+voltage [62]
+
+IC peak
+[58]
+
+Relax time between charge and discharge cycle
+[63]
+
+B0005
+B0006
+B0007
+B0018
+CS2-35
+CS2-36
+CS2-37
+CS2-38
+
+0.9934
+0.9858
+0.9983
+0.9987
+0.9960
+0.9968
+0.9943
+0.9952
+
+0.9703
+0.9366
+0.9745
+–
+0.9799
+0.9827
+0.9789
+0.9748
+
+0.94268
+0.94518
+0.92037
+0.81248
+0.90290
+0.93370
+0.93920
+–
+
+0.95
+0.97
+0.99
+–
+0.95
+0.99
+0.98
+0.96
+
+0.9910
+0.9800
+0.9251
+–
+–
+–
+–
+–
+
+− 0.8941
+− 0.9373
+− 0.9049
+–
+− 0.9843
+− 0.9829
+–
+–
+
+3.1. Architecture overview
+
+convolution with large kernel size, and multilayer perceptron. Turn and
+Back refer to the transposing operation of tensor, and Wa is a learnable
+weight parameter.
+
+In this research, to solve the problem that the accuracy and efficiency
+of the current models often cannot be optimal together, a lightweight
+network termed BMSFormer with both global features and local infor­
+mation capturing capabilities is proposed.
+The entire framwork is illustrated in Fig. 4 and described as follows:
+HIs are taken as input, segmented into fragments via window splitting,
+embedded in a high-dimensional space, and then fed into a BMSFormer
+block, which includes the LGFA module and DSConv-L module. The
+output from LGFA module is transposed, passed through a DSConv-L
+module, and transposed back. Finally, the output from all BMSFormer
+blocks is fed into a Multilayer Perceptron (MLP) layer before outputting
+the result. During the training process, the true SOH value right
+following each window segment is utilized as a label, which guides the
+model to adjust the gradient descent optimization.
+Mathematically, this means, for the input xi of BMSFormer block i,
+the corresponding output yi of the block is calculated using
+xiʹ = Wa ⋅ LGFA(xi ) + LN(xi ),
+
+(4)
+
+y = MLP(LN(x ʹʹ)) + x ʹ,
+
+(5)
+
+i
+
+’
+
+i
+
+i
+
+In this section, the fundamental structure of DSConv is introduced
+and compared to standard convolution, then the multi-scale properties
+of DSConv-S and DSConv-L are elaborated subsequently.
+3.2.1. Fundamental structure of DSConv-S and DSConv-L modules
+Convolutions operations are adept in extracting local information
+through sliding filters [30,46,64]. Standard convolution operates across
+all input channels, with each convolutional kernel generating a feature
+map as one output channel. Therefore, the consumption of computa­
+tional resources and training time will significantly increase when
+dealing with large time-series datasets. The standard convolutions have
+the computational cost of:
+
+(3)
+
+x = Back(DSConv-L(LN(Turn(xi ) ) ) ) + xi ,
+’’
+
+3.2. The designed multi-scale depthwise separable convolutional modules
+
+’
+
+k × k × Nin × Nout × NF × NF
+
+(6)
+
+where the k, Nin , Nout , NF represent the kernel size, input channels,
+output channels, and the feature map size, respectively.
+Compared to standard convolution, firstly, in general, depthwise
+separable convolution utilizes smaller filter than standard convolution
+[15,65–68], as illustrated in the upper left area of Fig. 5. Secondly,
+depthwise convolution separates the features map into multiple
+
+where LGFA, LN, DSConv-L, MLP respectively represent the LocalGlobal Fusion Attention, layer normalization, depthwise separable
+
+Fig. 4. Framework of BMSFormer. (a) LGFA module, (b) BMSFormer block, (c) DSConv-L module, (d) BMSFormer core structure.
+6
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+Fig. 5. The fundamental structure of: (a) Standard convolution; (b) Standard Depthwise separable convolution; (c) DSConv-S module; (d) DSConv-L module.
+
+channels, and each channel is convolved with its own set of filters. These
+two operations not only allow for the extraction of a variety of features
+but also significantly decreases the computational load. Thirdly, the
+outputs from the depthwise step are then combined using 1× 1 filter of
+pointwise convolution. This step mixes the features across all channels,
+allowing for learning interactions between them. Finally, the residual
+connection helps in mitigating the vanishing gradient problem and al­
+lows the network to learn more complex functions.
+DSConv separates the spatial and channel-wise operations, reducing
+computational complexity by first applying a depthwise convolution
+across spatial dimensions, followed by a pointwise convolution to adjust
+the number of output channels:
+
+module applies a 1 × 31 depthwise convolutional kernel size to extract
+long-term features, aiming to further enhance the feature diversity and
+model generalization. This module also incorporates two layers of 1 × 1
+pointwise convolutions. Therefore, the computational cost of DSConv-L
+can be expressed as:
+
+k × k × Nin × NF × NF + Nin × Nout × NF × NF
+
+3.3. The proposed Local-Global Fusion Attention module
+
+Nin × 3Nin × NF × NF + 1 × 31 × 3Nin × NF × NF + 3Nin × Nout × NF
+× NF
+
+where 3Nin and NF × NF represents the input channels after expanding
+and the feature map size, respectively.
+
+(7)
+
+where k, Nin , Nout , NF represent the kernel size, input channels, output
+channels, and the feature map size, respectively.
+By breaking convolution operation into a two-step process of
+depthwise filtering followed by pointwise combination, a reduction is
+achieved in computation of:
+k × k × Nin × NF × NF + Nin × Nout × NF × NF
+k × k × Nin × Nout × NF × NF
+1
+1
+=
++
+Nout k2
+
+(10)
+
+In this section, the general form of self-attention mechanism in
+Transformers is described, the advantages and disadvantages of tradi­
+tional Softmax and linear attention are briefly analyzed, and two main
+superiorities of proposed Local-Global Fusion Attention (LGFA) module,
+including global receptive field and local information sensitivity are
+introduced subsequently.
+Most existing SOH estimation methods still rely on traditional Soft­
+max attention [45–47], suffering from excessive computational
+complexity. Meanwhile, although the linear attention reduces the
+complexity, it continues to struggle with insufficient model expressive­
+ness. Therefore, the Local-Global Fusion Attention (LGFA) module is
+proposed to integrate linear complexity and high expressiveness, which
+are potentially beneficial for efficient and accurate SOH estimation.
+
+(8)
+
+3.2.2. Computational analysis of DSConv-S and DSConv-L modules
+The depthwise separable convolution with small kernel size
+(DSConv-S) and large kernel size (DSConv-L) are designed to extract
+multi-scale and multi-channel feature, aiming to addresses the expres­
+siveness limitations of ReLU attention, which is constrained by its linear
+attention mechanism, while maintaining high computational efficiency.
+As illustrated in Fig. 5, with a double expansion factor for input
+channels, the DSConv-S module applies a 1 × 3 depthwise convolutional
+kernel size to enhance the quality of input information and the sensi­
+tivity of attention for local variety. This module further incorporates two
+layers of 1 × 1 pointwise convolutions to integrate multi-channel fea­
+tures, further improving feature representation. The computational cost
+of DSConv-S can be expressed as:
+
+3.3.1. General form of multi-head self-attention
+To improve the model’s representational capacity, multi-head selfattention processes the input through several parallel “heads”, each
+representing an independent self-attention mechanism. Each head cal­
+culates its own attention weights and generates a unique attention
+representation. The self-attention mechanism computes the relation­
+ships (attention weights) between each element in the input and all
+other elements. It then produces a weighted sum of these relationships to
+create new representations. This allows the model to focus on important
+information in the sequence, especially long-range dependencies.
+In i − th head, given an input X ∈ RN×C , the general form of selfattention can be formulated as follows:
+
+Nin × 2Nin × NF × NF + 1 × 3 × 2Nin × NF × NF + 2Nin × Nout × NF × NF
+(9)
+where 2Nin and NF × NF represents the input channels after expanding
+and the feature map size, respectively.
+With a triple expansion factor for input channels, the DSConv-L
+7
+
+Q = XWQ ,
+
+(11)
+
+K = XWK ,
+
+(12)
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+V = XWV ,
+Oi =
+
+)
+(
+N
+∑
+Sim Qi , Kj
+V,
+N
+) j
+(
+∑
+j=1
+Sim Qi , Kj
+
+attention mechanism is defined as:
+)
+(
+Sim(Q, K) = ReLU(Q)ReLU DSConv-S(K)T
+
+(13)
+(14)
+
+(15)
+
+where the self-attention module can be rewritten as:
+
+j=1
+
+N [
+∑
+
+where WQ , WK , and WV ∈ RC×d are the learnable linear projection
+matrices, C and d are the channel dimensions of module and each head.
+Sim(⋅, ⋅) is the similarity function of self-attention mechanism.
+
+Oi =
+
+j=1
+
+(
+( )
+( )T ) ]
+ReLU(Qi )ReLU DSConv-S Kj
+DSConv-S Vj
+ReLU(Qi )
+
+N
+∑
+j=1
+
+(
+( )T )
+ReLU DSConv-S Kj
+
+(16)
+
+Then, by using the associative property of matrix multiplication, the
+computational complexity can be reduced from quadratic to linear while
+maintaining the same functionality:
+
+3.3.2. Softmax attention mechanism and linear attention mechanism
+Transformers mainly utilize Softmax Attention [38] with the
+(
+√̅̅̅ )
+Sim(Q, K) = exp QKT / d in Eq. (14). However, the attention map is
+
+N {
+∑
+
+obtained by computing the similarity between all query-key pairs,
+( )
+leading to the computation complexity of O N2 as illustrated in Fig. 6
+(a). In contrast, linear attention [69], as shown in Fig. 6(b), efficiently
+reduces the computation complexity by carefully designed similarity
+
+Oi =
+
+j=1
+
+[
+( )
+( )T ] }
+ReLU(Qi )ReLU DSConv-S Kj
+DSConv-S Vj
+
+[
+N
+( )T ]
+∑
+ReLU(Qi ) ReLU DSConv-S Kj
+j=1
+}
+{
+[
+N
+( )
+( )T ]
+∑
+DSConv-S Vj
+ReLU(Qi )
+ReLU DSConv-S Kj
+
+functions with Sim (Q, K) = ϕ(Q)ϕ(K)T , which changes the computa­
+(
+)
+(
+)
+tion order from ϕ(Q)ϕ(K)T V to ϕ(Q) ϕ(K)T V base on the associative
+property of matrix multiplication. The computation complexity with
+respect to the number of tokens in the sequence is reduced to O (N),
+where N represents the sequence length. This linear complexity allows
+the model to efficiently handle long sequences, which is particularly
+beneficial for time series analysis.
+Traditional Softmax attention amplifies the differences between all
+query-key pairs using the exponential function, significantly enhancing
+larger similarity values when calculating attention weights. Although
+Softmax attention provides stronger expressive power, its computational
+cost is a bit unbeneficial to its application in large-scale sequences. In
+contrast, linear attention uses different kernel functions ϕ( ⋅) to map Q
+and K into a new space, thereby enhancing the differences. While this
+may result in some loss of expressiveness, the new calculation order of
+the weight matrix in linear attention reduces computational complexity,
+which offers an advantage in processing long time-series sequences like
+battery SOH estimation.
+
+=
+
+(17)
+
+j=1
+
+ReLU(Qi )
+
+N
+∑
+j=1
+
+[
+( )T ]
+ReLU DSConv-S Kj
+
+( )T
+∑
+As shown in Eq. (17), the computation of Nj=1 ReLU Kj Vj ∈ Rd×d
+( )T
+∑
+and Nj=1 ReLU Kj ∈ Rd×1 are performed only once, after which these
+results can be reused for each query. This approach thereby requires
+only O (N) computational cost and O (N) storage memory.
+Another key advantage of ReLU-based global attention is that it
+prevents the vanishing gradient problem and involves simple operation
+max(0, x), making it faster to compute than Softmax, which requires
+exponentiation and normalization. For instance, some previous latency
+comparisons [70] show that, with similar computational demands,
+ReLU-based linear attention outperforms Softmax attention, particularly
+on mobile devices.
+4. Experiments and analysis
+
+3.3.3. The proposed attention module
+As illustrated in Fig. 6(c), the proposed Local-Global Fusion Atten­
+tion (LGFA) module utilizes the Rectified Linear Unit attention mecha­
+nism and enhances feature diversity through the DSConv-S module
+introduced in Section 3.2.1. The similarity function Eq. (14) of this
+
+This section presents a comprehensive evaluation of five models
+(BMSFormer, CNN-Transformer, CNN-LSTM, Transformer and LSTM)
+across three public battery datasets. The Cell1, B0005, and CS2-35 are
+employed as training sets, with the first 30 % of the data utilized for
+training across 384 hyperparameter combinations, including variations
+
+Fig. 6. Difference between (a) traditional Softmax attention mechanism, (b) traditional Linear Attention mechanism, and (3) the proposed Local-Global Fusion
+attention module.
+8
+
+

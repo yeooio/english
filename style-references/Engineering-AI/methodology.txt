@@ -1,0 +1,1056 @@
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+• RNNs and CNNs: Recurrent Neural Networks (RNNs), particularly Long Short-Term Memory (LSTM) and Gated Recurrent Unit
+(GRU) networks, represent the standard for time-series forecasting (Ma et al., 2019; Zheng et al., 2023). Despite their success, the
+sequential nature of RNNs limits parallelization during training
+and inference, limiting throughput. Convolutional Neural Networks (CNNs) (Lee et al., 2023) facilitate parallel processing but
+are constrained by local receptive fields, making it difficult to
+capture global degradation trends over long operational cycles.
+Hybrid CNN-based frameworks have been combined with random
+forests Yang et al. (2022), while ensemble learning paradigms
+further enhance estimation robustness Zhang et al. (2024b). Additionally, LSTM-based models leveraging incremental capacity
+features Zhang et al. (2023) remain a strong baseline for battery
+health prognostics.
+• Transformers and Attention Mechanisms: The introduction of the
+Transformer architecture (Hannan et al., 2021) addressed the
+limitations of RNNs and CNNs by utilizing self-attention to model
+long-range dependencies. Hybrid models, such as the
+CNN-Transformer (Bai and Wang, 2023; Gu et al., 2023) and
+BiGRU-Transformer Jia et al. (2023), have further improved accuracy. Vision Transformer Chen et al. (2023) and temporal fusion
+Transformer Gomez et al. (2024) architectures have also been
+explored for battery health estimation. More recently, efficient
+Transformer variants such as BMSformer Li et al. (2024) have
+been specifically designed for online SOH estimation. However,
+the standard Dot-Product Attention mechanism involves a time
+and memory complexity of 𝑂(𝑁 2 ) with respect to sequence length
+𝑁. This quadratic cost presents a bottleneck for deployment
+on edge devices (Xiong et al., 2019). Moreover, as noted in
+recent theoretical studies (Chen, 2023), deep attention layers
+may be prone to rank collapse, a phenomenon where the output
+feature matrix loses expressiveness, limiting the model’s ability to
+distinguish fine-grained aging patterns.
+
+2. Systematic Feature Engineering: A multi-scale sliding window
+strategy is applied to identify robust Health Indicators (HIs) from
+partial voltage segments, as detailed in Section 3.3.
+3. Model Development: The proposed SL-AgentNet is trained using
+a historical reference hyperparameter calibration strategy to
+promote efficiency and accuracy.
+4. Performance Evaluation: The final phase validates the model’s
+estimation precision, computational efficiency, and robustness
+against baselines on unseen test cells.
+3.2. Experimental datasets
+To evaluate the generalization capability of the proposed method
+across varying chemistries and operational profiles, three authoritative
+public datasets were utilized. The specifications are summarized as
+follows:
+• Oxford Dataset (Pouch, Lithium Cobalt Oxide (LCO)-based): Provided by the Oxford Battery Intelligence Lab (Birkl et al., 2017),
+this dataset includes 8 pouch cells (0.74 Ah) tested at 40 ◦ C. It is
+worth noting that it employs the Urban Artemis drive cycle for the
+discharging phase. Although our Health Indicators are primarily
+derived from the stable constant-current charging phase, this
+dynamic discharging profile induces realistic degradation patterns
+distinct from standard constant-current cycling, thereby making
+it a rigorous benchmark for evaluating model robustness under
+dynamic load history.
+• NASA Dataset (18650, Nickel Cobalt Aluminum (NCA)): Sourced
+from the NASA Prognostics Center of Excellence (Xu et al.), this
+dataset includes 4 cylindrical cells (B0005–B0018) with a rated
+capacity of 2.0 Ah, cycled at 24 ◦ C. A distinct characteristic of
+this dataset is the significant capacity regeneration phenomena,
+manifested as local fluctuations, and varying discharge currents.
+These features provide a rigorous test for the model’s stability and
+temporal feature extraction capabilities.
+• CALCE Dataset (Prismatic, LCO): Provided by the Center for Advanced Life Cycle Engineering (CALCE) at the University of Maryland Cadini et al. (2019), this dataset features 4 prismatic cells
+(CS2_35 to CS2_38) with a rated capacity of 1.1 Ah. These batteries exhibit a rapid non-linear degradation tail, or ‘‘diving’’
+behavior, in late life stages, testing the model’s ability to track
+accelerated aging trends.
+
+To address these limitations, this study introduces SL-AgentNet.
+By replacing quadratic attention with a linear-complexity 𝑂(𝑁) Agent
+Attention mechanism and integrating systematic feature selection, our
+framework aims to address the trilemma of noise sensitivity, computational burden, and feature expressiveness.
+3. Methodology framework and data foundation
+
+The diversity in cell formats (Pouch/Cylindrical/Prismatic), rated capacities (0.74–2.0 Ah), and cathode chemistries (LCO-based/NCA) facilitates a comprehensive validation of the proposed framework.
+
+3.1. Overall estimation framework
+SOH is a key indicator of battery degradation, quantifying the
+ability of a battery to store and deliver energy relative to its fresh state.
+While universal standardization remains absent, capacity retention persists as the most widely adopted operational proxy (Lu et al., 2023). In
+this study, SOH is defined as the ratio of the current maximum available
+capacity (𝐶current ) to the rated nominal capacity (𝐶rated ):
+SOH =
+
+𝐶current
+× 100%
+𝐶rated
+
+3.3. Systematic extraction and screening of health indicators
+3.3.1. Theoretical advantage of CCCA/CCDA over energy metrics
+Conventional energy-based methods (Bai et al., 2023) characterize
+battery aging by calculating the total energy throughput during a cycle:
+𝑡𝑒𝑛𝑑
+
+𝐸=
+
+(1)
+
+∫𝑡𝑠𝑡𝑎𝑟𝑡
+
+𝑉 (𝑡) ⋅ 𝐼(𝑡) 𝑑𝑡
+
+(2)
+
+However, current sensors in practical BMS deployments—typically
+Hall effect sensors or shunt resistors—can be susceptible to measurement noise, thermal drift, and instantaneous load fluctuations. Since
+energy calculation involves the multiplicative coupling of voltage and
+current, any jitter in the current signal 𝐼(𝑡) is potentially amplified and
+integrated over time, resulting in cumulative errors in the final SOH
+estimate.
+To circumvent reliance on noisy current data, the utilization of
+the Constant Current Charging Area (CCCA) and Constant Current
+Discharging Area (CCDA) is proposed. In the Constant Current (CC)
+phase, the current is theoretically invariant (𝐼(𝑡) ≈ 𝐼𝑠𝑒𝑡 ). Consequently,
+
+Although SOH can also be characterized by the increase in internal
+resistance, this study primarily focuses on the capacity fade dimension
+as the primary metric for energy storage capability.
+Given that direct capacity measurement is often impractical for
+online BMS due to the necessity of full charge–discharge cycles, a
+data-driven framework, depicted in Fig. 1, is proposed. This systematic
+methodology comprises four strategic phases:
+1. Data Acquisition: This phase entails extracting raw voltage, current, and time series data from charging/discharging cycles
+across diverse battery chemistries.
+3
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Fig. 1. Schematic diagram of the proposed SOH estimation methodology, illustrating the workflow from raw data acquisition to final performance evaluation.
+
+capacity degradation—manifested as the shortening of the CC phase duration and the shifting of voltage plateaus—can be effectively captured
+by the geometric integral of the voltage curve (as visualized in Fig. 2):
+
+for a given chemistry, thereby enhancing the ‘‘Information Density’’ of
+the input feature.
+3.3.2. Multi-scale sliding window screening strategy
+Although voltage integration is established in the literature, prior
+studies typically rely on static, empirically defined windows. Battery
+degradation mechanisms, however, are heterogeneous; consequently,
+the voltage region containing the most salient aging information varies
+significantly across chemistries.
+To address this limitation, the Systematic Screening Framework is
+introduced (Fig. 3). To adhere to prognostic standards and minimize
+the risk of data leakage, this process is designed as an offline calibration step, performed exclusively on available historical reference data
+(i.e., the training partition) prior to model deployment. The procedure
+involves three rigorous steps:
+
+𝑡𝑒𝑛𝑑
+
+CCCA𝑖 =
+
+∫𝑡𝑠𝑡𝑎𝑟𝑡
+
+𝑉𝑖 (𝑡) 𝑑𝑡
+
+(3)
+
+Operationally, CCCA serves as a pseudo-energy metric with enhanced
+noise resilience. By decoupling the health indicator from real-time
+current measurements, this metric retains the high sensitivity of energy
+integration to degradation while offering robustness against sensor
+noise, thereby offering enhanced stability for online instrumentation.
+Furthermore, unlike energy metrics which conflate charging and
+discharging behaviors, our method allows for Kinetic Decoupling. By
+treating CCCA and CCDA as independent candidates, we can isolate the
+specific kinetic regime that maximizes the signal-to-noise ratio (SNR)
+4
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Fig. 2. Visualization of the experimental datasets. (a)–(c) Capacity degradation curves (SOH ground truth) for Oxford, CALCE, and NASA datasets. (d)–(f)
+Constant current charging voltage profiles. (g)–(i) Constant current discharging voltage profiles. These curves illustrate the diverse aging patterns and measurement
+characteristics across different battery chemistries.
+
+1. Data Segmentation (Multi-Scale Windows): To capture finegrained ‘‘local fingerprints’’ of degradation that might be averaged out in a global integral, we systematically segment the
+voltage profile using sliding windows with varying granularities
+(e.g., 0.4 V, 0.2 V, and 0.1 V widths).
+
+3. Feature Selection & Fixation & Deployment: Once the optimal
+interval is identified, it is frozen as a fixed hyperparameter for
+the subsequent testing and inference phases. The calibration
+analysis revealed distinct optimal intervals for different datasets:
+• For the Oxford dataset, the full-range CCCA was identified as the optimal fixed input. This suggests a uniform
+capacity fade mechanism where the global integral yields
+a favorable signal-to-noise ratio.
+• For the CALCE dataset, the calibration pointed to the partial segment (3.4–3.8 V CCDA), indicating that aging is
+locally concentrated in specific phase transitions for this
+chemistry.
+• For the NASA dataset, the left section of the CCDA curve
+was selected. This segmentation was based on the first voltage minimum point (as depicted in Fig. 2(i)), identifying
+the early discharge phase as the effective indicator.
+
+• Coarse-grained Windows (e.g., 0.4 V): Designed to capture broad phase transition trends and offer robustness
+against noise.
+• Fine-grained Windows (e.g., 0.1 V): Designed to isolate
+subtle variations in specific local voltage plateaus highly
+sensitive to active material loss.
+2. Correlation Analysis (Offline Calibration): For each candidate
+window defined by [𝑉𝑙𝑜𝑤 , 𝑉ℎ𝑖𝑔ℎ ], we calculate the integral area sequence. The Pearson Correlation Coefficient (PCC) (Roman et al.,
+2021; Lin et al., 2024) is computed between the feature sequence
+and the ground-truth SOH using only the calibration/training
+data:
+)(
+)
+∑(
+𝑥𝑘 − 𝑥̄ 𝑦𝑘 − 𝑦̄
+PCC = √
+(4)
+)2 ∑ (
+)2
+∑(
+𝑥𝑘 − 𝑥̄
+𝑦𝑘 − 𝑦̄
+
+This process allows the feature extraction rules to be defined
+a priori, simulating a realistic BMS deployment where the optimal observation window is pre-configured based on battery
+characteristics.
+
+The window yielding the highest absolute PCC on this calibration set is identified as the "Optimal Interval". The detailed PCC
+comparisons for feature selection across different datasets are
+presented in Tables 1, 2, and 3. Furthermore, Tables Table 4
+and 5 benchmark the selected HI against alternative indicators
+from the literature, demonstrating its superior correlation with
+capacity degradation.
+
+3.3.3. Novelty and applicability
+The core innovation of this section is the transition from static
+feature selection to a data-driven hyperparameter search. By treating
+the feature interval as a learnable hyperparameter derived during the
+offline calibration phase, our framework facilitates the delivery of
+highly informative input to the subsequent SL-AgentNet.
+5
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Fig. 3. Schematic of the systematic extraction procedures for selecting the optimal Health Indicator (HI) from charge/discharge segments.
+Table 1
+Comparison of PCC values for four candidate features on the Oxford dataset. This granular breakdown confirms
+the consistency of the screening method across individual cells.
+Battery series
+
+Overall CCCA
+
+CCCA (3.8–4.2 V)
+
+Overall CCDA
+
+CCDA (3.8–3.4 V)
+
+Cell1
+Cell2
+Cell3
+Cell4
+Cell5
+Cell6
+Cell7
+Cell8
+Average
+
+0.999903
+0.999963
+0.999924
+0.999973
+0.999826
+0.999988
+0.999986
+0.999969
+0.999942
+
+0.999536
+0.996223
+0.999500
+0.998354
+0.998669
+0.996699
+0.999126
+0.998938
+0.998381
+
+0.999924
+0.998923
+0.999881
+0.999872
+0.999847
+0.999062
+0.999908
+0.999911
+0.999666
+
+0.999499
+0.991520
+0.999564
+0.999496
+0.999463
+0.998661
+0.999575
+0.999253
+0.998379
+
+Table 2
+Comparison of PCC values for four candidate features on the NASA dataset.
+NASA series
+
+Overall CCCA
+
+CCCA (3.8–4.0 V)
+
+Overall CCDA
+
+Left CCDA
+
+Right CCDA
+
+B0005
+B0006
+B0007
+B0018
+
+0.995656
+0.988015
+0.991336
+0.971424
+
+0.995051
+0.988795
+0.986943
+0.979197
+
+0.983785
+0.994266
+0.990917
+0.993277
+
+0.999946
+0.999802
+0.999873
+0.999766
+
+−0.981650
+−0.990374
+−0.785222
+−0.904780
+
+Average
+
+0.986608
+
+0.987497
+
+0.990561
+
+0.999847
+
+−0.915507
+
+4. The proposed SL-AgentNet architecture
+
+Importantly, this approach enhances online feasibility: once the
+optimal interval (e.g., a 0.4 V segment) is identified offline, the BMS
+needs only to sample and integrate voltage within this narrow window
+
+4.1. SL-AgentNet architecture summary
+
+during runtime. This effectively reduces data storage and processing
+
+To address both the challenges of estimation accuracy and computational efficiency, a lightweight deep learning architecture named
+SL-AgentNet is proposed. The designation ‘‘SL’’ stems from its core
+
+requirements compared to full-curve monitoring, thereby balancing
+high estimation accuracy with edge-deployment constraints.
+6
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Table 3
+Comparison of PCC values for four candidate features on the CALCE dataset.
+CALCE series
+
+Overall CCCA
+
+CCCA (3.8–4.0 V)
+
+Overall CCDA
+
+CCDA (3.8–3.4 V)
+
+CS2_35
+CS2_36
+CS2_37
+CS2_38
+
+0.985386
+0.975222
+0.979150
+0.984004
+
+0.989713
+0.987095
+0.990299
+0.991994
+
+0.990410
+0.990941
+0.991166
+0.991102
+
+0.992155
+0.994345
+0.995010
+0.987430
+
+Average
+
+0.980941
+
+0.989775
+
+0.990905
+
+0.992235
+
+Table 4
+Comparison of the selected HI with other HIs from literature based on PCC values (Oxford dataset).
+Battery
+
+Selected HI
+
+CCCT
+(Bai et al., 2023)
+
+CCCQ
+(Wu et al., 2023)
+
+CCDQ
+(Bai et al., 2023)
+
+IC Peak
+(Feng and Zhang, 2024)
+
+Sample entropy
+(Bai et al., 2023)
+
+Discharge slope
+(Feng and Zhang, 2024)
+
+Cell1
+Cell2
+Cell3
+Cell4
+Cell5
+Cell6
+Cell7
+Cell8
+
+0.99990
+0.99996
+0.99992
+0.99997
+0.99983
+0.99999
+0.99999
+0.99997
+
+0.9999
+0.9999
+0.9999
+0.9104
+0.9999
+0.9999
+0.9999
+0.9999
+
+0.99947
+0.98677
+0.99948
+0.99981
+0.99960
+0.99961
+0.99973
+0.99970
+
+0.9998
+0.9999
+0.9989
+0.9999
+0.9999
+0.9991
+0.9999
+0.9999
+
+0.9444
+–
+0.9375
+–
+–
+–
+0.9296
+0.9378
+
+−0.9853
+−0.9839
+−0.9876
+−0.9885
+−0.9133
+−0.9848
+−0.9896
+−0.9908
+
+0.9999
+–
+0.9998
+–
+–
+–
+0.9998
+0.9998
+
+CCCT = Constant Current Charge Time.
+CCCQ = Constant Current Charge Quantity.
+CCDQ = Constant Current Discharge Quantity.
+
+Table 5
+Comparison of the selected HI with other HIs from literature based on PCC values (NASA and CALCE datasets).
+Battery
+
+Selected HI
+
+CCCT
+(Tan and Zhao, 2020)
+
+CCCQ
+(Wu et al., 2023)
+
+Max projection distance
+(Jin et al., 2023)
+
+IC Peak
+(Feng and Zhang, 2024)
+
+Relax time
+(Huang et al., 2023)
+
+B0005
+B0006
+B0007
+B0018
+CS2_35
+CS2_36
+CS2_37
+CS2_38
+
+0.99995
+0.99980
+0.99987
+0.99977
+0.99216
+0.99435
+0.99501
+0.98743
+
+0.9703
+0.9366
+0.9745
+–
+0.9799
+0.9827
+0.9789
+0.9748
+
+0.94268
+0.94518
+0.92037
+0.81248
+0.90290
+0.93370
+0.93920
+–
+
+0.95
+0.97
+0.99
+–
+0.95
+0.99
+0.98
+0.96
+
+0.9910
+0.9800
+0.9251
+–
+–
+–
+–
+–
+
+−0.8941
+−0.9373
+−0.9049
+–
+−0.9843
+−0.9829
+–
+–
+
+CCCT = Constant Current Charge Time.
+CCCQ = Constant Current Charge Quantity.
+CCDQ = Constant Current Discharge Quantity.
+
+design philosophy of integrating Small-kernel and Large-kernel depthwise separable convolutions to capture multi-scale features efficiently.
+As illustrated in Fig. 4, the model departs from traditional parallel
+multi-branch designs, instead adopting a cascaded feature refinement
+strategy. This streamlined data flow progressively processes the input
+through global aggregation, local refinement, and non-linear mapping
+stages.
+From a mathematical perspective, let the input tensor be denoted by
+𝐗 ∈ R𝐵×𝑁×𝑑 , where 𝑁 is the sequence length and 𝑑 is the feature embedding dimension. The output of the SL-AgentNet block is computed
+through the following sequential operations:
+
+Step 3: Non-linear mapping. Finally, the features are processed by the
+PIAF-MLP layer. To maintain the gradient signal from the attention
+stage, the residual connection aggregates the output of the first stage
+(𝐗′ ) rather than the immediate previous stage:
+𝐘 = PIAF-MLP(LN(𝐗′′ )) + 𝐗′
+
+permutation. This cascaded design effectively decouples global and
+local feature extraction while maintaining computational efficiency.
+4.2. Multi-scale depthwise separable convolutions
+
+Step 1: Global temporal aggregation. The input 𝐗 is first processed by the
+AFF module to capture long-range dependencies. A residual connection
+and a learnable scaling factor 𝐖𝑎 are employed to facilitate the gradient
+flow:
+𝐗′ = 𝐖𝑎 ⋅ AFF(LN(𝐗)) + 𝐗
+
+Standard convolutions often suffer from parameter redundancy and
+may be prone to overfitting on small-sample battery datasets. To mitigate this, two specialized Depthwise Separable Convolution (DSConv)
+modules are designed. The kernel scales (𝑘 = 5, 𝑘 = 31) were determined empirically to capture multi-scale degradation features, as
+visualized in Fig. 5.
+
+(5)
+
+Step 2: Local feature refinement. To capture local textural patterns, the
+intermediate feature 𝐗′ is passed through the L-DSConv module. As
+convolutions operate on the feature dimension, we define a permutation operator  (⋅) to swap the sequence and feature dimensions,
+mapping R𝑁×𝑑 to R𝑑×𝑁 . The refined feature 𝐗′′ is computed as:
+𝐗′′ =  −1 (L-DSConv( (LN(𝐗′ )))) + 𝐗′
+
+(7)
+
+where LN denotes Layer Normalization and  −1 represents the inverse
+
+4.2.1. S-DSConv: Dual-role local enhancement
+The small-kernel S-DSConv employs a compact kernel size of 1 × 5.
+It is strategically embedded within the FLFA module to fulfill a dual
+purpose:
+• Input Enrichment: It captures high-frequency local variations, such
+as instantaneous voltage drops, to enrich the Key (𝐊) and Value
+
+(6)
+7
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Fig. 4. Framework of SL-AgentNet. The architecture has been decomposed into modular views for clarity. (a) AFF module, (b) SL-AgentNet core structure with
+explicit dimension labels (𝑁 × 𝑑) to illustrate the data flow.
+
+Defining the input tensor as 𝐗 ∈ R𝑁×𝑑 , the final output 𝐘AFF is
+derived via the element-wise summation of three distinct mechanisms:
+
+(𝐕) matrices. This locality bias helps mitigate feature homogenization by enabling the agent to aggregate semantically rich
+local patterns rather than over-smoothed noise.
+• Rank Restoration via Bypass Mechanism: Importantly, the S-DSConv
+output also acts as a full-rank local branch that mitigates the
+attention bottleneck, as mathematically formulated in Eq. (11).
+While the single-agent attention (𝑛 = 1) inherently compresses
+global context into a rank-1 tensor, this parallel convolutional
+branch preserves the fine-grained, high-rank structural details.
+The fusion of these two branches addresses the low-rank bottleneck, enabling the model to simultaneously capture dominant
+global trends and subtle local fluctuations.
+
+𝐘AFF = AAT-1d(𝐗) + FLFA(𝐗) + FDFA(𝐗)
+
+(8)
+
+where FLFA(⋅) enhances features with local convolutional biases and
+FDFA(⋅) filters features based on amplitude significance. Of particular importance is the retention of the Agent Attention–1d (AAT-1d)
+branch as a linear fidelity shortcut. While the FLFA provides enhanced
+local context via the S-DSConv, convolutional operations impose an
+inductive bias that could distort pure long-range linear dependencies.
+Consequently, the AAT-1d branch preserves global context, promoting the retention of a stable linear reference amidst the non-linear
+transformations of other branches.
+
+4.2.2. L-DSConv: Post-fusion global refinement
+The large-kernel L-DSConv utilizes a wide kernel size of 1 × 31.
+It functions as a standalone post-processing module following the AFF
+feature fusion stage.
+
+4.3.1. Preliminaries and the agent attention–1d (AAT-1d) branch
+Standard softmax attention entails quadratic complexity 𝑂(𝑁 2 ),
+rendering it computationally challenging for long sequences. Linear
+attention (Han et al., 2023) addresses this limitation by utilizing a
+kernel feature map 𝜙(⋅), such as Rectified Linear Unit (ReLU). However,
+the direct computation of 𝜙(𝐊)⊤ 𝐕 results in a 𝑑 × 𝑑 matrix, incurring
+𝑂(𝑁𝑑 2 ) complexity.
+To achieve linear complexity 𝑂(𝑁𝑑) while maintaining global receptivity, the AAT-1d branch is proposed, a specialized variant of Agent
+Attention (Han et al., 2024) with the agent count fixed to 𝑛 = 1. The
+computation is decomposed into two numerically stable steps:
+
+• Function: With its large receptive field, this module is designed to
+capture long-term textural patterns and smooth out the degradation trend over extended cycles.
+• Benefit: This module models the ‘‘aging inertia’’ of the battery. As
+demonstrated in the ablation study presented in Section 5.5, the
+L-DSConv plays an important role in filtering out transient sensor
+noise and promoting the alignment of the final SOH prediction
+with the dominant physical degradation trajectory rather than
+overfitting to local outliers.
+
+• Step 1: Global Aggregation (Complexity 𝑂(𝑁𝑑)): The single agent
+𝐀 ∈ R1×𝑑 aggregates global information from 𝐊 and 𝐕. To
+improve numerical stability against the sparsity of ReLU, given
+that 𝜙(⋅) may output zeros, a stabilization term 𝜖 is introduced in
+the normalization:
+(
+)
+𝜙(𝐀)𝜙(𝐊)⊤ 𝐕
+𝐕𝑎𝑔𝑒𝑛𝑡 =
+(9)
+∑
+𝜙(𝐀) 𝑘 𝜙(𝐊)⊤
++𝜖
+𝑘
+
+4.3. The proposed AFF module
+To circumvent the limitations of single-view feature extraction and
+capture diverse degradation patterns, the Attention Feature Fusion
+(AFF) module is proposed. Functioning as the core feature extractor,
+the AFF employs a tri-branch parallel architecture (Fig. 4a) to integrate
+orthogonal representations.
+
+where the computation order (𝜙(𝐀)𝜙(𝐊)⊤ ) is structured to produce a 1 × 𝑁 vector, maintaining linear cost with respect to
+𝑑.
+8
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Fig. 5. Structural comparison of convolutional modules. (a) Standard DSConv. (b) The proposed S-DSConv (Kernel = 5) for local feature enhancement. (c) The
+proposed L-DSConv (Kernel = 31) for global trend refinement.
+
+• Step 2: Gated Broadcasting (Complexity 𝑂(𝑁𝑑)): The aggregated
+context 𝐕𝑎𝑔𝑒𝑛𝑡 is broadcast back to the queries 𝐐. For the singleagent case (𝑛 = 1), standard normalization could result in normalization collapse, a state where the query-specific term 𝜙(𝐐𝑖 )
+is divided out, reducing the output to a static global vector for all
+time steps. To mitigate this loss of query selectivity, normalization
+is replaced with a scaling factor:
+)
+1 (
+AAT-1d(𝐗)𝑖 = √ 𝜙(𝐐𝑖 )𝜙(𝐀)⊤ ⋅ 𝐕𝑎𝑔𝑒𝑛𝑡
+(10)
+𝑑
+
+Global branch (Single-agent linear attention). To capture dominant
+degradation trends with minimal cost, a single learnable agent 𝐀 ∈
+R1×𝑑 (𝑛 = 1) is employed. The computation follows the aggregationbroadcasting paradigm:
+
+This preserves the attention score 𝜙(𝐐𝑖 )𝜙(𝐀)⊤ as a dynamic gating
+factor, allowing each query to selectively determine the intensity
+of the global context it absorbs.
+
+̃ ⊤ comwhere 𝜙(⋅) denotes the ReLU kernel. The term 𝜙(𝐀)𝜙(𝐊)
+putes a 1 × 𝑁 global attention map.
+• Gated Broadcasting: The global context 𝐕𝑎𝑔𝑒𝑛𝑡 is then broadcast
+back to the queries. Similar to the AAT-1d branch, a scaling factor
+is used to prevent normalization collapse:
+)
+1 (
+𝐎𝑔𝑙𝑜𝑏𝑎𝑙 = √ 𝜙(𝐐)𝜙(𝐀)⊤ ⋅ 𝐕𝑎𝑔𝑒𝑛𝑡
+(14)
+𝑑
+
+• Global Aggregation: The agent 𝐀 aggregates context from the
+̃ and 𝐕.
+̃ A normalized linear formulation is utilized:
+enhanced 𝐊
+(
+)
+̃ ⊤ 𝐕̃
+𝜙(𝐀)𝜙(𝐊)
+𝐕𝑎𝑔𝑒𝑛𝑡 =
+(13)
+∑
+̃ ⊤+𝜖
+𝜙(𝐀) 𝑘 𝜙(𝐊)
+𝑘
+
+4.3.2. The proposed FLFA module
+While the standard AAT branch captures the global baseline, it
+treats features as permutation-invariant tokens, potentially neglecting
+local sequential continuity, such as transient voltage drops. To address
+this deficiency and mitigate the low-rank bottleneck inherent in singleagent attention, the Fast Local–Global Fusion Attention (FLFA) module
+is proposed.
+As depicted in Fig. 6(c), the FLFA utilizes a parallel dual-branch
+architecture to decouple global trend aggregation from local feature
+preservation.
+
+This results in a rank-1 global context matrix 𝐎𝑔𝑙𝑜𝑏𝑎𝑙 ∈ R𝑁×𝑑 .
+Feature fusion. Finally, to restore representational richness, the rank-1
+global context is fused with the full-rank local features:
+𝐘FLFA = 𝐗𝑙𝑜𝑐𝑎𝑙 + 𝐎𝑔𝑙𝑜𝑏𝑎𝑙
+
+Dual-role local enhancement (S-DSConv). The S-DSConv module (Section 4.2) is embedded into the attention mechanism to fulfill a dual
+purpose:
+
+This additive fusion integrates the aging inertia (Global Trend) with
+instantaneous fluctuations (Local Detail), promoting robust estimation
+across varying time scales while maintaining 𝑂(𝑁𝑑) complexity.
+
+1. Input Enrichment: It processes the input 𝐗 ∈ R𝑁×𝑑 to generate
+̃ and values 𝐕.
+̃ This action injects inlocally enhanced keys 𝐊
+ductive bias into the attention mechanism, mitigating feature
+homogenization.
+2. Rank Restoration (Residual Bypass): Importantly, the S-DSConv
+output 𝐗𝑙𝑜𝑐𝑎𝑙 also serves as a full-rank residual branch. This
+preserves fine-grained local details that would otherwise be
+compressed by the low-rank global attention.
+
+4.3.3. The proposed FDFA and PIAF architectures
+The Fast Diversity Feature Fusion Attention (FDFA) and Parallel
+Informed Activation Function (PIAF) architectures were devised to mitigate potential feature collapse and enhance nonlinear representation
+capabilities.
+FDFA: Significance filtering via orthogonal perspective. The FDFA module,
+illustrated in Fig. 7(b), operates as the third, specialized auxiliary
+branch within the AFF framework (𝐘AFF = AAT-1d(𝐗) + FLFA(𝐗) +
+FDFA(𝐗)). Unlike the AAT-1d and FLFA, which primarily focus on
+temporal structure, the FDFA branch targets the amplitude domain,
+acting as a dedicated ‘‘significance filter’’. Specifically, it imposes a
+non-linear pre-activation step:
+
+Mathematically, the projections follow an asymmetric design. The
+query matrix 𝐐 is obtained via a standard linear projection to preserve the semantic intent of the input, while the keys and values are
+structurally enhanced by convolution:
+𝐐 = 𝐗𝐖𝑄 ,
+
+𝐗𝑙𝑜𝑐𝑎𝑙 = S-DSConv(𝐗)
+
+(11)
+
+̃ = 𝐗𝑙𝑜𝑐𝑎𝑙 ,
+𝐊
+
+𝐕̃ = 𝐗𝑙𝑜𝑐𝑎𝑙
+
+(12)
+
+(15)
+
+𝐗𝑑𝑖𝑣 = ReLU(𝐗)
+
+(16)
+
+This ReLU operation deliberately sparsifies the input, suppressing negative noise to isolate high-activation regions. These rectified features
+
+where 𝐖𝑄 ∈ R𝑑×𝑑 is the query projection matrix.
+9
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Fig. 6. Structural representation of different models: (a) Softmax Attention (𝑂(𝑁 2 )), (b) Agent Attention (𝑂(𝑁)), and (c) the proposed Fast Local–Global Fusion
+Attention (FLFA), which integrates S-DSConv for local enhancement and rank restoration.
+
+Fig. 7. Schematic comparison between (a) a traditional Multi-Head Self-Attention (MSA) module equipped with Aug-Shortcuts and (b) the proposed Fast Diversity
+Fusion Attention (FDFA).
+
+• Branch 1 (Sparsity via ReLU): This branch isolates sparse, highenergy features, effectively capturing dominant degradation
+events and introducing important non-linearity.
+• Branch 2 (Bipolarity via Tanh): This branch offers a bounded nonlinearity within the range (−1, 1). It is essential for modeling
+saturation dynamics, such as the voltage plateaus and capacity
+regeneration limits frequently observed in electrochemical data,
+exemplified by the NASA dataset.
+• Branch 3 (Linearity via Identity): This branch maintains the intrinsic linear geometry of input features. It facilitates linear
+fidelity and promotes robust gradient flow, operating as a shortcut
+connection consistent with the lightweight philosophy (He et al.,
+2015a).
+
+subsequently traverse a standard Agent Attention block, preserving
+linear complexity 𝑂(𝑁𝑑):
+𝐘FDFA = AAT-1d(𝐗𝑑𝑖𝑣 )
+
+(17)
+
+By fusing this output, the model assimilates both the raw global context and salient high-energy patterns from an orthogonal perspective.
+This strategy facilitates effective fusion by providing a complementary,
+sparsity-controlled feature subspace to the final AFF output.
+PIAF: Parallel heterogeneous activation fusion. The PIAF module, depicted in Fig. 8(b), serves as the final non-linear mapping stage, designed to address complex degradation patterns that homogeneous
+activation functions struggle with. In contrast to architectures relying
+on single activation types, PIAF leverages a ‘‘Mixture of Activations’’
+paradigm to engineer a heterogeneous feature space by combining
+three mathematically distinct and physically motivated branches in
+parallel:
+
+Formalizing this structure, the branch operations are defined as:
+𝐇𝑠𝑝𝑎𝑟𝑠𝑒 = ReLU(𝐗𝐖1 ),
+
+𝐇𝑏𝑖𝑝𝑜𝑙𝑎𝑟 = Tanh(𝐗𝐖2 ),
+
+𝐇𝑙𝑖𝑛𝑒𝑎𝑟 = 𝐗𝐖3
+
+(18)
+
+The final output aggregates these diverse representations:
+𝐘PIAF = 𝐇𝑠𝑝𝑎𝑟𝑠𝑒 + 𝐇𝑏𝑖𝑝𝑜𝑙𝑎𝑟 + 𝐇𝑙𝑖𝑛𝑒𝑎𝑟
+10
+
+(19)
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Fig. 8. Comparison of (a) a traditional Series Informed Activation Function and (b) the proposed Parallel Informed Activation Function (PIAF).
+
+where 𝐖1 , 𝐖2 , 𝐖3 ∈ R𝑑×𝑑 denote learnable weight matrices. By synergizing these complementary mathematical properties, PIAF yields a
+feature richness enhanced compared to that of homogeneous activation
+layers.
+
+5.1.2. Uncertainty quantification metrics
+To evaluate the reliability of the prediction intervals (PIs), we
+adopted three probabilistic metrics based on established calibration
+frameworks (Kuleshov et al., 2018):
+• Prediction Interval Coverage Probability (PICP): This metric measures the proportion of ground-truth values falling within the
+predicted intervals [𝐿𝑖 , 𝑈𝑖 ] at a nominal confidence level:
+
+5. Results and discussion
+This section presents a systematic evaluation of the proposed SLAgentNet framework, benchmarked against four baseline models, including the Transformer, LSTM, CNN-Transformer, and CNN-LSTM,
+across three authoritative battery datasets. To ensure experimental
+rigor and simulate a realistic ‘‘early prediction’’ scenario, we adhered to
+a strict protocol where models were trained using only the initial 30%
+of cycle data. Consequently, the remaining 70% served as the unseen
+test horizon for prognostic evaluation.
+In addition to reporting estimation accuracy, this section elucidates
+the mechanistic origins of performance gains, verifies model robustness
+through rigorous ablation and sensitivity analyses, quantifies prediction
+uncertainty, and addresses the limitations of the current approach. This
+holistic assessment validates the practical viability of the framework for
+resource-constrained vehicular instrumentation.
+
+1∑
+I{𝑦𝑖 ∈ [𝐿𝑖 , 𝑈𝑖 ]}
+𝑛 𝑖=1
+𝑛
+
+PICP =
+
+(22)
+
+where I{⋅} is the indicator function.
+• Mean Prediction Interval Width (MPIW): This metric quantifies the
+sharpness, or efficiency, of the uncertainty bounds:
+1∑
+(𝑈 − 𝐿𝑖 )
+𝑛 𝑖=1 𝑖
+𝑛
+
+MPIW =
+
+(23)
+
+• Average Calibration Error (ACE): To summarize global calibration
+quality, we report the ACE computed as the average absolute
+deviation across a discretized grid  of nominal confidence levels
+(e.g.,  = {0.5, 0.8, 0.9, 0.95}) (Kuleshov et al., 2018):
+1 ∑
+ACE =
+(24)
+|PICP(𝑐) − 𝑐|
+|| 𝑐∈
+
+5.1. Evaluation metrics
+
+This metric quantifies the average misalignment between the
+expected coverage 𝑐 and the observed coverage PICP(𝑐), where
+a value closer to 0 indicates superior calibration.
+
+To comprehensively assess the performance of the proposed framework, we employed a multi-dimensional evaluation protocol comprising both deterministic error metrics and probabilistic uncertainty metrics.
+
+5.2. Model robustness and hyperparameter analysis
+To address theoretical concerns regarding training stability and validate the robustness of our lightweight design choices, the initialization
+strategy, convergence dynamics, and hyperparameter sensitivity were
+analyzed.
+
+5.1.1. Deterministic accuracy metrics
+Four standard metrics were utilized to gauge estimation precision
+(Chicco et al., 2021): Coefficient of Determination (𝑅2 ), Mean Absolute Error (MAE), Mean Absolute Percentage Error (MAPE), and Root
+Mean Square Error (RMSE). While MAE and MAPE reflect general
+accuracy, RMSE is particularly critical for BMS safety, as it penalizes
+larger prediction errors that could lead to hazardous overcharging or
+over-discharging. These metrics are defined as:
+√
+√ 𝑛
+𝑛
+√1 ∑
+1∑
+MAE =
+|𝑦𝑖 − 𝑦̂𝑖 |, RMSE = √
+(𝑦 − 𝑦̂𝑖 )2
+(20)
+𝑛 𝑖=1
+𝑛 𝑖=1 𝑖
+∑𝑛
+𝑛
+(𝑦𝑖 − 𝑦̂𝑖 )2
+1 ∑ || 𝑦𝑖 − 𝑦̂𝑖 ||
+MAPE =
+, 𝑅2 = 1 − ∑𝑖=1
+(21)
+|
+|
+𝑛
+𝑛 𝑖=1 | 𝑦𝑖 |
+̄2
+𝑖=1 (𝑦𝑖 − 𝑦)
+
+5.2.1. Initialization strategy and convergence analysis
+Unbounded kernel functions, such as ReLU, often pose challenges
+to the training stability of linear attention mechanisms. To promote
+robust convergence for SL-AgentNet, its initialization strategy and convergence behavior were analyzed using quantitative metrics derived
+from the training logs of representative battery cells (NASA B0005 and
+CALCE CS2_35).
+Initialization strategy. By fixing the number of agent tokens to 𝑛 = 1,
+the theoretical lower bound linear complexity 𝑂(𝑁𝑑) was achieved.
+In contrast to standard Agent Attention implementations that derive
+agents via dynamic pooling, the single agent token 𝐀 ∈ R1×𝑑 was
+defined as a static learnable anchor. While this design provides a
+
+where 𝑦𝑖 and 𝑦̂𝑖 represent the ground-truth and predicted SOH values,
+respectively; 𝑦̄ denotes the mean of observed values, and 𝑛 is the sample
+size.
+11
+
+

@@ -1,0 +1,61 @@
+\begin{table}[H]
+\TableStyle
+\caption{Layer configurations of different deep learning models.}
+\label{tab:4-4}
+\begin{tabularx}{\linewidth}{@{\extracolsep{\fill}}L{0.96}L{1.10}L{1.03}L{1.18}L{0.73}@{}}
+\toprule
+MS-AgentNet & CNN-\newline Transformer & Transformer & CNN-LSTM & LSTM \\
+\midrule
+\begin{minipage}[t]{\hsize}\vspace{0pt}\raggedright\setlength{\parskip}{0pt}
+Input\TableLayerSep
+Embedding layer\newline(16)\TableLayerSep
+SLFA module\TableLayerSep
+DSConv-L module\TableLayerSep
+Add \& Norm\TableLayerSep
+FFN\TableLayerSep
+Add \& Norm\TableLayerSep
+Linear layer
+\end{minipage}
+&
+\begin{minipage}[t]{\hsize}\vspace{0pt}\raggedright\setlength{\parskip}{0pt}
+Input\TableLayerSep
+Embedding layer\newline(16)\TableLayerSep
+Positional encoder\TableLayerSep
+Softmax attention\TableLayerSep
+$2\times$ Conv1D + ReLU\TableLayerSep
+MLP\TableLayerSep
+Transformer decoder\TableLayerSep
+Linear layer
+\end{minipage}
+&
+\begin{minipage}[t]{\hsize}\vspace{0pt}\raggedright\setlength{\parskip}{0pt}
+Input\TableLayerSep
+Embedding layer\newline(16)\TableLayerSep
+Positional encoder\TableLayerSep
+Softmax attention\TableLayerSep
+Add \& Norm\TableLayerSep
+MLP\TableLayerSep
+Add \& Norm\TableLayerSep
+Transformer decoder\TableLayerSep
+Linear layer
+\end{minipage}
+&
+\begin{minipage}[t]{\hsize}\vspace{0pt}\raggedright\setlength{\parskip}{0pt}
+Input\TableLayerSep
+Conv1D + ReLU\TableLayerSep
+MaxPooling1D\TableLayerSep
+$3\times$ Conv1D + ReLU\TableLayerSep
+$3\times$ LSTM layer (16)\TableLayerSep
+Linear layer
+\end{minipage}
+&
+\begin{minipage}[t]{\hsize}\vspace{0pt}\raggedright\setlength{\parskip}{0pt}
+Input\TableLayerSep
+Linear layer (16)\TableLayerSep
+$5\times$ LSTM layer (16)\TableLayerSep
+Linear layer
+\end{minipage}
+\\
+\bottomrule
+\end{tabularx}
+\end{table}

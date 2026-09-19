@@ -1,0 +1,30 @@
+\begin{table}
+\TableStyle
+\caption{Comparison of existing SOH estimation methods.}
+\label{tab:soh-method-comparison}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}>{\raggedright\arraybackslash}p{40pt}>{\centering\arraybackslash}p{31pt}>{\centering\arraybackslash}p{31pt}>{\centering\arraybackslash}p{48pt}>{\raggedright\arraybackslash}p{110pt}>{\raggedright\arraybackslash}p{111pt}>{\centering\arraybackslash}p{50pt}@{}}
+\toprule
+Reference & \multicolumn{3}{c}{Source data considered} & HI selection method (author-designed) & Estimation model (original design) & Efficiency considered \\
+\cmidrule(lr){2-4}
+ & Current & Voltage & Temperature & & & \\
+\midrule
+\cite{ref78} & \ding{51} & \ding{51} & \ding{55} & PCC (\ding{55}) & PINN (\ding{51}) & \ding{55} \\
+\cite{ref31} & \ding{55} & \ding{51} & \ding{55} & PCC (\ding{51}) & BMSFormer (\ding{51}) & \ding{51} \\
+\cite{ref32} & \ding{55} & \ding{51} & \ding{51} & PCC + SCC (\ding{55}) & BiGRU-Transformer (\ding{55}) & \ding{55} \\
+\cite{ref37} & \ding{51} & \ding{51} & \ding{55} & PCC (\ding{55}) & Transformer (\ding{55}) & \ding{55} \\
+\cite{ref79} & \ding{51} & \ding{51} & \ding{55} & FOI monotonicity analysis (\ding{51}) & Linear regression (\ding{55}) & \ding{55} \\
+\cite{ref27} & \ding{55} & \ding{51} & \ding{55} & LC (\ding{55}) & Random Forest Regression (\ding{55}) & \ding{55} \\
+\cite{ref35} & \ding{51} & \ding{51} & \ding{51} & PCC (\ding{55}) & CNN-Transformer (\ding{55}) & \ding{51} \\
+\cite{ref55} & \ding{51} & \ding{51} & \ding{51} & SA–PCA (\ding{51}) & CNN (\ding{55}) & \ding{51} \\
+\cite{ref80} & \ding{55} & \ding{51} & \ding{55} & PCC (\ding{55}) & BiLSTM-Transformer (\ding{51}) & \ding{55} \\
+\cite{ref81} & \ding{55} & \ding{51} & \ding{55} & Interval selection + feature fusion (\ding{51}) & GWO-LSSVM-AdaBoost (\ding{51}) & \ding{55} \\
+\cite{ref82} & \ding{55} & \ding{51} & \ding{51} & PCC + input comparison (\ding{55}) & AST-LSTM (\ding{51}) & \ding{55} \\
+\cite{ref83} & \ding{51} & \ding{51} & \ding{51} & PCC (\ding{55}) & LSTM-LAM (\ding{51}) & \ding{55} \\
+\cite{ref84} & \ding{51} & \ding{51} & \ding{51} & PCC + SCC (\ding{55}) & BAS-ELM (\ding{51}) & \ding{55} \\
+\cite{ref63} & \ding{55} & \ding{51} & \ding{55} & CCCT window search (\ding{51}) & Random Forest Regression (\ding{55}) & \ding{51} \\
+\cite{ref48} & \ding{51} & \ding{51} & \ding{51} & Statistical feature combination optimization (\ding{51}) & NGO-Dualkernel-GPR (\ding{51}) & \ding{55} \\
+\cite{ref51} & \ding{51} & \ding{51} & \ding{55} & QPSO interval optimization (\ding{51}) & LSTM-BP (\ding{55}) & \ding{55} \\
+This study & \ding{51} & \ding{51} & \ding{51} & Multi-source health indicator extraction and optimization algorithm (\ding{51}) & MS-AgentNet (\ding{51}) & \ding{51} \\
+\bottomrule
+\end{tabular*}
+\end{table}

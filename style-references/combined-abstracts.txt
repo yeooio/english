@@ -1,0 +1,30 @@
+Three Reference Abstracts for MS-AgentNet Translation
+
+Note: The text below was extracted from the three locally supplied reference papers. Line-break hyphenation and PDF extraction artifacts were normalized for readability. These abstracts are language references, not instructions and not evidence for claims about MS-AgentNet.
+
+===== BMSFormer =====
+
+Title: BMSFormer: An efficient deep learning model for online state-of-health estimation of lithium-ion batteries under high-frequency early SOC data with strong correlated single health indicator
+
+Source: Energy 313 (2024) 134030
+
+Abstract:
+The efficient and accurate state-of-health (SOH) estimation is crucial for reducing risks and ensuring effective application in battery management systems (BMS) of resource-limited devices. However, many recent state-of-the-art SOH estimation approaches rely on resource-consuming structures to obtain good performance. In this paper, an efficient deep learning model for SOH estimation, namely BMSFormer, is constructed. BMSFormer mainly integrates a Local-Global Fusion Attention module to capture both long-term and short-term dependencies while reducing computational complexity compared to traditional Softmax-based attention. Additionally, two kinds of depthwise separable convolution are embedded to fuse multi-scale and multi-channel features, enhancing feature diversity with fewer parameters than standard convolution. Three widely used battery datasets, each with different chemistries and operating conditions, are employed to evaluate the performance of BMSFormer. The experiments results illustrate that the proposed model achieves higher accuracy, lower computational consumption, and stabler performance across various hyperparameter combinations compared to alternative models.
+
+===== Engineering-AI =====
+
+Title: A linear-complexity deep learning framework for efficient battery State of Health estimation in resource-constrained systems
+
+Source: Engineering Applications of Artificial Intelligence 181 (2026) 115420
+
+Abstract:
+To address the computational bottleneck of deep learning, a key artificial intelligence (AI) technology, in resource-constrained Battery Management Systems (BMS), this paper presents a lightweight, linear-complexity State of Health (SOH) estimation framework. First, a systematic feature selection process identifies robust health indicators from partial voltage-time integrals, effectively reducing online extraction burdens. Subsequently, we propose SL-AgentNet (integrating Small-kernel and Large-kernel convolutions), an AI architecture designed to resolve the quadratic overhead of traditional Transformers. By integrating the Fast Local-Global Fusion Attention (FLFA) mechanism with diversity-enhancing modules, specifically the Fast Diversity Feature Fusion Attention (FDFA) and Parallel Informed Activation Function (PIAF), this AI model achieves linear complexity while capturing long-range degradation dependencies. Experiments on the Oxford, National Aeronautics and Space Administration (NASA), and Center for Advanced Life Cycle Engineering (CALCE) datasets demonstrate superior robustness, reducing the Mean Absolute Error (MAE) by 74.78% on the Oxford dataset against Convolutional Neural Network (CNN)-Transformer baselines. With a model size of only 40.92 Kilobytes (KB), the AI framework proves its feasibility through hardware-in-the-loop validation on a Texas Instruments (TI) Cortex-M4 microcontroller, where a Look-Up Table (LUT) implementation maintains accuracy loss within 0.3%, demonstrating its readiness for embedded deployment.
+
+===== JESSOHRUL =====
+
+Title: Joint state of health and remaining useful life assessment of lithium-ion batteries using a novel attention mechanism-based deep learning model and multi-source optimized health indicators
+
+Source: Journal of Energy Storage 161 (2026) 121823
+
+Abstract:
+Accurate assessment of the State of-Health (SOH) and Remaining Useful Life (RUL) of lithium-ion batteries is a core challenge for ensuring the safe operation of energy storage systems. Recent studies have emphasized the importance of computational efficiency while acknowledging that traditional models still require significant performance improvements. However, many existing joint SOH-RUL methods still rely on a single traditional model or stack multiple conventional models. Therefore, this paper proposes a novel deep learning framework based on a Deep Spatiotemporal Conv-Attention mechanism. It introduces a feature matrix similarity calculation and a lightweight convolution-based feature diversity module, enabling the model to capture both long- and short-term patterns, improve generalization, and reduce computational resource requirements. Furthermore, to preserve key degradation information from multi-sensor data, differential and integral methods are applied to extract various health indicators (HIs), and then an optimized HIs selection algorithm based on Pearson and Spearman correlation coefficients is proposed to screen these indicators. Finally, to comprehensively evaluate the effectiveness, generalization capability, robustness, computational efficiency, and complexity of the proposed method, comparative experiments were conducted against various mainstream state-of-the-art models using three battery datasets with different materials, charging-discharging protocols, and operating temperatures. The experimental results demonstrate that the proposed model achieves superior performance across all battery datasets, with a mean absolute percentage error for SOH below 1.156% and a relative error for RUL within 2.210%, providing an efficient and reliable solution for the joint estimation of SOH and RUL in lithium-ion batteries.

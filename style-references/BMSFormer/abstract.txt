@@ -1,0 +1,88 @@
+Energy 313 (2024) 134030
+
+Contents lists available at ScienceDirect
+
+Energy
+journal homepage: www.elsevier.com/locate/energy
+
+BMSFormer: An efficient deep learning model for online state-of-health
+estimation of lithium-ion batteries under high-frequency early SOC data
+with strong correlated single health indicator
+Xiaopeng Li a , Minghang Zhao a,c,*, Shisheng Zhong a,b,c , Junfu Li d, Song Fu b, Zhiqi Yan e
+a
+
+Department of Mechanical Engineering, Harbin Institute of Technology, Weihai, Shandong, 264209, China
+School of Mechatronics Engineering, Harbin Institute of Technology, Harbin, Heilongjiang, 150000, China
+Weihai Key Laboratory of Intelligent Operation and Maintenance, Harbin Institute of Technology, Weihai, Shandong, 264209, China
+d
+School of Automotive Engineering, Harbin Institute of Technology, Weihai, Shandong, 264209, China
+e
+College of Aeronautical Engineering, Civil Aviation University of China, Tianjin, 300300, China
+b
+c
+
+A R T I C L E I N F O
+
+A B S T R A C T
+
+Handling editor: Prof X Ou
+
+The efficient and accurate state-of-health (SOH) estimation is crucial for reducing risks and ensuring effective
+application in battery management systems (BMS) of resource-limited devices. However, many recent state-ofthe-art SOH estimation approaches rely on resource-consuming structures to obtain good performance. In this
+paper, an efficient deep learning model for SOH estimation, namely BMSFormer, is constructed. BMSFormer
+mainly integrates a Local-Global Fusion Attention module to capture both long-term and short-term de­
+pendencies while reducing computational complexity compared to traditional Softmax-based attention. Addi­
+tionally, two kinds of depthwise separable convolution are embedded to fuse multi-scale and multi-channel
+features, enhancing feature diversity with fewer parameters than standard convolution. Three widely used
+battery datasets, each with different chemistries and operating conditions, are employed to evaluate the per­
+formance of BMSFormer. The experiments results illustrate that the proposed model achieves higher accuracy,
+lower computational consumption, and stabler performance across various hyperparameter combinations
+compared to alternative models.
+
+Keywords:
+State of health
+Lithium-ion batteries
+Efficiency estimation
+Local-global fusion attention
+Depthwise feature fusion
+
+1. Introduction
+Nowadays, with the advantages of high energy density, low selfdischarge rate and long service life, lithium-ion batteries have become
+one of the main energy storage devices in civil airlines, electric vehicles,
+mobile devices, aerospace and other domains [1]. Although, lithium-ion
+batteries bring convenience to people’s lives, they also pose latent safety
+hazards. These hazards primarily arise from the complicated degrada­
+tion processes brought by complex internal chemical structure, different
+working conditions and environment. Therefore, precise monitoring and
+state estimation are essential to enhance battery safety, reliability, and
+performance.
+As an essential guard of battery safe and efficient operation, battery
+management system (BMS) can record real-time data, manage cell bal­
+ance, estimate internal status and provide emergency protection [2–4].
+The internal states, such as state-of-health (SOH), cannot be measured
+
+directly. At the same time, due to the limited storage space of embedded
+devices, they often rely on online estimations using simple approaches,
+such as Kalman filter (KF) and its variants [5–7], classical physical
+models [8], equivalent circuit models (ECM) [9] and traditional ma­
+chine learning (ML) algorithms like support vector machines (SVM) [10]
+and random forest (RF) [11]. However, on one hand, when faced with
+nonlinear and unstable data from online monitoring and historical cy­
+cles, traditional models struggle to provide high performance due to
+their structural constraints [12,13]; On the other hand,
+high-performance deep models are generally not feasible enough for
+convenient deployment on BMS due to their computationally expensive
+structures. Actually, since the emergence of AlexNet [14], the predom­
+inant trend in model architecture has been towards increasing depth and
+size, but many real-world applications need to be performed in real-time
+and/or on limited resource mobile devices [15]. Thereby, the
+high-performance deep models have a certain demand to be compact
+
+* Corresponding author. Department of Mechanical Engineering, Harbin Institute of Technology, Weihai, Shandong, 264209, China.
+E-mail address: zhaomh@hit.edu.cn (M. Zhao).
+https://doi.org/10.1016/j.energy.2024.134030
+Received 27 September 2024; Received in revised form 15 November 2024; Accepted 27 November 2024
+Available online 30 November 2024
+0360-5442/© 2024 Elsevier Ltd. All rights are reserved, including those for text and data mining, AI training, and similar technologies.
+
+

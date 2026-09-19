@@ -1,0 +1,30 @@
+\begin{table}
+\TableStyle
+\caption{Description of the four battery datasets.}
+\label{tab:2-1}
+\begin{tabularx}{\linewidth}{@{\extracolsep{\fill}}L{1.05}L{0.95}L{0.95}L{0.95}L{1.10}@{}}
+\toprule
+Data Sources & Oxford \cite{ref60} & CALCE CS2 \cite{ref61,ref18} & CALCE CX2 \cite{ref61,ref18} & MIT/Severson \cite{ref62} \\
+\midrule
+Manufacturer & Kokam & LG Chem & LG Chem & A123 Systems \\
+\TableRowSpace
+Cell types & Pouch & Prismatic & Prismatic & 18650 cylindrical \\
+\TableRowSpace
+Cathode material & NCO-LCO & LCO & LCO & LFP \\
+\TableRowSpace
+Rated capacity (Ah) & 0.74 & 1.10 & 1.35 & 1.10 \\
+\TableRowSpace
+Capacity failure\newline threshold & 70\% & 0.84 Ah (76.4\%) & 1.08 Ah (80\%) & 80\% \\
+\TableRowSpace
+Charge protocol\newline (rate) & CC (2C) & CC-CV\newline (0.5C, 4.2 V) & CC-CV\newline (0.5C, 4.2 V) & Two-step fast charge\newline + CC-CV (1C, 3.6 V) \\
+\TableRowSpace
+Discharge protocol\newline (rate) & Dynamic current profile & CC (1C) & CC (1C) & CC (4C) \\
+\TableRowSpace
+Cut-off voltage (V) & charge to 4.2\newline discharge to 2.7 & charge to 4.2\newline discharge to 2.7 & charge to 4.2\newline discharge to 2.7 & charge to 3.6\newline discharge to 2.0 \\
+\TableRowSpace
+Cut-off current (A) & --- & charge to 0.05 & charge to 0.05 & charge to 0.022\newline (C/50) \\
+\TableRowSpace
+Experiment\newline temperature ($^\circ$C) & 40 & 24 & 24 & 30 \\
+\bottomrule
+\end{tabularx}
+\end{table}

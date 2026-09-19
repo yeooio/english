@@ -1,0 +1,454 @@
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+4.4.2. Complexity analysis
+In practical applications, it is crucial to evaluate models not only
+based on accuracy but also by considering computational efficiency and
+hardware constraints. Key metrics for this evaluation include training
+cost (FLOPs, training time, and parameter count) and hardware cost
+(storage size). The comparative results are shown in Table 14.
+To ensure a fair comparison, all models are evaluated under identical
+training and architectural hyperparameters. Specifically, FLOPs,
+measured using the THOP library's profile function, quantify the
+floating-point operations required for a single forward pass. Training
+time, recorded in seconds via Python's time module, reflects the duration
+needed to train a model on the dataset. The total number of trainable
+parameters, typically in millions, is determined using the torchsummary
+library's summary function. Finally, storage size, measured in kilobytes
+using Python's os.path.getsize function, indicates the space required to
+store model parameters on a device.
+For consistency and comprehensive comparison, all models are
+trained under two distinct configurations: (1) 1000 epochs with a
+learning rate of 0.01, and (2) 200 epochs with a learning rate of 0.001.
+Both settings use a batch size of 128 and a dropout rate of 0.1. To
+standardize model complexity, Transformer-based architectures employ
+an embedding dimension of 16, a dense (MLP) dimension of 16, four
+attention heads, and single-layer encoders and decoders. LSTM-based
+models use four layers with a hidden dimension of 32. At the same
+time, all data uses the first 30% of the B0005 battery dataset, with a
+window size of 5. This dual-setting design allows for a more robust
+evaluation of model performance under both extensive and limited
+training conditions.
+In CNN-Transformer models, the CNN module consists of a depth­
+wise separable convolutional layer positioned after the multi-head selfattention module. The convolutional layers are configured with kernel
+sizes of 3, 2, and 3, and strides of 1, 2, and 1, respectively, followed by
+ReLU activation. This setup ensures a balanced comparison of compu­
+tational demands across different architectures.
+Under the high-resource setting (1000 epochs), the proposed model
+achieves a training time of only 11.15 s with 6.45 million parameters,
+requiring just 0.25 million FLOPs and 30.05 KB of storage. Compared to
+the CNN-Transformer, which takes 18.48 s and consumes 0.40 million
+FLOPs with a slightly smaller parameter count (5.54 million), the pro­
+posed model achieves a 39.7% reduction in training time and a 37.5%
+reduction in FLOPs. Against the standard Transformer, the proposed
+model shows a 31.6% decrease in training time and a 77.3% reduction in
+FLOPs, while still requiring fewer parameters and less storage. Notably,
+even compared to LSTM, which has more parameters (8.75 million) and
+longer training time (8.60 s), the proposed model maintains a more
+compact architecture and lower computational demand.
+Under the low-resource configuration (200 epochs), the efficiency
+advantages of the proposed model become even more pronounced. It
+
+completes training in only 2.60 s, compared to 3.96 s for CNNTransformer (34.3% faster) and 4.10 s for Transformer (36.6% faster),
+while maintaining the lowest FLOPs (0.05 M). Furthermore, compared
+to LSTM, the proposed model reduces FLOPs by 66.7% and cuts training
+time by over 1.3 s, despite using significantly fewer parameters and
+storage.
+These results clearly show that the proposed model offers a favorable
+balance between computational efficiency and model capacity, making
+it especially suitable for deployment in resource-constrained environ­
+ments where both speed and compactness are critical.
+5. Conclusion
+This study proposes an innovative deep learning framework for the
+joint estimation of lithium-ion battery State of Health (SOH) and
+Remaining Useful Life (RUL). The framework integrates a Deep
+Spatiotemporal Convolutional Attention (DSCA) mechanism with multiscale Depthwise Separable Convolutions (DSConv), achieving a balance
+between computational efficiency and prediction accuracy in feature
+extraction and time-series modeling. By reformulating the traditional
+attention computation, the proposed DSCA reduces the computational
+(
+)
+(
+)
+complexity from O N2 d to O Nd2 , significantly lowering the
+computational cost in large-scale sequence tasks. Meanwhile, the multiscale DSConv modules effectively capture both long-term degradation
+trends and short-term capacity recovery behaviors, enhancing the
+model's capability to represent complex temporal variations during
+battery aging.
+Furthermore, a novel health indicator (HI) selection algorithm based
+on Pearson and Spearman correlation coefficients (PCC and SCC) is
+introduced to evaluate and select the most representative indicators,
+enabling standardized feature selection across different datasets. This
+approach enhances the model's robustness and generalization in multisource SOH estimation. To mitigate the effects of short-term capacity
+regeneration and noise interference, the CEEMDAN decomposition
+method is employed to extract a smooth and quasi-monotonic capacity
+degradation trend, providing more stable input data for prediction.
+Comprehensive validation on three public datasets demonstrates
+that the proposed model outperforms existing state-of-the-art methods
+in terms of prediction accuracy, generalization capability, and compu­
+tational efficiency. By ensuring high-precision prediction with reduced
+computational requirements, the proposed framework shows strong
+potential for real-world deployment in Battery Management Systems
+(BMS). Specifically, the lightweight model architecture and stable joint
+SOH–RUL estimation capability enable its implementation in online and
+embedded BMS environments, where computational resources are
+limited and prediction robustness is critical. The enhanced degradation
+trend stability and reduced prediction fluctuations further support its
+
+Table. 14
+Efficiency comparison results on B0005.
+Models
+Proposed
+CNN-Transformer
+Transformer
+LSTM
+BMSFormer [2]
+Proposed
+CNN-Transformer
+Transformer
+LSTM
+CNN-Transformer [37]
+RB-FA-FF [30]
+AMN-UKF [72]
+MEWOA-VMD-LSTM [73]
+SGRU [74]
+
+Training hyperparameters
+
+Model hyperparameters
+
+Performance indicator
+
+e
+
+lr
+
+b
+
+de
+
+dd
+
+n
+
+GFLOPs
+
+Training time (s)
+
+Parameters
+
+Storage size(KB)
+
+1000
+1000
+1000
+1000
+1000
+200
+200
+200
+200
+–
+–
+–
+–
+–
+
+0.01
+0.01
+0.01
+0.01
+0.01
+0.001
+0.001
+0.001
+0.001
+0.00055
+0.0001
+–
+–
+–
+
+128
+128
+128
+128
+128
+128
+128
+128
+128
+–
+32
+–
+–
+–
+
+16
+16
+16
+–
+16
+16
+16
+16
+–
+–
+–
+–
+–
+–
+
+16
+16
+16
+16
+16
+16
+16
+16
+16
+–
+–
+–
+–
+–
+
+4
+4
+4
+4
+4
+4
+4
+4
+4
+–
+–
+–
+–
+–
+
+0.25
+0.40
+1.10
+0.74
+0.46
+0.05
+0.81
+0.20
+0.15
+1.01
+0.74
+2.14
+5.46
+2.01
+
+11.15
+18.48
+16.29
+8.60
+19.83
+2.60
+3.96
+4.10
+1.76
+806.4
+–
+–
+–
+–
+
+6450
+5538
+4625
+8753
+5330
+6450
+5538
+4625
+8753
+26,100
+6,050,000
+231,440
+269,057
+323,000
+
+30.05
+39.99
+37.33
+41.12
+36.37
+30.05
+39.99
+37.33
+41.12
+2235
+–
+–
+–
+–
+
+24
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+applicability in real-time health monitoring and decision-making sce­
+narios. In addition, owing to the standardized health indicator selection
+strategy and robust multi-dataset validation, the proposed framework
+demonstrates promising adaptability to batteries with different chemical
+systems and aging characteristics. This suggests that the method can be
+extended to diverse lithium-ion battery chemistries and application
+domains without extensive model redesign, facilitating its deployment
+in practical battery health management and prognostics systems.
+Future research will focus on developing lighter and more efficient
+model architectures while further validating the proposed approach on a
+wider range of battery materials and chemistries, as well as real-vehicle
+operational data. Such efforts aim to enhance the model's adaptability
+and reliability for practical large-scale applications in intelligent energy
+storage and electric vehicle systems.
+
+[12] Y. Zheng, J. Hu, J. Chen, H. Deng, W. Hu, State of health estimation for lithium
+battery random charging process based on CNN-GRU method, Energy Rep. 9
+(2023) 1–10, https://doi.org/10.1016/j.egyr.2022.12.093.
+[13] C. Qian, B. Xu, L. Chang, B. Sun, Q. Feng, D. Yang, Y. Ren, Z. Wang, Convolutional
+neural network based capacity estimation using random segments of the charging
+curves for lithium-ion batteries, Energy 227 (2021) 120333, https://doi.org/
+10.1016/j.energy.2021.120333.
+[14] D. Chen, W. Hong, X. Zhou, Transformer network for remaining useful life
+prediction of Lithium-ion batteries, IEEE Access 10 (2022) 19621–19628, https://
+doi.org/10.1109/ACCESS.2022.3151975.
+[15] C. Jia, Y. Tian, Y. Shi, J. Jia, J. Wen, J. Zeng, State of health prediction of lithiumion batteries based on bidirectional gated recurrent unit and transformer, Energy
+285 (2023) 129401, https://doi.org/10.1016/j.energy.2023.129401.
+[16] S. Ma, M. Jiang, P. Tao, C. Song, J. Wu, J. Wang, T. Deng, W. Shang, Temperature
+effect and thermal impact in lithium-ion batteries: a review, Prog. Nat. Sci.: Mater.
+Int. 28 (2018) 653–666, https://doi.org/10.1016/j.pnsc.2018.11.002.
+[17] X. Wang, Estimation of state of health of lithium-ion batteries based on charge
+transfer resistance considering different temperature and state of charge, J. Energy
+Storage 21 (2019) 618–631.
+[18] X. Li, M. Zhao, S. Zhong, J. Li, Z. Cui, S. Fu, Z. Yan, Deep transfer learning enabled
+online state-of-health estimation of lithium-ion batteries under small samples
+across different cathode materials, ambient temperature and charge-discharge
+protocols, J. Power Sources 650 (2025) 237503, https://doi.org/10.1016/j.
+jpowsour.2025.237503.
+[19] Y. Li, M. Abdel-Monem, R. Gopalakrishnan, M. Berecibar, E. Nanini-Maury,
+N. Omar, P. van den Bossche, J. Van Mierlo, A quick on-line state of health
+estimation method for Li-ion battery with incremental capacity curves processed
+by Gaussian filter, J. Power Sources 373 (2018) 40–53, https://doi.org/10.1016/j.
+jpowsour.2017.10.092.
+[20] C. Lin, J. Xu, M. Shi, X. Mei, Constant current charging time based fast state-ofhealth estimation for lithium-ion batteries, Energy 247 (2022) 123556, https://doi.
+org/10.1016/j.energy.2022.123556.
+[21] E. Chemali, P.J. Kollmeyer, M. Preindl, Y. Fahmy, A. Emadi, A convolutional neural
+network approach for estimation of li-ion battery state of health from charge
+profiles, Energies 15 (2022) 1185, https://doi.org/10.3390/en15031185.
+[22] Z. Li, X. Zhang, W. Gao, State of health estimation of lithium-ion battery during fast
+charging process based on BiLSTM-transformer, Energy 311 (2024) 133418,
+https://doi.org/10.1016/j.energy.2024.133418.
+[23] S. Bockrath, V. Lorentz, M. Pruckner, State of health estimation of lithium-ion
+batteries with a temporal convolutional neural network using partial load profiles,
+Appl. Energy 329 (2023) 120307, https://doi.org/10.1016/j.
+apenergy.2022.120307.
+[24] T. Wang, Z. Ma, S. Zou, Z. Chen, P. Wang, Lithium-ion battery state-of-health
+estimation: a self-supervised framework incorporating weak labels, Appl. Energy
+355 (2024) 122332, https://doi.org/10.1016/j.apenergy.2023.122332.
+[25] Y. Cai, W. Li, T. Zahid, C. Zheng, Q. Zhang, K. Xu, Early prediction of remaining
+useful life for lithium-ion batteries based on CEEMDAN-transformer-DNN hybrid
+model, Heliyon 9 (2023) e17754, https://doi.org/10.1016/j.heliyon.2023.e17754.
+[26] U. Saleem, W. Liu, S. Riaz, W. Li, G.A. Hussain, Z. Rashid, Z.A. Arfeen, TransRUL: a
+transformer-based multihead attention model for enhanced prediction of battery
+remaining useful life, Energies 17 (2024) 3976, https://doi.org/10.3390/
+en17163976.
+[27] S. Ly, J. Xie, F.-E. Wolter, H.D. Nguyen, Y. Weng, T-shape data and probabilistic
+remaining useful life prediction for li-ion batteries using multiple non-crossing
+quantile long short-term memory, Appl. Energy 349 (2023) 121355, https://doi.
+org/10.1016/j.apenergy.2023.121355.
+[28] Y. Liu, B. Hou, M. Ahmed, Z. Mao, J. Feng, Z. Chen, A hybrid deep learning
+approach for remaining useful life prediction of lithium-ion batteries based on
+discharging fragments, Appl. Energy 358 (2024) 122555, https://doi.org/
+10.1016/j.apenergy.2023.122555.
+[29] B. Chen, Y. Liu, B. Xiao, A novel hybrid neural network-based SOH and RUL
+estimation method for lithium-ion batteries, J. Energy Storage 98 (2024) 113074,
+https://doi.org/10.1016/j.est.2024.113074.
+[30] N. Cai, X. Que, X. Zhang, W. Feng, Y. Zhou, A deep learning framework for the joint
+prediction of the SOH and RUL of lithium-ion batteries based on bimodal images,
+Energy 302 (2024) 131700, https://doi.org/10.1016/j.energy.2024.131700.
+[31] J. Chen, P. Li, L. Wu, Joint prediction of SOH and RUL of lithium-ion batteries
+using single-cycle charging data, Energy 336 (2025) 138351, https://doi.org/
+10.1016/j.energy.2025.138351.
+[32] R. Zheng, B. Yang, Y. Qian, H. Li, D. Gao, L. Jiang, Joint SOH and RUL estimation
+for lithium-ion batteries via optimal deep belief network with bayesian algorithm,
+J. Energy Storage 114 (2025) 115891, https://doi.org/10.1016/j.est.2025.115891.
+[33] P. Yang, H.D. Yang, X.B. Meng, C.R. Song, T.L. He, J.Y. Cai, Y.Y. Xie, K.K. Xu, Joint
+evaluation and prediction of SOH and RUL for lithium batteries based on a GBLS
+booster multi-task model, J. Energy Storage 75 (2024) 109741, https://doi.org/
+10.1016/j.est.2023.109741.
+[34] K. Lv, Z. Ma, C. Bao, G. Liu, Indirect prediction of lithium-ion battery RUL based on
+CEEMDAN and CNN-BiGRU, Energies 17 (2024) 1704, https://doi.org/10.3390/
+en17071704.
+[35] D. Zhou, B. Wang, C. Zhu, F. Zhou, H. Wu, A light-weight feature extractor for
+lithium-ion battery health prognosis, Reliab. Eng. Syst. Saf. 237 (2023) 109352,
+https://doi.org/10.1016/j.ress.2023.109352.
+[36] S. Jafari, Y.-C. Byun, A CNN-GRU approach to the accurate prediction of batteries’
+remaining useful life from charging profiles, Computers 12 (2023) 219, https://
+doi.org/10.3390/computers12110219.
+
+CRediT authorship contribution statement
+Dexiong Li: Writing – original draft, Visualization, Validation,
+Software, Methodology, Formal analysis. Yan Xing: Writing – review &
+editing, Visualization, Project administration, Formal analysis. Xiao­
+peng Li: Writing – review & editing, Validation.
+Declaration of competing interest
+The authors declare that they have no known competing financial
+interests or personal relationships that could have appeared to influence
+the work reported in this paper.
+Data availability
+Data will be made available on request.
+References
+[1] F. Wang, Z. Zhai, Z. Zhao, Y. Di, X. Chen, Physics-informed neural network for
+lithium-ion battery degradation stable modeling and prognosis, Nat. Commun. 15
+(2024) 4332, https://doi.org/10.1038/s41467-024-48779-z.
+[2] X. Li, M. Zhao, S. Zhong, J. Li, S. Fu, Z. Yan, BMSFormer: an efficient deep learning
+model for online state-of-health estimation of lithium-ion batteries under highfrequency early SOC data with strong correlated single health indicator, Energy
+313 (2024) 134030, https://doi.org/10.1016/j.energy.2024.134030.
+[3] F.C. Krause, J.P. Ruiz, S.C. Jones, E.J. Brandon, E.C. Darcy, C.J. Iannello, R.
+V. Bugga, Performance of commercial Li-ion cells for future NASA missions and
+aerospace applications, J. Electrochem. Soc. 168 (2021) 040504, https://doi.org/
+10.1149/1945-7111/abf05f.
+[4] Y. Chen, W. Duan, Y. He, S. Wang, C. Fernandez, A hybrid data driven framework
+considering feature extraction for battery state of health estimation and remaining
+useful life prediction, Green Energy and Intelligent Transportation 3 (2024)
+100160, https://doi.org/10.1016/j.geits.2024.100160.
+[5] T. Wang, Y. Zhu, W. Zhao, Y. Gong, Z. Zhang, W. Gao, Y. Shang, Capacity
+degradation analysis and knee point prediction for lithium-ion batteries, Green
+Energy and Intelligent Transportation 3 (2024) 100171, https://doi.org/10.1016/
+j.geits.2024.100171.
+[6] G. Ma, S. Xu, T. Yang, Z. Du, L. Zhu, H. Ding, Y. Yuan, A transfer learning-based
+method for personalized state of health estimation of Lithium-ion batteries, IEEE
+Trans. Neural Netw. Learning Syst. 35 (2024) 759–769, https://doi.org/10.1109/
+TNNLS.2022.3176925.
+[7] S.K. Rechkemmer, X. Zang, W. Zhang, O. Sawodny, Empirical Li-ion aging model
+derived from single particle model, J. Energy Storage 21 (2019) 773–786, https://
+doi.org/10.1016/j.est.2019.01.005.
+[8] X. Qiang, W. Liu, Z. Lyu, H. Ruan, X. Li, A data-fusion-model method for state of
+health estimation of li-ion battery packs based on partial charging curve, Green
+Energy and Intelligent Transportation 3 (2024) 100169, https://doi.org/10.1016/
+j.geits.2024.100169.
+[9] Y. Zhang, R. Xiong, H. He, M.G. Pecht, Long short-term memory recurrent neural
+network for remaining useful life prediction of Lithium-ion batteries, IEEE Trans.
+Veh. Technol. 67 (2018) 5695–5705, https://doi.org/10.1109/
+TVT.2018.2805189.
+[10] J. Hong, W. Wang, Q. Chai, Q. Lin, F. Cai, State of health estimation of lithium-ion
+battery based on DAGRU, in: Fourth International Conference on Artificial
+Intelligence and Electromechanical Automation (AIEA 2023), SPIE, 2023,
+pp. 608–613, https://doi.org/10.1117/12.2684768.
+[11] A. Vaswani, N.M. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A.N. Gomez, L. Kaiser,
+I. Polosukhin, Attention Is all you Need, in. https://www.semanticscholar.
+org/paper/204e3073870fae3d05bcbc2f6a8e263d9b72e776, 2017. (Accessed 26
+August 2024).
+
+25
+
+

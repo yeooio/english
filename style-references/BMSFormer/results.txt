@@ -1,0 +1,1449 @@
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+V = XWV ,
+Oi =
+
+)
+(
+N
+∑
+Sim Qi , Kj
+V,
+N
+) j
+(
+∑
+j=1
+Sim Qi , Kj
+
+attention mechanism is defined as:
+)
+(
+Sim(Q, K) = ReLU(Q)ReLU DSConv-S(K)T
+
+(13)
+(14)
+
+(15)
+
+where the self-attention module can be rewritten as:
+
+j=1
+
+N [
+∑
+
+where WQ , WK , and WV ∈ RC×d are the learnable linear projection
+matrices, C and d are the channel dimensions of module and each head.
+Sim(⋅, ⋅) is the similarity function of self-attention mechanism.
+
+Oi =
+
+j=1
+
+(
+( )
+( )T ) ]
+ReLU(Qi )ReLU DSConv-S Kj
+DSConv-S Vj
+ReLU(Qi )
+
+N
+∑
+j=1
+
+(
+( )T )
+ReLU DSConv-S Kj
+
+(16)
+
+Then, by using the associative property of matrix multiplication, the
+computational complexity can be reduced from quadratic to linear while
+maintaining the same functionality:
+
+3.3.2. Softmax attention mechanism and linear attention mechanism
+Transformers mainly utilize Softmax Attention [38] with the
+(
+√̅̅̅ )
+Sim(Q, K) = exp QKT / d in Eq. (14). However, the attention map is
+
+N {
+∑
+
+obtained by computing the similarity between all query-key pairs,
+( )
+leading to the computation complexity of O N2 as illustrated in Fig. 6
+(a). In contrast, linear attention [69], as shown in Fig. 6(b), efficiently
+reduces the computation complexity by carefully designed similarity
+
+Oi =
+
+j=1
+
+[
+( )
+( )T ] }
+ReLU(Qi )ReLU DSConv-S Kj
+DSConv-S Vj
+
+[
+N
+( )T ]
+∑
+ReLU(Qi ) ReLU DSConv-S Kj
+j=1
+}
+{
+[
+N
+( )
+( )T ]
+∑
+DSConv-S Vj
+ReLU(Qi )
+ReLU DSConv-S Kj
+
+functions with Sim (Q, K) = ϕ(Q)ϕ(K)T , which changes the computa­
+(
+)
+(
+)
+tion order from ϕ(Q)ϕ(K)T V to ϕ(Q) ϕ(K)T V base on the associative
+property of matrix multiplication. The computation complexity with
+respect to the number of tokens in the sequence is reduced to O (N),
+where N represents the sequence length. This linear complexity allows
+the model to efficiently handle long sequences, which is particularly
+beneficial for time series analysis.
+Traditional Softmax attention amplifies the differences between all
+query-key pairs using the exponential function, significantly enhancing
+larger similarity values when calculating attention weights. Although
+Softmax attention provides stronger expressive power, its computational
+cost is a bit unbeneficial to its application in large-scale sequences. In
+contrast, linear attention uses different kernel functions ϕ( ⋅) to map Q
+and K into a new space, thereby enhancing the differences. While this
+may result in some loss of expressiveness, the new calculation order of
+the weight matrix in linear attention reduces computational complexity,
+which offers an advantage in processing long time-series sequences like
+battery SOH estimation.
+
+=
+
+(17)
+
+j=1
+
+ReLU(Qi )
+
+N
+∑
+j=1
+
+[
+( )T ]
+ReLU DSConv-S Kj
+
+( )T
+∑
+As shown in Eq. (17), the computation of Nj=1 ReLU Kj Vj ∈ Rd×d
+( )T
+∑
+and Nj=1 ReLU Kj ∈ Rd×1 are performed only once, after which these
+results can be reused for each query. This approach thereby requires
+only O (N) computational cost and O (N) storage memory.
+Another key advantage of ReLU-based global attention is that it
+prevents the vanishing gradient problem and involves simple operation
+max(0, x), making it faster to compute than Softmax, which requires
+exponentiation and normalization. For instance, some previous latency
+comparisons [70] show that, with similar computational demands,
+ReLU-based linear attention outperforms Softmax attention, particularly
+on mobile devices.
+4. Experiments and analysis
+
+3.3.3. The proposed attention module
+As illustrated in Fig. 6(c), the proposed Local-Global Fusion Atten­
+tion (LGFA) module utilizes the Rectified Linear Unit attention mecha­
+nism and enhances feature diversity through the DSConv-S module
+introduced in Section 3.2.1. The similarity function Eq. (14) of this
+
+This section presents a comprehensive evaluation of five models
+(BMSFormer, CNN-Transformer, CNN-LSTM, Transformer and LSTM)
+across three public battery datasets. The Cell1, B0005, and CS2-35 are
+employed as training sets, with the first 30 % of the data utilized for
+training across 384 hyperparameter combinations, including variations
+
+Fig. 6. Difference between (a) traditional Softmax attention mechanism, (b) traditional Linear Attention mechanism, and (3) the proposed Local-Global Fusion
+attention module.
+8
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+in epochs, learning rate, number of blocks and layers, and the di­
+mensions of the dense and embedding layers. The remaining 70 % of the
+data is reserved for validation and comparison to identify the bestperforming model parameters. The selected model is then directly
+tested on the entire datasets of other batteries to assess its generalization
+capability and to compare the performance of BMSFormer against the
+alternative models. Moreover, the robustness of the five models is
+compared through a detailed analysis of the 384 training results,
+without any further hyperparameter refinement.
+The training process is conducted on an ASUS TUF A15 computer,
+which is equipped with an AMD Ryzen R7-4800H (2.90 GHz), an NVIDA
+GeForce RTX 2060 and 24 GB of RAM. The operation system on this
+machine is Windows 11 Professional. The prediction models are built
+using PyTorch 2.0.0, utilizing Python 3.9.16 as the programming
+language.
+
+Table 4
+The layer configurations of different deep learning models.
+CNNTransformer
+
+Transformer
+
+CNN-LSTM
+
+LSTM
+
+Input
+Embed layer
+(32)
+
+Input
+Embed layer
+(32)
+
+Input
+Embed layer
+(32)
+
+Input
+Linear
+
+LGFA
+module
+
+Positional
+Encoder
+
+Positional
+Encoder
+
+Input
+Conv1D (1 × 3,
+1)
+ReLU
+MaxPooling1D
+(2 × 2, 2)
+
+DSConv-L
+module
+
+Softmax
+Attention
+
+Softmax
+Attention
+
+Add&Norm
+
+Conv1D (1 × 3,
+1) ReLU
+
+Add&Norm
+
+MLP
+
+MaxPooling1D
+(2, 2)
+Conv1D (1 × 3,
+1)
+ReLU,
+Add&Norm
+Softmax
+Attention
+Add&Norm
+MLP
+Add&Norm
+Linear
+
+Softmax
+Attention
+Add&Norm
+
+LSTM layer (32)
+
+LSTM
+layer
+(32)
+LSTM
+layer
+(32)
+LSTM
+layer
+(32)
+Linear
+
+LSTM layer (32)
+​
+
+MLP
+
+Linear
+​
+
+Add&Norm
+​
+
+​
+
+​
+
+​
+
+​
+
+​
+
+​
+
+​
+
+​
+
+​
+
+​
+
+4.1. The evaluation criteria
+
+BMSFormer
+
+Add&Norm
+
+Several widely adopted evaluation metrics are selected to assess the
+models’ performance: Mean Absolute Error (MAE), Mean Absolute
+Percentage Error (MAPE), Root Mean Squared Error (RMSE), the coef­
+ficient of determination R2 , and the Average Root Mean Squared Error
+(ARMSE). MAE measures the average magnitude of the errors in pre­
+dictions without considering their direction, which refers to whether the
+predicted values are above or below the actual values, providing a
+straightforward measure of prediction accuracy. MAPE expresses accu­
+racy as a percentage, making it useful for comparing performance across
+different datasets. RMSE is the square root of the average squared dif­
+ferences between predicted and actual values, giving larger weight to
+larger errors. The R2 score indicates the proportion of variance in the
+dependent variable predictable from the independent variables, with
+larger values showing better performance. ARMSE, the average of RMSE
+values over several subsets or folds, provides a stable measure of model
+performance across different data partitions. The formulas for these
+metrics are as follows:
+MAE =
+
+n
+1∑
+yi|
+|yi − ̂
+n i=1
+
+⃒
+n ⃒
+⃒ yi − ̂
+1∑
+y i ⃒⃒
+⃒
+n i=1 ⃒ yi ⃒
+
+(19)
+
+RMSE =
+
+√̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅
+n
+1∑
+(yi − ̂
+y i )2
+n i=1
+
+(20)
+
+R =1−
+2
+
+y i )2
+(yi − ̂
+
+i=1
+n
+∑
+i=1
+
+(yi − y)2
+
+m
+1 ∑
+ARMSE =
+m j=1
+
+√̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅
+n
+1∑
+(yi − ̂
+y i )2
+n i=1
+
+​
+​
+​
+​
+
+the Oxford dataset. As shown in the figure, in the validation results for
+Cell1, CNN-Transformer’s estimation error IQR is close to zero. How­
+ever, the asymmetry in the whiskers of the boxplot indicates a greater
+number of low outliers in the estimation results. This trend is also
+observed from Cell2 to Cell8, suggesting that the model’s estimation
+stability may be insufficient. The boxplot of prediction errors and the
+normal distribution plot across the eight batteries clearly show that
+BMSFormer has smaller and more concentrated prediction errors,
+illustrating superior prediction accuracy and robustness.
+Notably, in Cells 2 and 6, where there are several sudden drops, CNNTransformer and BMSFormer were able to track the true values most
+accurately, with BMSFormer showing the smallest prediction errors in
+response to sudden changes in Cell6. For the other six batteries with
+relatively stable SOH changes (excluding Cell3 and Cell8), BMSFormer
+performed the best and ranked first in the mean prediction results across
+all eight batteries, showing improvements in the average MAE of 14.81
+%, 59.65 %, 46.51 %, 73.56 %, the average RMSE of 16.21 %, 62.19 %,
+44.64 %, and 73.27 %, and the average MAPE of 20.00 %, 63.63 %,
+50.00 %, 76.32 % compared to CNN-Transformer, Transformer, CNNLSTM, and LSTM, respectively.
+
+(18)
+
+MAPE =
+
+n
+∑
+
+Linear
+
+Conv1D (1 × 3,
+1)
+ReLU
+LSTM layer (32)
+
+(21)
+
+4.2.2. Efficiency comparison
+In practical application, it is important to consider training cost
+(floating-point operations, training time, parameters) and hardware cost
+(storage size) besides the accuracy [72]. To ensure a fair comparison, the
+same training and model hyperparameters are set to evaluate the
+comprehensive performance of different models. The definitions of these
+evaluation metrics and the settings of hyperparameters are described as
+follows.
+
+(22)
+
+where y, ̂
+y , y, n and m are the actual SOH, predicted SOH, the average
+value of y, the number of testing samples, and the number of batteries,
+respectively [71].
+
+1. Evaluation Metrics: (1) floating-point operations (FLOPs), which
+are measured using the profile function from the THOP library,
+quantify the numbers of FLOPs required for a single forward pass. (2)
+Training time, measured in seconds using Python’s time module,
+represents the duration required to train a model on the training
+dataset. (3) Parameters, which are counted using the summary
+function from the torchsummary library, typically measured in mil­
+lions (Million), indicate the total number of trainable parameters in
+the model. (4) Storage size, which is counted using the os.path.
+
+4.2. Comparison on Oxford dataset
+4.2.1. Accuracy and generalization comparison
+Comparative experiments are conducted between BMSFormer and
+four alternative models. The layer configurations of these models are
+presented in Table 4.
+Fig. 7 and Table 5 show the estimation results and errors of
+BMSFormer, CNN-Transformer, CNN-LSTM, Transformer and LSTM on
+9
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+Fig. 7. The experimental results of different models on the Oxford dataset.
+
+getsize function of Python, measured in kilobytes (KB), indicates the
+storage requirements of the model parameters on a device.
+2. Training Hyperparameters: For the experiments, the same training
+hperparameters are used across all models. Each model is trained
+with a batch size of 128 for 1000 epochs. The learning rate is uni­
+formly set to 0.01, and a dropout rate of 0.1 is applied.
+
+3. Model Hyperparameters: To compare the computational
+complexity of different model structures under the same input data
+and training hyperparameters, the model hyperparameters are set as
+follows: For models based on the Transformer architecture, the pa­
+rameters are set uniformly: an embed dimension of 16, a dense
+dimension (MLP) of 16, four attention head, and both the encoder
+and decoder comprise one layer each. Four LSTM layers and hidden
+10
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+and the third convolutional layer has a kernel size of 3 and a stride of
+1. The activation function used is ReLU.
+
+Table 5
+SOH estimation errors of different models on the Oxford dataset.
+Cells
+
+Methods
+
+MAE
+
+MAPE
+
+RMSE
+
+R2
+
+Cell1*
+
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+
+0.0032
+0.0022
+0.0085
+0.0027
+0.0140
+0.0040
+0.0058
+0.0059
+0.0047
+0.0075
+0.0019
+0.0017
+0.0062
+0.0040
+0.0093
+0.0027
+0.0029
+0.0045
+0.0052
+0.0077
+0.0020
+0.0039
+0.0051
+0.0064
+0.0078
+0.0026
+0.0028
+0.0041
+0.0054
+0.0068
+0.0011
+0.0012
+0.0053
+0.0029
+0.0076
+0.0015
+0.0012
+0.0060
+0.0033
+0.0087
+0.0023
+0.0027
+0.0057
+0.0043
+0.0087
+
+0.0022
+0.0038
+0.0154
+0.0049
+0.0252
+0.0074
+0.0107
+0.0105
+0.0084
+0.0139
+0.0031
+0.0028
+0.0110
+0.0068
+0.0165
+0.0044
+0.0046
+0.0077
+0.0083
+0.0132
+0.0031
+0.0061
+0.0085
+0.0101
+0.0128
+0.0043
+0.0045
+0.0069
+0.0087
+0.0115
+0.0018
+0.0015
+0.0091
+0.0047
+0.0132
+0.0026
+0.0021
+0.0106
+0.0057
+0.0156
+0.0036
+0.0045
+0.0099
+0.0072
+0.0152
+
+0.0018
+0.0025
+0.0109
+0.0037
+0.0160
+0.0083
+0.0091
+0.0095
+0.0082
+0.0124
+0.0023
+0.0022
+0.0087
+0.0049
+0.0126
+0.0032
+0.0041
+0.0069
+0.0064
+0.0102
+0.0026
+0.0043
+0.0069
+0.0068
+0.0098
+0.0035
+0.0039
+0.0067
+0.0067
+0.0095
+0.0014
+0.0019
+0.0072
+0.0037
+0.0104
+0.0020
+0.0016
+0.0082
+0.0043
+0.0119
+0.0031
+0.0037
+0.0082
+0.0056
+0.0116
+
+0.9937
+0.9913
+0.8641
+0.9814
+0.7044
+0.9802
+0.9752
+0.9755
+0.9798
+0.9765
+0.9977
+0.9978
+0.9710
+0.9898
+0.9395
+0.9936
+0.9901
+0.9765
+0.9753
+0.9487
+0.9940
+0.9829
+0.9649
+0.9591
+0.9286
+0.9905
+0.9884
+0.9720
+0.9673
+0.9429
+0.9987
+0.9987
+0.9719
+0.9917
+0.9422
+0.9983
+0.9989
+0.9739
+0.9924
+0.9455
+0.9934
+0.9904
+0.9587
+0.9796
+0.9160
+
+Cell2
+
+Cell3
+
+Cell4
+
+Cell5
+
+Cell6
+
+Cell7
+
+Cell8
+
+Average
+
+Under the almost same configuration and Oxford dataset, as illus­
+trated in Table 6, the LSTM-based networks results in lower training
+time than other three networks due to the inherently sequential struc­
+ture; however, this architecture limits their ability to capture complex
+degradation patterns, leading to lower estimaiton accuracy. In contrast,
+compared to CNN-Transformer and Transformer, BMSFormer achieves
+the shortest training time. Specifically, despite having 63.04% more
+FLOPs and 12.03% more parameters than Transformer, BMSFormer still
+reduces training time and storage capacity by 21.37% and 7.88%,
+respectively.
+When adapting to different battery types or tasks, models usually
+require adjustments in hyperparameter combinations to match data
+patterns efficiently. Among the five adjustable hyperparameters
+(including e, lr, de , dd and n), the LSTM network lacks embed dimension
+(de ), and storage size depends only on model hyperparameters
+(including dd and n). Therefore, to comprehensively evaluate storage
+memory consumption across different hyperparameter combinations,
+three hidden layer dimensions (16, 32, 64) and four model layers (1, 2,
+3, 4) are configured, resulting in a total of 12 combinations applied to
+five models, as shown in Table 7.
+As shown in Fig. 8(a), the bar chart for the 12 combinations indicates
+that BMSFormer consistently exhibits a lower storage size compared to
+CNN-Transformer and Transformer across the G1-G12 configurations,
+making it more suitable for deployment on resource-constrained de­
+vices. Moreover, LSTM and CNN-LSTM models experience a significant
+increase in memory usage when dimensions are raised to 64 (as shown
+in G3, G6, G9, G12), far exceeding the memory usage of the other three
+models. Although lower dimensions and fewer layers reduce the storage
+size of LSTM and CNN-LSTM, these models may suffer from a decline in
+estimation accuracy, failing to achieve an optimal balance between
+precision and efficiency.
+As illustrated in Fig. 8(b), the box plot shows that the proposed
+model has the shortest box and whiskers, indicating the lowest average
+
+Table 7
+Grouping of models hyperparameter.
+
+Cell1* denotes a training set of BMSFormer with 80 % data, and its values are
+averaged among ten experiments. The best results are marked in bold and
+underlined.
+
+dimension of 16 are also employed for models based on the LSTM
+architecture. Additionally, for the CNN-Transformer models, the
+CNN module corresponds to our depthwise separable convolutional
+module and is also placed after the multi-head self-attention module.
+The basic hyperparameters for the two convolutional layers are set as
+follows: the first convolutional layer has a kernel size of 3 and a stride
+of 1, the second pooling layer has a kernel size of 2 and a stride of 2,
+
+Group number
+
+Dense dimension
+
+Layer number
+
+G1
+G2
+G3
+G4
+G5
+G6
+G7
+G8
+G9
+G10
+G11
+G12
+
+16
+32
+64
+16
+32
+64
+16
+32
+64
+16
+32
+64
+
+1
+1
+1
+2
+2
+2
+3
+3
+3
+4
+4
+4
+
+Table 6
+The comprehensive performance of models under the same and optimal configurations.
+Models
+BMSFormer
+CNN-Transformer
+Transformer
+CNN-LSTM
+LSTM
+
+Training hyperparameters
+
+Model hyperparameters
+
+e
+
+lr
+
+b
+
+de
+
+dd
+
+n
+
+Performance indicator
+FLOPs (Million)
+
+Training time (s)
+
+Parameters
+
+Storage size(KB)
+
+1000
+1000
+1000
+1000
+1000
+
+0.01
+0.01
+0.01
+0.01
+0.01
+
+128
+128
+128
+128
+128
+
+16
+16
+16
+-
+
+16
+16
+16
+16
+16
+
+4
+4
+4
+4
+4
+
+0.46
+0.27
+0.17
+0.48
+0.83
+
+19.83
+26.57
+25.22
+11.84
+8.07
+
+5330
+6257
+4689
+12719
+8753
+
+36.37
+47.10
+39.48
+53.72
+37.85
+
+Here, the e, lr, b, de , dd and n represent the epochs, learning rate, batch size, embedding dimension, dense dimension of MLP or hidden dimension of LSTM, and layer
+number, respectively. The best results are marked in bold and underlined.
+
+11
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+0.001 and 0.01, resulting in a total of 2 × 2 = 4 basic combinations,
+which correspond to the four segments on the x-axis of Fig. 9. Mean­
+while, various model hyperparameter settings are also considered:
+BMSFormer, CNN-Transformer, and Transformer are based on attention
+mechanism and each have 2 × 3 × 4 × 4 = 96 possible hyperparameter
+groups, in which 2, 3, 4 and 4 represent the “block number”, “head
+number”, “dense dimension” of MLP layer, and “embed dimension” of
+embedding layer, respectively. In contrast, LSTM and CNN-LSTM
+models just have two additional adjustable hyperparameters for the
+“layer number” of LSTM and the “dense dimension” of hidden layer,
+resulting in 3 × 4 = 12 combinations.
+Consequently, the total number of hyperparameter combinations of
+the models represented on the y-axis of the figure is 4 × 12 = 48 for the
+first two models and 4 × 96 = 384 for the latter three models. Each color
+bar corresponds to a fitting score, with redder colors indicating higher
+accuracy and bluer colors indicating worser. The red vertical line on the
+far right represents the number of combinations with a fitting score
+greater than 0.98, with a higher number of groups indicating better
+performance.
+Overall, compared to recent mainstream models, BMSFormer shows
+robust performance and accuracy across different hyperparameter
+combinations. Specifically, BMSFormer has 41 combinations where the
+prediction model’s R2 value exceeds 0.98, representing 10.67 % of the
+total combinations. Additionally, 43.23 % of the combinations have an
+R2 value greater than 0.9. BMSFormer also achieves the highest R2 of
+0.9892 than others.
+
+Fig. 8. Storage size of five models across G1-G12 hyperparameter combina­
+tions: (a) Bar chart comparing storage sizes for each group; (b) Box plot
+showing overall distribution.
+
+memory consumption with minimal fluctuation across the 12 hyper­
+parameter configurations. This characteristic is helpful when handling
+more complex data patterns, as the model maintains stable storage size
+while increasing dimensions or depth to enhance estimation accuracy.
+In summary, the experimental results indicate that the proposed
+model exhibits low and stable memory usage across 384 hyperparameter
+combinations, making it well-suited for usage on resource-limited
+devices.
+
+4.3.2. Generalization evaluation
+This section presents and compares the testing results obtained
+through the process of directly testing on the unseen test sets using the
+five optimal models with highest validation accuracies.
+As illustrated in Fig. 10 (a)-(c), the estimated SOH of BMSFormer is
+generally closer to the true SOH compared to other models, and the
+estimation error is also closer to zero, both indicating higher accuracy.
+The localized magnifications in the ‘SOH’ plots further illustrate the
+better stability of BMSFormer when encountering sudden SOH changes
+in the degradation process of ten batteries.
+As detailed in Table 9, BMSFormer achieves improvements of 37.15
+%, 42.65 %, 23.67 %, and 47.90 % in average MAE, 27.30 %, 48.20 %,
+20.42 %, and 53.71 % in average MAPE, and 34.29 %, 40.69 %, 18.84 %,
+and 46.29 % in average RMSE, compared to CNN-Transformer, CNNLSTM, Transformer, and LSTM, respectively, across eight battery cells
+from NASA and CALCE datasets. Notably, the zoomed-in prediction
+
+4.3. Comparison on NASA and CALCE datasets
+This section discusses the performance of BMSFormer and four
+mainstream deep learning models on the NASA and CALCE datasets,
+which are different from the Oxford dataset in battery materials and
+charge/discharge protocols. For both datasets, 30 % of the data from the
+first cell (B0005 for NASA and CS2-35 for CALCE) is used as the training
+set, while the remaining 70 % is reserved for validation. The full datasets
+from the remaining six cells (B0006, B0007, B0018 for NASA and CS236, CS2-37, CS2-38 for CALCE) are used as the test set.
+The five models’ evaluation process is described as follows. First, the
+five models are respectively trained on their training sets using 384
+distinct hyperparameter combinations and validated. All the validation
+results are then used to evaluate the stability of each model and the bestperformance models, with highest validation accuracy, are selected as
+the final trained models. Second, the selected five final models are then
+directly tested on the unseen test sets to further evaluate the model
+generalization.
+4.3.1. Stability evaluation across 384 hyperparameter combinations
+Table 8 presents the comprehensive set of hyperparameter combi­
+nations. Each column represents an adjustable hyperparameter cate­
+gory, including the train epochs, the learning rate, the number of
+attention block, the number of LSTM layer (or attention head), the dense
+layer dimension of MLP (or the hidden dimension of LSTM), and the
+dimension of embedding layer. This can help identify the sets of
+hyperparameter combinations that yield the high validation accuracies
+and reflects the model’s stability across different combinations.
+To ensure a comprehensive exploration of training hyperparameters,
+“epochs” are chosen as 1000 and 200, and “learning rates” are set to
+
+Fig. 9. The whole validating results when using different models and hyper­
+parameter combinations.
+
+Table 8
+The combination of hyperparameter.
+Hyperparameter
+
+Epochs
+
+Learning rate
+
+Block number
+
+Layer number
+
+Dense dimension
+
+Embedding dimension
+
+Values
+
+[200, 1000]
+
+[0.001, 0.01]
+
+[1, 2]
+
+[1, 2, 4]
+
+[16, 32, 64, 128]
+
+[16, 32, 64, 128]
+
+12
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+Fig. 10. (a) The validation results of five models on B0005 and CS2-35. (b) The test results using five weighted models trained on B0005. (c) The test results using
+five weighted models trained on CS2-35.
+
+curves reveal that BMSFormer performs exceptionally well even in
+scenarios with the most severe SOH fluctuations, such as those observed
+in B0018 and CS2-38.
+LSTM still exhibits the lowest prediction accuracy due to insufficient
+sensitivity to local features. Although CNN-LSTM partially addresses this
+issue, it still suffers from structural limitations, resulting in the loss of
+important information after convolution processing. Transformer also
+
+struggles with local feature recognition, leading to larger fluctuations in
+error curves and particularly noticeable deviations in B0005. CNNTransformer and BMSFormer show similar performance, but CNNTransformer’s small convolution kernel size of 1 × 3 and the lack of
+feature diversity constrain its ability to identify complex features
+pattern, resulting in slightly lower prediction accuracy compared to
+BMSFormer. Increasing the convolution kernel size in CNN-Transformer
+13
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+results also illustrate the stability of BMSFormer across 384 hyper­
+parameter combinations. These advancements make BMSFormer a
+potentially robust solution for SOH estimation, particularly in some
+resource-constrained environments.
+Finally, there is still room for further optimization of the model ar­
+chitecture, particularly in enhancing computational efficiency and
+reducing model complexity. Future research will focus on refining the
+structure of BMSFormer, expanding its applicability to a wider range of
+battery types and use cases, and integrating the model into Battery
+Management Systems (BMS) for real-world deployment and evaluation.
+These efforts aim to extend the practical impact of BMSFormer in
+advancing the field of battery health management.
+
+Table 9
+Estimation results on the NASA and CALCE datasets.
+Cell
+
+Methods
+
+MAE
+
+MAPE
+
+RMSE
+
+R2
+
+B0005*
+
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+BMSFormer
+CNN-Transformer
+CNN-LSTM
+Transformer
+LSTM
+
+0.0042
+0.0071
+0.0104
+0.0091
+0.0140
+0.0073
+0.0123
+0.0158
+0.0118
+0.0209
+0.0037
+0.0062
+0.0086
+0.0079
+0.0131
+0.0068
+0.0093
+0.0122
+0.0094
+0.0139
+0.0116
+0.0198
+0.0191
+0.0140
+0.0193
+0.0144
+0.0169
+0.0197
+0.0138
+0.0204
+0.0125
+0.0196
+0.0185
+0.0117
+0.0179
+0.0214
+0.0391
+0.0385
+0.0296
+0.0377
+0.0102
+0.0163
+0.0179
+0.0134
+0.0197
+
+0.0053
+0.0089
+0.0129
+0.0115
+0.0181
+0.0117
+0.0151
+0.0194
+0.0156
+0.0274
+0.0045
+0.0074
+0.0102
+0.0095
+0.0159
+0.0111
+0.0119
+0.0153
+0.0122
+0.0178
+0.0208
+0.0262
+0.0416
+0.0259
+0.0439
+0.0242
+0.0306
+0.0536
+0.0278
+0.0582
+0.0221
+0.0245
+0.0386
+0.0202
+0.0402
+0.0356
+0.0615
+0.0696
+0.0473
+0.0708
+0.0169
+0.0233
+0.0327
+0.0213
+0.0365
+
+0.0065
+0.0089
+0.0121
+0.0109
+0.0157
+0.0092
+0.0155
+0.0197
+0.0148
+0.0246
+0.0061
+0.0081
+0.0105
+0.0098
+0.0152
+0.0087
+0.0123
+0.0148
+0.0120
+0.0163
+0.0197
+0.0324
+0.0289
+0.0227
+0.0304
+0.0188
+0.0233
+0.0306
+0.0209
+0.0320
+0.0184
+0.0304
+0.0286
+0.0168
+0.0299
+0.0276
+0.0441
+0.0487
+0.0338
+0.0500
+0.0143
+0.0219
+0.0242
+0.0177
+0.0268
+
+0.9950
+0.9907
+0.9830
+0.9861
+0.9716
+0.9905
+0.9843
+0.9730
+0.9848
+0.9581
+0.9939
+0.9893
+0.9821
+0.9841
+0.9626
+0.9771
+0.9713
+0.9591
+0.9729
+0.9503
+0.9892
+0.9808
+0.9767
+0.9856
+0.9742
+0.9936
+0.9902
+0.9831
+0.9921
+0.9815
+0.9904
+0.9831
+0.9770
+0.9920
+0.9749
+0.9778
+0.9432
+0.9309
+0.9667
+0.9271
+0.9884
+0.9791
+0.9706
+0.9830
+0.9625
+
+B0006
+
+B0007
+
+B0018
+
+CS2-35*
+
+CS2-36
+
+CS2-37
+
+CS2-38
+
+Average
+
+CRediT authorship contribution statement
+Xiaopeng Li: Writing – original draft, Visualization, Validation,
+Software, Methodology. Minghang Zhao: Writing – review & editing,
+Methodology, Formal analysis. Shisheng Zhong: Project administra­
+tion, Funding acquisition. Junfu Li: Writing – review & editing, Meth­
+odology. Song Fu: Writing – review & editing. Zhiqi Yan: Supervision,
+Project administration.
+Declaration of competing interest
+The authors declare that they have no known competing financial
+interests or personal relationships that could have appeared to influence
+the work reported in this paper.
+Acknowledgments
+This work is supported by National Key R&D Program of China
+(2023YFB4302400).
+Data availability
+Data will be made available on request.
+References
+[1] Krause FC, Ruiz JP, Jones SC, Brandon EJ, Darcy EC, Iannello CJ, Bugga RV.
+Performance of commercial Li-ion cells for future NASA missions and aerospace
+applications. J Electrochem Soc 2021;168:040504. https://doi.org/10.1149/19457111/abf05f.
+[2] Barré A, Deguilhem B, Grolleau S, Gérard M, Suard F, Riu D. A review on lithiumion battery ageing mechanisms and estimations for automotive applications.
+J Power Sources 2013;241:680–9. https://doi.org/10.1016/j.
+jpowsour.2013.05.040.
+[3] Ma S, Jiang M, Tao P, Song C, Wu J, Wang J, Deng T, Shang W. Temperature effect
+and thermal impact in lithium-ion batteries: a review. Prog Nat Sci: Mater Int 2018;
+28:653–66. https://doi.org/10.1016/j.pnsc.2018.11.002.
+[4] Xia Y, Chen G, Zhou Q, Shi X, Shi F. Failure behaviours of 100% SOC lithium-ion
+battery modules under different impact loading conditions. Eng Fail Anal 2017;82.
+https://doi.org/10.1016/j.engfailanal.2017.09.003.
+[5] Plett GL. Sigma-point Kalman filtering for battery management systems of LiPBbased HEV battery packs: Part 2: simultaneous state and parameter estimation.
+J Power Sources 2006;161:1369–84. https://doi.org/10.1016/j.
+jpowsour.2006.06.004.
+[6] Plett GL. Extended Kalman filtering for battery management systems of LiPB-based
+HEV battery packs: Part 1. Background. J Power Sources 2004;134:252–61.
+https://doi.org/10.1016/j.jpowsour.2004.02.031.
+[7] Peng S, Zhang D, Dai G, Wang L, Jiang Y, Zhou F. State of charge estimation for
+LiFePO4 batteries joint by PID observer and improved EKF in various OCV ranges.
+Appl Energy 2024;377:124435. https://doi.org/10.1016/j.apenergy.2024.124435.
+[8] Chaturvedi NA, Klein R, Christensen J, Ahmed J, Kojic A. Algorithms for advanced
+battery-management systems. IEEE Control Syst Mag 2010;30:49–68. https://doi.
+org/10.1109/MCS.2010.936293.
+[9] Zhang C, Allafi W, Dinh Q, Ascencio P, Marco J. Online estimation of battery
+equivalent circuit model parameters and state of charge using decoupled least
+squares technique. Energy 2018;142:678–88. https://doi.org/10.1016/j.
+energy.2017.10.043.
+[10] Hearst MA, Dumais ST, Osuna E, Platt J, Scholkopf B. Support vector machines.
+IEEE Intell Syst Their Appl 1998;13:18–28. https://doi.org/10.1109/5254.708428.
+
+B0005* and CS2-35* denote that they are the training sets with 30 % of the early
+data. The best results are marked in bold and underlined.
+
+might improve performance but would also increase the computational
+cost.
+5. Conclusion
+This paper presents BMSFormer, an innovative and efficient deep
+learning model for online state-of-health (SOH) estimation of lithiumion batteries, alleviating the limitations of traditional approaches that
+cannot keep well balance between accuracy and efficiency. By incor­
+porating the constructed Local-Global Fusion Attention module,
+BMSFormer can not only capture both short-term and long-term fea­
+tures, but also reduce computational complexity compared to traditional
+Softmax-based attention methods. Meanwhile, the integration of multiscale Depthwise Separable Convolutions enhances feature extraction
+across multiple scales and channels, contributing to a more diverse
+representation of battery degradation characteristics. These advance­
+ments collectively provide technical advantages in tackling challenges
+related to battery behaviors, such as random capacity increments and
+gradual performance degradation.
+The comprehensive experiments on the three different kinds of
+public battery datasets have shown the advantages of BMSFormer in
+estimation accuracy, efficiency, and generalization. The validation
+14
+
+

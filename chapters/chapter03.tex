@@ -1,0 +1,386 @@
+A lightweight Multi-Scale Agent Network (MS-AgentNet) is proposed to represent both local variations and long-term trends in battery degradation while reducing the computational overhead of sequence modeling. The name MS refers to the multi-scale convolutional design comprising small-kernel DSConv-S and large-kernel DSConv-L, which extracts degradation features at different scales with low parameter overhead. Local-Global Fusion Attention (LGFA) combines local convolutional enhancement with efficient attention to connect local degradation information with context across cycles. The following subsections introduce the overall architecture and workflow of MS-AgentNet, describe the designed multi-scale depthwise separable convolution modules, and detail the LGFA module.
+
+\subsection{Architecture overview of MS-AgentNet}
+
+The overall architecture of MS-AgentNet is shown in \cref{fig:3-1}. Health indicator (HI) sequences are divided into sample segments using a sliding window, mapped to a $d$-dimensional feature space through a linear embedding layer, and fed into an MS-AgentNet Block. The Block output passes through layer normalization, flattening, and a linear readout layer to produce the SOH estimate. During training, the true SOH of the cycle immediately following each input window is used as the supervision label.
+
+Mathematically, let the input to the $l$th MS-AgentNet Block be $\mathbf X_l\in\mathbb R^{B\times N\times d}$, where $B$ is the batch size, $N$ is the input sequence length, and $d$ is the feature embedding dimension. The Block transforms the features in three steps:
+
+\textbf{Step 1: Local-global feature fusion.} The input $\mathbf X_l$ is processed by LGFA, which combines DSConv-S for local degradation feature extraction with ReLU$^2$ Agent Attention (RAA) for global context modeling within the input window:
+
+\begin{equation}
+\mathbf X_l'
+=
+\operatorname{LGFA}(\mathbf X_l).
+\label{eq:block_slfa}
+\end{equation}
+
+\textbf{Step 2: Feature refinement over longer time scales.} The LGFA output $\mathbf X_l'$ passes through layer normalization and then DSConv-L to extract degradation features over longer time scales. The DSConv-L output is scaled by $W_l$ and added to $\mathbf X_l'$ through a residual connection:
+
+\begin{equation}
+\mathbf X_l''
+=
+\mathbf X_l'
++
+W_l
+\operatorname{DSConv\text{-}L}
+\left(
+\operatorname{LN}(\mathbf X_l')
+\right).
+\label{eq:block_dsconv_l}
+\end{equation}
+
+\textbf{Step 3: Nonlinear mapping.} The features $\mathbf X_l''$ are processed by $\operatorname{LN}_0$ and then a feedforward neural network (FFN). The result is added to $\mathbf X_l''$ through a residual connection to produce the Block output $\mathbf Y_l$:
+
+\begin{equation}
+\mathbf Y_l
+=
+\mathbf X_l''+
+\operatorname{FFN}
+\left(
+\operatorname{LN}_0(\mathbf X_l'')
+\right).
+\label{eq:block_ffn}
+\end{equation}
+
+The output $\mathbf Y_l$ is used as the input to the next Block, i.e., $\mathbf X_{l+1}=\mathbf Y_l$. Here, $W_l$ is a learnable scaling factor. Both $\operatorname{LN}$ and $\operatorname{LN}_0$ denote layer normalization, but $\operatorname{LN}_0$ uses no additional scale or bias parameters.
+
+\input{figures/figure_3_1}
+
+\subsection{The designed multi-scale depthwise separable convolution modules}
+
+To balance feature extraction capability and computational efficiency, small- and large-kernel depthwise separable convolutions are used to capture multi-scale local dependencies, enhancing feature diversity while limiting parameter overhead. This section first introduces the computational characteristics of standard and depthwise separable convolutions, followed by the configurations and roles of DSConv-S and DSConv-L.
+
+
+\subsubsection{Basic DSConv structure and computational cost comparison}
+
+Convolution extracts local information from time series through sliding kernels. Standard convolution operates across all input channels, with each kernel producing one output feature map corresponding to one output channel. As the numbers of input and output channels and the kernel size increase, the parameter count and computational overhead grow rapidly, substantially increasing the computational load and training time. A larger parameter count may also increase the risk of overfitting on small-sample battery datasets. The computational cost of standard convolution can be expressed as:
+
+\begin{equation}
+C_{\mathrm{Conv}}
+=
+k\times k\times C_{\mathrm{in}}\times C_{\mathrm{out}}\times D_F\times D_F.
+\label{eq:conv_cost}
+\end{equation}
+
+where $k$, $C_{\mathrm{in}}$, $C_{\mathrm{out}}$, and $D_F$ denote the kernel size, number of input channels, number of output channels, and feature map size, respectively.
+
+Unlike standard convolution, depthwise separable convolution (DSConv) decomposes convolution into two stages: depthwise convolution and pointwise convolution\cite{ref71}. Depthwise convolution applies a separate kernel to each input channel to extract local features within that channel. A $1\times1$ pointwise convolution then integrates features across channels and adjusts the number of channels to $C_{\mathrm{out}}$. By separating within-channel feature extraction from cross-channel feature fusion, DSConv reduces the dense cross-channel operations required by standard convolution. Its computational cost can be expressed as:
+
+\begin{equation}
+C_{\mathrm{DSConv}}
+=
+k\times k\times C_{\mathrm{in}}\times D_F\times D_F
++
+C_{\mathrm{in}}\times C_{\mathrm{out}}\times D_F\times D_F.
+\label{eq:dsconv_cost}
+\end{equation}
+
+The ratio of the computational costs of the two types of convolution is:
+
+\begin{equation}
+\begin{aligned}
+\frac{C_{\mathrm{DSConv}}}{C_{\mathrm{Conv}}}
+&=
+\frac{
+k\times k\times C_{\mathrm{in}}\times D_F\times D_F
++
+C_{\mathrm{in}}\times C_{\mathrm{out}}\times D_F\times D_F
+}{
+k\times k\times C_{\mathrm{in}}\times C_{\mathrm{out}}\times D_F\times D_F
+} \\
+&=
+\frac{1}{C_{\mathrm{out}}}
++
+\frac{1}{k^2}.
+\end{aligned}
+\label{eq:dsconv_cost_ratio}
+\end{equation}
+
+Equation \eqref{eq:dsconv_cost_ratio} shows that, with the same input and output channel configurations, DSConv has a lower computational cost than standard convolution, providing the basis for the small- and large-kernel modules described below.
+
+\subsubsection{DSConv-S: Dual-role local enhancement}
+
+Small-kernel DSConv-S uses a compact $1\times5$ depthwise convolution and is embedded in LGFA before the global interactions in RAA. It serves two roles: input enhancement and local feature preservation:
+
+1. \textbf{Input enhancement.} To extract fine-grained degradation information from health indicator sequences, DSConv-S models local relationships between the feature representations of neighboring cycles to form a locally enhanced representation $\mathbf X_S$. Depthwise convolution extracts local dependencies within each channel, while pointwise convolution integrates features across channels. RAA then constructs queries, keys, and values from $\mathbf X_S$ and establishes relationships across cycles through agent aggregation and broadcasting, allowing context aggregation to use the local variation information extracted by convolution.
+
+2. \textbf{Local feature preservation.} Alongside information interactions across cycles, $\mathbf X_S$ passes through layer normalization and is sent directly through the local branch to the fusion stage, where it is added to the RAA branch output. This path combines the locally enhanced health indicator representation with the global context established by RAA within the input window to form a joint local-global representation for SOH estimation.
+
+DSConv-S uses a channel expansion factor of two. The input features are $\mathbf X\in\mathbb R^{B\times N\times d}$, where $B$, $N$, and $d$ denote the batch size, sequence length, and embedding dimension, respectively. The input is first transposed so that the embedding dimension becomes the convolutional channel dimension. The first $1\times1$ pointwise convolution then expands the channel dimension to $2d$:
+
+\begin{equation}
+\mathbf Y_1
+=
+\operatorname{PW}_{\uparrow}
+\left(
+\mathcal T(\mathbf X)
+\right)
+\in\mathbb R^{B\times 2d\times N}.
+\end{equation}
+
+The expanded features pass through a $1\times5$ depthwise convolution, which processes the sequence features independently within each channel to extract information from a short local neighborhood:
+
+\begin{equation}
+\mathbf Y_2
+=
+\operatorname{DW}_{5}(\mathbf Y_1)
+\in\mathbb R^{B\times 2d\times N}.
+\end{equation}
+
+A ReLU activation is then applied to introduce nonlinearity:
+
+\begin{equation}
+\mathbf Y_3
+=
+\operatorname{ReLU}(\mathbf Y_2).
+\end{equation}
+
+Next, the second $1\times1$ pointwise convolution integrates features across channels and restores the channel dimension to $d$:
+
+\begin{equation}
+\mathbf Y_4
+=
+\operatorname{PW}_{\downarrow}(\mathbf Y_3)
+\in\mathbb R^{B\times d\times N}.
+\end{equation}
+
+Finally, the output is transposed back to its original arrangement and combined with the input through a residual connection:
+
+\begin{equation}
+\mathbf X_S
+=
+\operatorname{DSConv\text{-}S}(\mathbf X)
+=
+\mathbf X+\mathcal T^{-1}(\mathbf Y_4).
+\label{eq:dsconv_s}
+\end{equation}
+
+where $\operatorname{PW}_{\uparrow}$ and $\operatorname{PW}_{\downarrow}$ denote the pointwise convolutions for channel expansion and restoration, respectively, $\operatorname{DW}_{5}$ denotes the $1\times5$ depthwise convolution, and $\mathcal T(\cdot)$ and $\mathcal T^{-1}(\cdot)$ denote the transpose and inverse transpose operations, respectively.
+
+\textbf{Computational analysis.} With a channel expansion factor of two, the computational cost of DSConv-S mainly comes from two $1\times1$ pointwise convolutions and one $1\times5$ depthwise convolution and can be expressed as:
+
+\begin{equation}
+C_{\mathrm{in}}\times2C_{\mathrm{out}}\times D_F\times D_F
++1\times5\times2C_{\mathrm{out}}\times D_F\times D_F
++2C_{\mathrm{out}}\times C_{\mathrm{out}}\times D_F\times D_F.
+\label{eq:dsconv_s_expanded_cost}
+\end{equation}
+
+where $2C_{\mathrm{out}}$ and $D_F\times D_F$ denote the expanded number of channels and the feature map size, respectively.
+
+\subsubsection{DSConv-L: Feature refinement over longer time scales}
+
+DSConv-S enhances local information before attention, while DSConv-L follows LGFA to further refine the feature representation that combines local information and global context. A $1\times1$ pointwise convolution first expands the channel dimension by a factor of three to extract rich representations, followed by a $1\times31$ depthwise convolution that captures local sequential patterns over longer time scales within each channel. A second $1\times1$ pointwise convolution integrates these features across channels and restores the original channel dimension. The transformation order is the same as in DSConv-S. At the MS-AgentNet Block level, the convolution output is scaled by a learnable factor and added to the original LGFA output through a residual connection, incorporating the further extracted sequence features into the existing representation, as shown in Eq.~\eqref{eq:block_dsconv_l}. The small- and large-kernel convolutions thus jointly enrich multi-scale degradation representations for SOH estimation.
+
+\textbf{Computational analysis.} With a channel expansion factor of three, the computational cost of DSConv-L can be expressed as:
+
+\begin{equation}
+C_{\mathrm{in}}\times3C_{\mathrm{out}}\times D_F\times D_F
++1\times31\times3C_{\mathrm{out}}\times D_F\times D_F
++3C_{\mathrm{out}}\times C_{\mathrm{out}}\times D_F\times D_F.
+\label{eq:dsconv_l_expanded_cost}
+\end{equation}
+
+where $3C_{\mathrm{out}}$ and $D_F\times D_F$ denote the expanded number of channels and the feature map size, respectively.
+
+\input{figures/figure_3_2}
+
+\subsection{The proposed Local-Global Fusion Attention module}
+
+This section presents the general form of multi-head self-attention, briefly compares Softmax attention and linear attention, and introduces LGFA, which combines local feature extraction with global interactions that scale linearly with sequence length.
+
+
+\subsubsection{General form of multi-head self-attention}
+
+Multi-head self-attention uses multiple parallel attention heads, each calculating correlations between features within a different representation subspace\cite{ref34}. Given input features $\mathbf X\in\mathbb R^{N\times d}$, the query, key, and value representations of the $i$th attention head are:
+
+\begin{equation}
+\mathbf Q_i=\mathbf X\mathbf W_i^Q,\qquad
+\mathbf K_i=\mathbf X\mathbf W_i^K,\qquad
+\mathbf V_i=\mathbf X\mathbf W_i^V.
+\label{eq:qkv_projection}
+\end{equation}
+
+where $N$ is the sequence length, $d$ is the input feature dimension, and $\mathbf W_i^Q,\mathbf W_i^K,\mathbf W_i^V\in\mathbb R^{d\times d_h}$ are learnable linear projection matrices. Here, $i=1,2,\ldots,h$, $h$ is the number of attention heads, and $d_h=d/h$ is the feature dimension of each head.
+
+When a nonnegative similarity function is used to construct normalized attention weights, the output at the $p$th position of the $i$th attention head can be expressed as:
+
+\begin{equation}
+\mathbf O_{i,p}
+=
+\frac{
+\displaystyle\sum_{j=1}^{N}
+\operatorname{Sim}\left(\mathbf Q_{i,p},\mathbf K_{i,j}\right)\mathbf V_{i,j}
+}{
+\displaystyle\sum_{j=1}^{N}
+\operatorname{Sim}\left(\mathbf Q_{i,p},\mathbf K_{i,j}\right)
+},
+\qquad p=1,2,\ldots,N.
+\label{eq:general_attention}
+\end{equation}
+
+where $\mathbf Q_{i,p}$ is the query at the $p$th position in the $i$th attention head, $\mathbf K_{i,j}$ and $\mathbf V_{i,j}$ are the key and value at the $j$th position, respectively, and $\operatorname{Sim}(\cdot,\cdot)$ is a nonnegative similarity function.
+
+The outputs at all positions form the output matrix $\mathbf O_i\in\mathbb R^{N\times d_h}$ of the $i$th attention head. The outputs of all heads are then concatenated along the feature dimension. Attention mechanisms mainly differ in their similarity functions and computation order.
+
+\subsubsection{Softmax attention and linear attention}
+
+Standard Softmax attention calculates correlations between sequence positions through query-key dot products and normalizes the similarity scores using the Softmax function\cite{ref34}. The output of the $i$th attention head can be expressed as:
+
+\begin{equation}
+\mathbf O_i
+=
+\operatorname{Softmax}
+\left(
+\frac{\mathbf Q_i\mathbf K_i^{\mathrm T}}{\sqrt{d_h}}
+\right)
+\mathbf V_i.
+\label{eq:softmax_attention}
+\end{equation}
+
+The exponential mapping and normalization in Softmax assign larger attention weights to more highly correlated query-key pairs. However, computing $\mathbf Q_i\mathbf K_i^{\mathrm T}$ requires pairwise similarity calculations between all queries and keys, forming an $N\times N$ attention score matrix. Thus, the computational complexity of one attention head is $O(N^2d_h)$, and the memory complexity of the attention score matrix is $O(N^2)$. As the sequence length increases, the computational and storage overhead grows substantially\cite{ref39}.
+
+To address the quadratic computational cost of Softmax attention, linear attention maps queries and keys through a kernel function $\phi(\cdot)$ and rearranges the computation order using the associative property of matrix multiplication\cite{ref40}. The output of the $i$th attention head can be written as:
+
+\begin{equation}
+\mathbf O_i
+=
+\frac{
+\phi(\mathbf Q_i)
+\left[
+\phi(\mathbf K_i)^{\mathrm T}\mathbf V_i
+\right]
+}{
+\phi(\mathbf Q_i)
+\left[
+\phi(\mathbf K_i)^{\mathrm T}\mathbf 1
+\right]
+}.
+\label{eq:linear_attention}
+\end{equation}
+
+where $\phi(\cdot)$ is a nonnegative feature mapping, such as $\phi(\mathbf x)=\operatorname{ELU}(\mathbf x)+1$, and $\mathbf 1$ is an all-ones vector used to calculate the corresponding normalization term.
+
+By first calculating $\phi(\mathbf K_i)^{\mathrm T}\mathbf V_i$, linear attention avoids constructing the full $N\times N$ attention matrix. When the feature mapping dimension equals $d_h$, its computational complexity is $O(Nd_h^2)$. For a fixed $d_h$, this complexity is linear in the sequence length $N$.
+
+Linear attention enables global information interactions at a low computational complexity, but its computation does not explicitly incorporate local neighborhood features\cite{ref31,ref39,ref64}. Modeling health indicator sequences constructed from multi-source signals and their derived curves requires both capturing long-term battery degradation trends and retaining fine-grained degradation information in variations between neighboring cycles. Local feature extraction therefore needs to be combined with an efficient attention mechanism to balance degradation representation and computational efficiency.
+
+\subsubsection{The proposed LGFA module}
+
+To address these requirements, small-kernel depthwise separable convolution (DSConv-S) is combined with ReLU² Agent Attention (RAA) to form the Local-Global Fusion Attention (LGFA) module, as shown in \cref{fig:3-3}(d). DSConv-S first enhances local information in the health indicator sequences, and the resulting representation is fed into the local and RAA branches. The local branch preserves local degradation information, while the RAA branch establishes relationships across cycles within the input window through agent aggregation and broadcasting. The outputs of the two branches are fused by addition.
+
+\textbf{(1) ReLU² Agent Attention.}
+
+RAA uses a small number of agents to mediate global interactions, avoiding direct pairwise attention between all sequence positions\cite{ref46}. During agent aggregation, the agents gather information from the keys and values; during information broadcasting, each query retrieves information from the agent context. Together, these two stages enable degradation-related information to be shared among health indicator representations within the input window, thereby establishing cross-cycle context.
+
+In RAA, $\mathbf X$ denotes the input features. Within LGFA, this input is the local representation $\mathbf X_S$ produced by DSConv-S. To reduce the parameter overhead of query, key, and value generation, RAA uses learnable channel scaling to adjust the relative contributions of different feature channels and splits the scaled features across attention heads:
+
+\begin{equation}
+\mathbf Q_i=\operatorname{Split}_i(\mathbf X\odot\mathbf s_q),\quad
+\mathbf K_i=\operatorname{Split}_i(\mathbf X\odot\mathbf s_k),\quad
+\mathbf V_i=\operatorname{Split}_i(\mathbf X\odot\mathbf s_v).
+\label{eq:raa_qkv_scaling}
+\end{equation}
+
+where $\mathbf s_q,\mathbf s_k,\mathbf s_v\in\mathbb R^d$ are learnable channel scaling vectors, $\odot$ denotes element-wise multiplication, and $\operatorname{Split}_i(\cdot)$ divides the feature dimension into $h$ subspaces of dimension $d_h$ and selects the $i$th subspace.
+
+Compared with standard linear projections for queries, keys, and values, which require approximately $3d^2$ parameters, the three channel scaling vectors contain only $3d$ parameters, reducing the parameter overhead of query, key, and value generation.
+
+RAA uses $n_a=2$ learnable agents, represented by a matrix $\mathbf A\in\mathbb R^{n_a\times d}$. Their parameters are learned during training and shared across input samples.
+
+The global agent matrix $\mathbf A$ is divided into $h$ subspaces along the feature dimension. The agent representation for the $i$th attention head is $\mathbf A_i=\operatorname{Split}_i(\mathbf A)\in\mathbb R^{n_a\times d_h}$.
+
+During information broadcasting, each query assigns broadcasting weights according to how it matches the two agents. Standard Agent Attention uses Softmax normalization in both aggregation and broadcasting. When all scores in a row are reduced by a common positive scaling factor, the relative ratios between positive scores remain unchanged, but the weights approach a uniform distribution. The corresponding query therefore reads an increasingly equal mixture of the two agent contexts. To preserve the distinction between positive matches under such scale changes, RAA uses ReLU² row normalization in both stages:
+
+\begin{equation}
+\left[\mathcal R_2(\mathbf Z)\right]_{r,c}
+=
+\begin{cases}
+\dfrac{\operatorname{ReLU}(\mathbf Z_{r,c})^2}
+{\sum_{j=1}^{M}\operatorname{ReLU}(\mathbf Z_{r,j})^2},
+&
+\sum_{j=1}^{M}\operatorname{ReLU}(\mathbf Z_{r,j})^2>0,\\[10pt]
+\dfrac{1}{M},
+&
+\sum_{j=1}^{M}\operatorname{ReLU}(\mathbf Z_{r,j})^2=0.
+\end{cases}
+\label{eq:relu2_normalization}
+\end{equation}
+
+where $M$ is the number of elements normalized in each row: $M=N$ during agent aggregation and $M=n_a$ during information broadcasting. ReLU sets nonpositive similarity scores to zero. For a row containing positive scores, the squared common positive scaling factor cancels between the numerator and denominator. Thus, the weight distribution remains unchanged when all scores are scaled by the same positive factor. Squaring further increases the weight ratio between larger and smaller positive scores, giving greater emphasis to higher positive similarity scores. When a row contains no positive similarity scores, $\mathcal R_2(\cdot)$ returns a uniform distribution to keep the normalization valid.
+
+During agent aggregation, $\mathbf A_i$ acts as the query to gather context from the sequence keys and values:
+
+\begin{equation}
+\boldsymbol{\Phi}_{k,i}
+=
+\mathcal R_2
+\left(
+\frac{\mathbf A_i\mathbf K_i^{\mathrm T}}{\sqrt{d_h}}
+\right),
+\qquad
+\mathbf V_{A,i}
+=
+\boldsymbol{\Phi}_{k,i}\mathbf V_i.
+\label{eq:agent_aggregation}
+\end{equation}
+
+where $\boldsymbol{\Phi}_{k,i}\in\mathbb R^{n_a\times N}$ contains the agents' aggregation weights for each sequence position, and $\mathbf V_{A,i}\in\mathbb R^{n_a\times d_h}$ is the resulting agent context.
+
+During information broadcasting, each query position reads information from the agent context according to its own features:
+
+\begin{equation}
+\boldsymbol{\Phi}_{q,i}
+=
+\mathcal R_2
+\left(
+\frac{\mathbf Q_i\mathbf A_i^{\mathrm T}}{\sqrt{d_h}}
+\right),
+\qquad
+\mathbf O_i
+=
+\boldsymbol{\Phi}_{q,i}\mathbf V_{A,i}.
+\label{eq:agent_broadcast}
+\end{equation}
+
+where $\boldsymbol{\Phi}_{q,i}\in\mathbb R^{N\times n_a}$ contains the query-specific broadcasting weights over the agents, and $\mathbf O_i\in\mathbb R^{N\times d_h}$ is the output of the $i$th attention head. ReLU² row normalization converts query-agent similarity scores into broadcasting weights, which combine the two agent contexts to form the corresponding global context representation.
+
+Equations \eqref{eq:agent_aggregation} and \eqref{eq:agent_broadcast} show that the agent-mediated sequence interaction in the $i$th attention head can be represented by the equivalent mapping $\boldsymbol{\Phi}_{q,i}\boldsymbol{\Phi}_{k,i}\in\mathbb R^{N\times N}$, whose rank is at most the number of agents $n_a$. This equivalent matrix is not explicitly constructed; the computation proceeds through agent aggregation and information broadcasting.
+
+The outputs of all attention heads are concatenated along the feature dimension. A learnable output scaling vector $\mathbf s_o$ then adjusts the channel responses, and the result is added to the input features through a residual connection:
+
+\begin{equation}
+\operatorname{RAA}(\mathbf X)
+=
+\mathbf X+
+\operatorname{Concat}(\mathbf O_1,\ldots,\mathbf O_h)\odot\mathbf s_o.
+\label{eq:raa_output}
+\end{equation}
+
+where $\operatorname{Concat}(\cdot)$ concatenates the outputs of all attention heads along the feature dimension, and $\mathbf s_o\in\mathbb R^d$ is a learnable output scaling vector.
+
+RAA generates attention weight matrices of size $n_a\times N$ and $N\times n_a$ during aggregation and broadcasting, respectively. The computational complexity is therefore $O(Nn_ad_h)$ for one attention head and $O(Nn_ad)$ for all $h$ heads, while the memory required for the attention weights is $O(hNn_a)$. For fixed $d$, $h$, and $n_a$, the computational cost of the attention interactions and the memory required for the attention weights both grow linearly with the sequence length $N$.
+
+\textbf{(2) Local-global feature fusion.}
+
+The input features $\mathbf X$ first pass through DSConv-S to obtain the local representation $\mathbf X_S=\operatorname{DSConv\text{-}S}(\mathbf X)$, which is then fed into the local and RAA branches. The local branch applies layer normalization to $\mathbf X_S$, while the RAA branch establishes cross-position feature interactions through agent aggregation and information broadcasting. The fused output $\mathbf X_F$ of LGFA is calculated as:
+
+\begin{equation}
+\mathbf X_F
+=
+\operatorname{LN}(\mathbf X_S)
++
+W_a
+\operatorname{Dropout}
+\left(
+\operatorname{RAA}(\mathbf X_S)
+\right).
+\label{eq:slfa_fusion}
+\end{equation}
+
+where $\mathbf X_F$ is the fused LGFA output, $\operatorname{LN}(\mathbf X_S)$ is the normalized local branch representation, and $\operatorname{RAA}(\mathbf X_S)$ is the RAA branch output. $\operatorname{Dropout}(\cdot)$ provides regularization during training\cite{ref75}, and $W_a$ is a learnable scaling factor that adjusts the contribution of the RAA branch.
+
+This additive fusion combines the local degradation features extracted by DSConv-S with the global context established by RAA, providing a joint local-global representation for SOH estimation while maintaining linear computational complexity with respect to the sequence length $N$.
+
+\input{figures/figure_3_3}

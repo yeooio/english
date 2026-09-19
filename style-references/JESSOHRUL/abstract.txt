@@ -1,0 +1,85 @@
+Journal of Energy Storage 161 (2026) 121823
+
+Contents lists available at ScienceDirect
+
+Journal of Energy Storage
+journal homepage: www.elsevier.com/locate/est
+
+Research papers
+
+Joint state of health and remaining useful life assessment of lithium-ion
+batteries using a novel attention mechanism-based deep learning model
+and multi-source optimized health indicators
+Dexiong Li a,b,* , Yan Xing a , Xiaopeng Li c
+a
+b
+c
+
+School of Mechanical Engineering, Southeast University, Nanjing, 211189, China
+China National Aeronautical Radio Electronics Research Institute, Shanghai, 200241, China
+Department of Mechanical Engineering, Harbin Institute of Technology, Shandong, 264209, China
+
+A R T I C L E I N F O
+
+A B S T R A C T
+
+Keywords:
+Lithium battery
+State-of-health estimation
+Deep learning
+Deep spatiotemporal conv-attention
+Differential temperature-voltage analysis
+
+Accurate assessment of the State of-Health (SOH) and Remaining Useful Life (RUL) of lithium-ion batteries is a
+core challenge for ensuring the safe operation of energy storage systems. Recent studies have emphasized the
+importance of computational efficiency while acknowledging that traditional models still require significant
+performance improvements. However, many existing joint SOH-RUL methods still rely on a single traditional
+model or stack multiple conventional models. Therefore, this paper proposes a novel deep learning framework
+based on a Deep Spatiotemporal Conv-Attention mechanism. It introduces a feature matrix similarity calculation
+and a lightweight convolution-based feature diversity module, enabling the model to capture both long- and
+short-term patterns, improve generalization, and reduce computational resource requirements. Furthermore, to
+preserve key degradation information from multi-sensor data, differential and integral methods are applied to
+extract various health indicators (HIs), and then an optimized HIs selection algorithm based on Pearson and
+Spearman correlation coefficients is proposed to screen these indicators. Finally, to comprehensively evaluate the
+effectiveness, generalization capability, robustness, computational efficiency, and complexity of the proposed
+method, comparative experiments were conducted against various mainstream state-of-the-art models using
+three battery datasets with different materials, charging-discharging protocols, and operating temperatures. The
+experimental results demonstrate that the proposed model achieves superior performance across all battery
+datasets, with a mean absolute percentage error for SOH below 1.156% and a relative error for RUL within
+2.210%, providing an efficient and reliable solution for the joint estimation of SOH and RUL in lithium-ion
+batteries.
+
+1. Introduction
+Lithium-ion batteries are regarded as one of the primary battery
+types for future applications due to their lightweight, high energy den­
+sity, and excellent cycling performance, making them highly promising
+for aviation industry, electric vehicle and other domains [1,2]. There­
+fore, precise estimation of the lithium-ion battery state-of-health (SOH)
+is essential for guaranteeing the reliability and safety of battery per­
+formance [3–5].
+Recent approaches to SOH estimation can generally be classified into
+model-driven and data-driven methods. [6]. Model-driven approaches
+simulate the internal chemical reaction mechanisms of batteries,
+enabling the characterization of failure modes in battery parameters
+
+with a certain level of interpretability and prediction accuracy [7,8]. In
+contrast, data-driven methods avoid the need for developing detailed
+electrochemical models or extensively analyzing electrochemical re­
+actions and battery aging mechanisms. Instead, they depend on sensorcollected data, such as current, voltage, temperature, and resistance
+throughout each cycle, to evaluate the present health condition of the
+battery through data-driven learning, providing generalization
+potential.
+The predominant data-driven methods currently include Convolu­
+tional Neural Networks (CNNs), Recurrent Neural Networks (RNNs),
+such as Long Short-Term Memory (LSTM) [9], Gated Recurrent Units
+(GRU) [10], and Transformers [11]. CNNs are adept in extracting local
+features using convolutional kernels, and reduce the spatial dimensions
+
+* Corresponding author at: School of Mechanical Engineering, Southeast University, Nanjing, 211189, China.
+E-mail address: 230219320@seu.edu.cn (D. Li).
+https://doi.org/10.1016/j.est.2026.121823
+Received 13 December 2025; Received in revised form 4 February 2026; Accepted 23 March 2026
+Available online 3 April 2026
+2352-152X/© 2026 Elsevier Ltd. All rights are reserved, including those for text and data mining, AI training, and similar technologies.
+
+

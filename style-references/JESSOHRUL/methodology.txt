@@ -1,0 +1,1726 @@
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+Table 1
+Comparison between different existing SOH estimation methods.
+Reference
+[1]
+[2]
+[12]
+[15]
+[16]
+[17]
+[37]
+[38]
+[23]
+[25]
+[31]
+[32]
+[45]
+Proposed
+
+Source data considered
+Current
+
+Voltage
+
+Temperature
+
+✓
+x
+x
+✓
+✓
+x
+✓
+✓
+x
+x
+x
+✓
+✓
+✓
+
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+
+x
+x
+✓
+x
+x
+x
+✓
+✓
+x
+x
+x
+✓
+✓
+✓
+
+HI selection method (author-designed)
+
+Assessment model (whether original)
+
+Efficiency considered
+
+PCC (x)
+PCC (✓)
+PCC + SCC (x)
+PCC (x)
+LC (x)
+LC (x)
+PCC (x)
+PCC (x)
+PCC (x)
+PCC + SCC (x)
+PCC (x)
+PCC (x)
+PCC + SCC (✓)
+PCC + SCC (✓)
+
+PINN (✓)
+BMSFormer (✓)
+BiGRU-Transformer (x)
+Transformer (x)
+Gaussian filter (x)
+Random Forest Regression (x)
+CNN-Transformer (x)
+CNN (x)
+Bi-LSTM (x)
+LSSVM-AdaBoost (x)
+LSTM (x)
+LSTM (x)
+Extreme Learning Machine (x)
+DSConv-Attention-based (✓)
+
+x
+✓
+x
+x
+x
+x
+✓
+x
+x
+x
+x
+x
+x
+✓
+
+individual and fused HIs are subsequently validated through compara­
+tive experiments. Furthermore, the selected features are segmented and
+reformatted into the structure required by the attention mechanism
+before being fed into the model for training and performance evaluation.
+In the final stage, the trained model parameters are shared between the
+SOH single-step prediction task and the RUL multi-step prediction task.
+These tasks are evaluated from different starting points and compared
+with state-of-the-art models to provide a comprehensive assessment of
+the proposed method.
+The remainder of this paper is organized as follows: Section 2 pro­
+vides a detailed explanation of the proposed algorithm and highlights its
+differences from conventional approaches. Section 3 describes the
+experimental setup and implementation details. Section 4 presents and
+discusses the results, including feature evaluation, accuracy and gener­
+alization analysis, model complexity comparison, and ablation studies.
+Finally, Section 5 summarizes the main findings and conclusions.
+
+))
+(
+(
+X(l) = LayerNorm H(l) + FFN H(l) ,
+
+(2)
+
+where X(l− 1) denotes the input to the l-th layer, MHSA(⋅) represents the
+multi-head self-attention mechanism, and FFN(⋅) denotes a feedforward
+neural network applied independently to each position. By stacking L
+such layers, the encoder backbone can effectively refine hierarchical
+representations while preserving global contextual information.
+Building on this backbone structure, the traditional multi-head
+attention mechanism applies multiple self-attention operations in par­
+allel. For each head, the input is linearly projected into query, key, and
+value representations, which are used to calculate attention weights
+based on the similarity between elements in the sequence. The weighted
+sum of the values produces the output of each head. The outputs of all
+heads are then concatenated and linearly transformed to form the final
+representation. Formally, for i-th head and l-th layer with input X(l− 1) :
+
+2. Methods
+This section introduces the methods used in this study, including the
+backbone principles and the proposed improvements. It provides a
+detailed description of the DSCA and DSConv modules, highlighting
+their principles and enhancements. Additionally, to mitigate the impact
+of short-term capacity recovery on SOH and RUL assessment accuracy in
+lithium-ion batteries, the CEEMDAN method is introduced for effective
+data denoising.
+
+Qi = X(l− 1) WiQ , K = X(l− 1) WiK , V = X(l− 1) WiV
+
+(3)
+
+(
+)
+Qi KT
+A = softmax √̅̅̅̅i
+dk
+
+(4)
+
+Hi = Ai Vi
+
+(5)
+
+(
+)
+MHSA X(l− 1) = Concat(H1 , H2 , …, Hh )WO
+
+(6)
+
+where WiQ , WiK , WiV are the learnable projection matrices, dk is the key
+dimension of each head, h is the number of heads, and WO is the output
+∑
+of projection matrix, and the function softmax(zi ) = exp(zi )/ j exp(zi )
+
+2.1. The designed deep spatiotemporal convolutional attention module
+
+normalizes the similarity scores into a valid probability distribution by
+exponentiating each score and dividing it by the sum of all expo­
+nentiated values, where i denotes the index of the current element being
+normalized, j iterates over all elements in the same vector, and z rep­
+resents the input vector containing all unnormalized scores.
+
+This section describes the backbone and the proposed DSCA module,
+which enhances feature extraction by integrating convolutional opera­
+tions with multi-head attention. It overcomes the limitations of tradi­
+tional attention mechanisms, efficiently capturing both local and global
+dependencies for SOH and RUL prediction.
+
+2.1.2. The proposed DSCA mechanism
+Traditional multi-head self-attention mechanisms excel at capturing
+long-range dependencies by computing global correlations across all
+elements in the sequence. However, this approach relies on Softmaxbased attention and sequential matrix multiplications, which often
+lead to high computational cost and limited efficiency when handling
+long-term degradation data of batteries. Moreover, conventional multihead structures may not fully exploit the local spatiotemporal patterns
+inherent in multi-source sensor signals, potentially constraining the
+model's ability to capture fine-grained health indicators. To address
+these limitations, this work introduces the Deep Spatiotemporal ConvAttention (DSCA) module, which integrates convolutional operations
+with an optimized attention mechanism. This design enhances the
+
+2.1.1. The traditional attention mechanism
+In recent years, Transformer-based architectures have become the
+backbone for a wide range of sequence modeling tasks, owing to their
+ability to capture long-range dependencies through stacked layers of
+multi-head attention and feedforward neural networks. A typical
+Transformer encoder is composed of multiple identical layers, each
+containing a multi-head self-attention module followed by a positionwise feedforward network. Formally, given an input sequence repre­
+sentation X ∈ ℝn×d , the encoder updates the hidden states through a
+residual connection and normalization strategy:
+))
+(
+(
+H(l) = LayerNorm X(l− 1) + MHSA X(l− 1) ,
+(1)
+4
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+Fig. 1. Flowchart of proposed joint SOH-RUL assessment method.
+
+5
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+learning of both local and global dependencies while reducing compu­
+tational overhead, thereby offering a more efficient and accurate feature
+extraction framework for SOH and RUL assessment.
+The complete model architecture is shown in Fig. 2 and is depicted as
+follows: initially, the selected HIs (including both multi-source health
+indicators and the denoised capacity trend extracted via CEEMDAN)
+serve as input and are processed through the Embedding layer, mapping
+them into a high-dimensional space for enhanced information extrac­
+tion. These embedded features are then fed into the DSCA and the
+Depthwise Separable Convolution (DSConv) modules, which function as
+shared feature extraction layers to capture both long- and short-term
+degradation patterns. Addition and layer norm (Add & Norm) layers
+are incorporated between each module. Finally, the rich representations
+extracted by these shared layers are passed through two separate
+Feedforward layers (or output heads), which respectively generate the
+SOH estimation and RUL prediction as the final outputs of our multi-task
+model.
+For an input xi to the i − th layer in an N-layer model, the corre­
+sponding output yi is computed as follows:
+xiʹ = LayerNorm(dropout(DSCA(xi ) ) + xi )
+
+(7)
+
+xiʹ = LayerNorm(dropout(DSCA(xi ) ) + xi )
+
+(8)
+
+xiʹʹ = LayerNorm(DSConv(xiʹ) + xiʹ )
+
+(9)
+
+yi = LayerNorm(dropout(FFN(xiʹʹ) ) + xiʹʹ )
+
+(10)
+
+activation function is applied to Q and K to introduce non-linearity.
+These matrices are then reshaped to facilitate multi-head attention,
+allowing for joint modeling across multiple subspaces.
+In the proposed DSCA module, a ReLU activation function is applied
+as the feature mapping operation for the query and key projections. This
+design is primarily motivated by the requirement of non-negativity in
+linear attention mechanisms, where the attention weights are computed
+through kernelized feature mappings rather than the conventional
+softmax normalization. By enforcing non-negative representations of the
+projected features, ReLU ensures that the resulting attention scores
+remain physically interpretable as additive contributions, avoiding un­
+desirable cancellation effects caused by mixed-sign interactions.
+From the perspective of numerical stability, the ReLU-based map­
+ping alleviates the sensitivity of attention computation to smallamplitude noise and extreme values, which are commonly encoun­
+tered in battery degradation data due to measurement uncertainty and
+short-term capacity fluctuations. By truncating negative responses,
+high-frequency noise with low signal-to-noise ratios is effectively sup­
+pressed, leading to smoother attention responses and more stable opti­
+mization behavior during training.
+Although the use of ReLU introduces a sparsity constraint that may
+limit the representational expressiveness of individual attention heads,
+this effect is mitigated by the use of multiple attention heads, linear
+projections, and residual connections in the DSCA module. As a result,
+the overall representational capacity of the model is preserved while
+benefiting from improved robustness and computational efficiency,
+which is particularly desirable for lightweight and large-scale sequence
+modeling tasks.
+To incorporate local feature extraction, a depthwise separable con­
+volutional module is employed. The input sequence is first permuted and
+then processed through a depthwise convolution, which is succeeded by
+a pointwise convolution.:
+(
+( ))
+(12)
+Xconv = PointwiseConv DepthwiseConv XT
+
+where DSCA, DSConv, FFN respectively represent the Deep Spatiotem­
+poral Conv-Attention, Depthwise Separable Convolution and Feedfor­
+ward layer.
+To enhance the capacity of the model in capturing both local de­
+pendencies and global correlations in sequential data, this study pro­
+poses the DSCA module. Unlike conventional self-attention mechanisms
+that primarily focus on global relationships, DSConv integrates depth­
+wise separable convolutions with a linear attention mechanism,
+enabling efficient feature extraction while reducing computational
+complexity [42–44].
+The attention mechanism is formulated as follows. First, three linear
+projections are applied to transform the input into query Q, key K, and
+value V matrices:
+Q = ReLU(XWQ ), K = ReLU(XWK ), V = XWV
+
+where the depthwise convolution extracts fine-grained local de­
+pendencies, and the pointwise convolution integrates these features
+across channels. The resulting representation retains the sequential
+structure while enriching local information.
+Following the convolutional enhancement, the attention computa­
+tion is performed using a linear attention mechanism. Instead of the
+traditional SoftMax-based scaling, the interaction between key and
+value matrices is computed directly:
+
+(11)
+
+where WQ , WK , WV ∈ ℝE×E are learnable weight matrices, and the ReLU
+
+Fig. 2. Proposed model structure.
+6
+
+D. Li et al.
+
+A = KV T
+
+Journal of Energy Storage 161 (2026) 121823
+
+computational efficiency, this section introduces the Depthwise Sepa­
+rable Convolution (DSConv) framework. First, we review conventional
+and depthwise separable convolutions, highlighting their computational
+characteristics. Then, we present our specifically designed DSConv
+module, MBConv1, which leverages multi-layer depthwise convolutions
+and residual connections to efficiently capture multi-scale local de­
+pendencies while maintaining gradient stability.
+
+(13)
+
+This operation captures intrinsic correlations between different time
+steps. The attended representation is subsequently obtained by
+computing the weighted sum of A and the query matrix:
+AQ
+Y = √̅̅̅̅
+dk
+
+(14)
+
+where dk represents the dimensionality of each attention head. Finally, a
+linear transformation is applied, followed by a residual connection that
+integrates the original input with the attended representation:
+Z = X + Linear(Y)
+
+2.2.1. The conventional convolution and depthwise separable convolution
+In convolutional neural networks, a standard convolution layer
+jointly models spatial correlations and cross-channel interactions
+through learnable kernels. Specifically, given an input tensor
+X ∈ ℝB×H×W×Cin , where B is the batch size, H and W denote the spatial
+dimensions, and Cin is the number of input channels, a convolution
+kernel W ∈ ℝk×k×Cin ×Cout produces an output feature map Y as
+
+(15)
+
+This residual connection mitigates gradient vanishing issues and
+facilitates efficient information propagation. Through the integration of
+convolutional operations and linear attention, DSCA enhances perfor­
+mance in sequential learning tasks by combining local feature extraction
+with global context modeling, all while preserving computational
+efficiency.
+To quantitatively evaluate the computational efficiency of the pro­
+posed attention mechanism, the complexity of each operation is
+analyzed and compared with that of the conventional self-attention
+mechanism.
+In the standard multi-head self-attention, the attention matrix A =
+QKT requires a pairwise similarity computation between all queries and
+keys, resulting in a quadratic complexity with respect to the sequence
+length n:
+(
+)
+Otradition = O n2 d
+(16)
+
+Y = X*W
+
+(20)
+
+where * denotes the 2D convolution operator. For each output channel j ,
+the operation can be expressed asThe computation for each output
+channel can be expressed as
+Yj =
+
+Cin
+∑
+i=1
+
+Xi * Wij .
+
+The computational complexity of this operation is
+)
+O k2 ⋅Cin ⋅Cout ⋅H⋅W ,
+(
+
+(21)
+
+(22)
+
+and the number of learnable parameters is
+P = k2 ⋅Cin ⋅Cout
+
+where d denotes the embedding dimension. This quadratic dependency
+severely limits scalability when processing long time-series data.
+In contrast, the proposed DSCA reformulates the attention operation
+into a linearized two-step form. Specifically, it first computes the key­
+–value correlation matrix M = KV T ∈ ℝd×d , followed by a projection
+with the query vector:
+(
+)
+(17)
+Y = MQ = KV T Q
+
+(23)
+
+Although standard convolutions are effective in jointly capturing
+local spatial dependencies and inter-channel correlations, they intro­
+duce significant computational cost and memory overhead, which be­
+comes a bottleneck in lightweight architectures and time-series
+applications with long input sequences.
+To address this limitation, depthwise separable convolution
+(DSConv) decomposes the standard convolution into two steps:
+First, depthwise convolution applies a k × k filter to each input
+channel independently, capturing spatial correlations without mixing
+channels. Its complexity is
+(
+)
+O k2 ⋅Cin ⋅H⋅W
+(24)
+
+This design eliminates the pairwise token interaction of O(n2 ) and
+reduces the computational complexity to:
+)
+(
+(18)
+Oproposed = O nd2
+Since d≪n in most practical settings, the proposed structure achieves
+near-linear complexity with respect to the sequence length. The theo­
+retical ratio between the two complexities is:
+( )
+Oproposed
+d
+(19)
+== O
+n
+Otradition
+
+Next, pointwise convolution employs a 1 × 1 convolution to linearly
+combine the outputs across channels to produce Cout feature maps, with
+complexity
+
+indicating that DSCA reduces the overall computational cost approxi­
+mately by a factor n/d.
+Moreover, the convolutional enhancement branch introduces an
+additional term O(nk), where k is the kernel size, which remains negli­
+(
+)
+gible compared to O nd2 .
+
+O(Cin ⋅Cout ⋅H⋅W)
+
+(25)
+
+Thus, the total complexity of DSConv becomes
+)
+O k2 ⋅Cin ⋅H⋅W + Cin ⋅Cout ⋅H⋅W ,
+
+(26)
+
+(
+
+which is significantly lower than the standard convolution when k is
+large or Cout ≫Cin . At the same time, DSConv maintains a comparable
+ability to capture both spatial and channel dependencies, making it a
+widely adopted operator in lightweight deep learning models.
+
+Therefore, the DSCA mechanism maintains strong spatiotemporal
+modeling capability while significantly improving computational effi­
+ciency and scalability.
+
+2.2.2. The designed DSConv module
+A standard convolution is decomposed into a depthwise convolution
+and a pointwise convolution by DSConv, which breaks down a con­
+ventional convolution into two components: a depthwise convolution
+and a pointwise convolution. [45–48], significantly reducing computa­
+tional complexity while preserving feature extraction capabilities.
+The proposed MBConv1 module is a deep 1D convolutional block
+designed to capture multi-scale local dependencies while maintaining
+efficient gradient flow through a residual connection. Given an input
+
+2.2. The depthwise separable convolution module
+Convolutional operations are a fundamental building block in neural
+networks, enabling models to extract spatial and temporal dependencies
+from data. However, standard convolutions often incur high computa­
+tional cost and memory usage, particularly in time-series applications
+with long sequences. To balance feature extraction capability and
+7
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+Subsequent IMFs are extracted iteratively from the updated re­
+siduals. At the k-th step, the residual rk− 1 (t) is perturbed by additive
+white noise, followed by EMD decomposition. The first IMF of each
+perturbed signal is averaged to obtain the k-th IMF, written as
+
+tensor X ∈ ℝB×L×C , where B is the batch size, L is the sequence length,
+and C is the embedding dimension, the computation begins with a
+pointwise convolution that expands the channel dimension by a factor of
+r:
+Y1 = X⋅Wpw1 ∈ ℝB×L×rC
+pw1
+
+(27)
+
+IMFk (t) =
+
+C×rC
+
+where W
+∈ℝ
+, the expanded feature map is then processed
+sequentially through three depthwise convolutions with kernel size k =
+3, which independently operate on each channel to capture local
+sequential patterns while keeping parameter overhead minimal:
+Yi+1 = σ (DepthwiseConv(Yi , K) ), i = 1, 2, 3
+
+(28)
+
+x(t) =
+(29)
+
+(30)
+
+Finally, a residual connection is added to enhance gradient propa­
+gation and stabilize training, producing the output
+Y = X + Y6
+
+(31)
+
+In this manner, MBConv1 efficiently expands the feature space to
+extract rich representations, leverages depthwise convolutions to cap­
+ture multi-scale local dependencies, and employs residual connections
+to maintain training stability, making it well-suited for deep sequential
+modeling with low computational cost.
+2.3. Complete ensemble empirical mode decomposition with adaptive
+noise
+The Complete Ensemble Empirical Mode Decomposition with
+Adaptive Noise (CEEMDAN) is an enhanced version of the classical EMD
+and EEMD methods, specifically designed to address mode mixing and
+residual noise problems in nonlinear and non-stationary signal analysis.
+The algorithm incorporates adaptive noise at each stage of the decom­
+position and averages the results of multiple realizations, ensuring that
+the extracted intrinsic mode functions (IMFs) exhibit stronger physical
+interpretability and improved stability.
+In this study, CEEMDAN is not treated as a generic preprocessing
+technique applied to the entire dataset globally, but rather as a taskoriented signal enhancement module with a clear strategic role in RUL
+prediction that rigorously adheres to the causality principle of timeseries analysis. Crucially, the raw capacity sequence is first divided
+into distinct training and validation sets based on chronological order.
+CEEMDAN is then applied independently to the capacity data within
+each of these pre-divided segments (i.e., training data and validation
+data). This ensures that the feature extraction process for the training
+data does not incorporate any information from the future (validation)
+data, thereby strictly preventing data leakage and ensuring practical
+deploy ability.
+Given an observed signal x(t), CEEMDAN first generates perturbed
+signals by introducing independent realizations of Gaussian white noise,
+expressed as xi (t) = x(t) + εωi (t), where ε denotes the noise amplitude
+and εωi (t) represents the i-th noise sequence. Each perturbed signal is
+then decomposed using EMD, and the first IMF obtained from each
+realization is averaged to yield the final first-level component, i.e.,
+N
+1 ∑
+IMF1 (t) =
+IMF1,i (t),
+N i=1
+
+K
+∑
+k=1
+
+IMFk (t) + rK (t)
+
+(34)
+
+Compared with EMD, CEEMDAN alleviates mode mixing by incor­
+porating noise-assisted decomposition, while simultaneously over­
+coming the residual ambiguity introduced in EEMD. As a result, each
+extracted IMF is better defined and more physically meaningful, making
+CEEMDAN particularly suitable for analyzing nonlinear and nonstationary time series.
+In this study, CEEMDAN is not treated as a generic preprocessing
+technique but is explicitly introduced as a task-oriented signal
+enhancement module with a clear strategic role in RUL prediction. By
+decomposing the raw capacity sequence into IMFs with distinct fre­
+quency characteristics, CEEMDAN enables the effective isolation of
+high-frequency noise–dominated components, which are mainly asso­
+ciated with measurement uncertainty and short-term capacity regener­
+ation. These noise-sensitive components can be selectively suppressed
+during signal reconstruction, thereby reducing irregular fluctuations
+while preserving the physically meaningful degradation information.
+Owing to the resulting smoother and quasi-monotonic input represen­
+tation, the joint SOH–RUL training process exhibits improved conver­
+gence behavior, characterized by faster convergence speed, reduced
+training oscillations, and fewer abrupt prediction jumps, as the denoised
+signals alleviate gradient instability and facilitate more stable
+optimization.
+Considering the common issues of short-term capacity regeneration
+and abrupt fluctuations in existing SOH estimation and RUL prediction
+methods, this study introduces the CEEMDAN technique to denoise and
+decompose the raw capacity data. The decomposition results of Cell1,
+B0005 and CS2–35 are presented in Fig. 3.
+Based on the previous correlation analysis, HI3, HI4, and HI6 exhibit
+strong and complementary correlations with SOH, thereby providing a
+reliable foundation for joint SOH–RUL modeling. However, directly
+relying on raw capacity curves for RUL prediction is often affected by
+short-term capacity fluctuations and measurement noise, which reduces
+prediction accuracy. To address this limitation, CEEMDAN decomposi­
+tion is employed to extract more representative long-term degradation
+trends from the capacity sequence.
+As shown in Fig. 3, different IMF components capture multi-scale
+fluctuations of capacity. Among them, higher-order IMFs show the
+strongest correlation with capacity and can effectively track the overall
+degradation pattern of SOH. In particular, IMF6 not only suppresses
+high-frequency disturbances but also preserves the long-term monotonic
+degradation signal. Therefore, IMF6 is ultimately selected as the
+“denoised capacity” input feature for the subsequent RUL prediction
+module, thereby significantly enhancing the accuracy and robustness of
+lifetime prediction.
+
+after which a second pointwise convolution reduces the channel
+dimension back to the original size:
+Y6 = Y5 ⋅Wpw2 ∈ ℝB×L×C
+
+(33)
+
+The residual is updated as rk (t) = rk− 1 (t) − IMFk (t). The process is
+repeated until the final residual rK (t)becomes a monotonic function or
+contains no oscillatory components. The original signal can therefore be
+reconstructed as
+
+then a ReLU activation is applied to introduce non-linearity:
+Y5 = ReLU(Y4 )
+
+N
+1 ∑
+IMFk,i (t)
+N i=1
+
+2.4. Joint assessment framework
+
+(32)
+
+The core of the joint estimation framework is a unified multi-task
+deep learning model designed to simultaneously predict SOH and
+RUL. As illustrated in Fig. 2, the model comprises shared feature
+extraction layers (consisting of DSCA and DSConv modules) that learn
+
+where N denotes the number of realizations. The corresponding residual
+is computed as r1 (t)=x(t) − IMF1 (t).
+8
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+Fig. 3. CEEMDAN decomposition results of (a) Cell1, (b) B0005 and (c) CS2-–35.
+
+comprehensive degradation representations from the input health in­
+dicators (including the CEEMDAN-derived denoised capacity).
+Following these shared layers, the model incorporates two distinct taskspecific output heads (Feedforward layers), each responsible for gener­
+ating the SOH estimation and RUL prediction, respectively. This archi­
+tecture allows the model to leverage shared knowledge about battery
+degradation while tailoring predictions to each specific task. The overall
+optimization objective is to minimize the total loss L Total , defined as:
+
+be relatively suppressed. This prevents the gradient of the more chal­
+lenging task from dominating the overall model update direction in the
+initial phases, thereby ensuring that both tasks receive adequate
+learning. Through this dynamic balancing, the model can automatically
+explore the intrinsic relationship between SOH and RUL predictions and
+converge to a Pareto-optimal solution—minimizing the total loss L Total
+without excessively compromising the performance of either task.
+3. Experiments
+
+(35)
+
+L Total = αL SOH + βL RUL
+
+To ensure a comprehensive and rigorous evaluation of the proposed
+method, this section provides a detailed description of the experimental
+setup. First, the evaluation metrics employed in this work are introduced
+to establish consistent performance criteria. The configurations of the
+baseline and proposed models are then outlined, followed by the defi­
+nitions of SOH and RUL to clarify the prediction targets. Subsequently,
+the datasets used in this study are presented, highlighting their char­
+acteristics and relevance to the experiments. Finally, the process of
+feature extraction and selection is discussed, which serves as the foun­
+dation for reliable model training and validation.
+
+In this formulation,L SOH and L RUL represent the loss functions for the
+SOH estimation task and the RUL prediction task, respectively. To
+ensure training stability and robustness against outliers, both task losses
+are computed using the Mean Absolute Error (MAE), defined as follows:
+n ⃒
+⃒
+∑
+⃒ (i)
+̂ SOH ) = 1
+̂ (i) ⃒⃒
+L SOH = MAE(YSOH , Y
+− Y
+⃒Y
+SOH
+n i=1 SOH
+
+̂ RUL ) =
+L RUL = MAE(YRUL , Y
+
+⃒
+n ⃒
+1∑
+⃒ (i)
+̂ (i) ⃒⃒
+⃒YRUL − Y
+RUL
+n i=1
+
+(36)
+
+(37)
+
+̂ represents the predicted
+Here, Y denotes the ground truth value, Y
+value, and n is the number of samples.
+The coefficients α and β are crucial weighting parameters that bal­
+ance the relative importance of the two tasks. Departing from traditional
+approaches that rely on fixed weights or manual tuning, the innovation
+of this work is to treat both α and β as trainable parameters. During
+model training, these weight parameters are updated concurrently with
+other network parameters (e.g., those in convolutional and LSTM layers)
+via backpropagation.
+This optimization mechanism operates as follows: in the early stages
+of training, the model dynamically adjusts the values of α and β based on
+the initial loss magnitudes of the SOH and RUL tasks. If the loss of one
+task is significantly larger than the other, its corresponding weight may
+
+3.1. Evaluation metrics
+3.1.1. SOH related
+Mean Absolute Error (MAE), Root Mean Square Error (RMSE) and
+Mean Absolute Percentage Error (MAPE) are three widely utilized in­
+dicators to assess the performance of models [49,50]. The formulas are
+described as follows:
+MAE =
+
+n
+1∑
+|yi − ̂
+yi|
+n i=1
+
+RMSE =
+9
+
+√̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅
+n
+1∑
+y i )2
+(yi − ̂
+n i=1
+
+(38)
+
+(39)
+
+D. Li et al.
+
+MAPE =
+
+Journal of Energy Storage 161 (2026) 121823
+
+⃒
+n ⃒
+⃒ yi − ̂
+1∑
+y i ⃒⃒
+⃒
+× 100%
+n i=1 ⃒ yi ⃒
+
+to evaluate the performance of the proposed method. The models
+considered include the proposed model, the original CNN-Transformer,
+the conventional Transformer, LSTM, MLP, and a pure CNN model. The
+proposed model integrates deep separable convolution with attention
+mechanisms, enabling efficient extraction of local and global features.
+The CNN-Transformer and Transformer serve as attention-based base­
+lines to investigate the contribution of the proposed dual-channel
+feature fusion and depthwise separable convolution modules. LSTM is
+included to represent recurrent architectures commonly used for
+sequence modeling, while MLP is employed to assess the effect of feedforward networks without temporal dependencies. The CNN model, on
+the other hand, provides a representative convolutional baseline to
+evaluate the capability of purely local feature extraction.
+The detailed layer configurations of these models are summarized in
+Table 2, including embedding dimensions, attention modules, con­
+volutional blocks, normalization layers, pooling, and final prediction
+layers. This selection of diverse architectures allows for a thorough
+assessment of both the predictive accuracy and generalization ability of
+the proposed method relative to conventional deep learning approaches.
+Before training, all extracted features from the cycling datasets are
+normalized using min–max scaling to enhance numerical stability and
+accelerate convergence. The datasets are then partitioned into training
+and testing subsets in a 3:7 ratio. To ensure robustness and reproduc­
+ibility, all reported performance metrics are averaged over five inde­
+pendent experiments with randomized data splits. Subsequently, our
+proposed model is employed to estimate the state of health from the
+preprocessed input sequences.
+In the training process, a grid search strategy is employed to optimize
+the hyperparameters of the attention-based models, including the pro­
+posed model, CNN-Transformer, and Transformer. Grid search is chosen
+due to its simplicity and exhaustive nature, which allows systematic
+evaluation of all possible combinations of predefined hyperparameter
+values, ensuring that the selected configuration provides robust per­
+formance across the validation dataset. The hyperparameters considered
+in this study include the learning rate (1e-2, 1e-3), number of attention
+blocks (1, 2, 4), dense layer dimensions (16, 32, 64, 128), embedding
+dimensions (16, 32, 64, 128), number of attention heads (1, 2, 4), and
+the number of training epochs (200,1000). By evaluating all combina­
+tions of these parameters, the optimal configuration is selected based on
+the model's performance metrics. In addition, the dense layer di­
+mensions of the MLP model and the hidden layer dimensions of the
+LSTM are tuned using the same set of dense layer dimensions (16, 32, 64,
+128), while the number of layers for both is adjusted via the parameter
+set (1, 2, 4). For the CNN layers, only the learning rate and the number of
+training epochs are employed for hyperparameter tuning.
+
+(40)
+
+where y represents the actual value, ̂
+y denotes the predicted value and n
+is the number of samples.
+3.1.2. RUL related
+To quantitatively assess the accuracy of RUL prediction, two
+commonly used error metrics are employed: the Absolute Error (AE) and
+the Relative Error (RE). AE measures the absolute deviation between the
+predicted RUL value and the true RUL value. It directly reflects the
+prediction bias in units of cycles. RE normalizes the absolute error by the
+true RUL value, thereby providing a scale-independent assessment of
+prediction accuracy. This is particularly useful when the actual RUL
+varies significantly across different cells or degradation stages. The
+formulas for AE and RE are given as follows:
+̂ i − RULi |
+AEi = | RUL
+
+(41)
+
+̂ i − RULi |
+| RUL
+RULi
+
+(42)
+
+RE =
+
+̂ i and RULi denote the predicted and true RUL values for the
+where RUL
+i− th sample, respectively.
+3.1.3. Training process
+Battery capacity degradation exhibits strong temporal dependency.
+A single SOH value represents only a static health state at a specific
+cycle, whereas a short sequence of consecutive cycles implicitly contains
+dynamic information such as degradation trends and variation rates,
+including first-order and even second-order temporal characteristics. In
+the preprocessing stage, a sliding window strategy is adopted to
+construct sequential inputs, which is widely used in attention-based
+time-series models. Specifically, a fixed-length window with a length
+of n and a sliding stride of one cycle is applied to segment the time series
+composed of HIs and corresponding SOH values.
+Due to the sliding window mechanism, the first valid prediction is
+generated at the n-th cycle rather than at the first cycle. This is not
+caused by skipping early-cycle information; instead, the model requires
+a minimum number of historical cycles to form a complete input
+sequence. Once this initialization condition is satisfied, the SOH is
+estimated in a one-step-ahead prediction manner, where each prediction
+corresponds exclusively to the next single cycle.
+This sequential formulation allows the model to leverage short-term
+temporal dependencies while maintaining a consistent single-step SOH
+estimation setting throughout the prediction horizon.
+Prior to model input, the data undergoes min–max normalization to
+eliminate scale discrepancies among features. For model training, the
+Adam optimizer is adopted with mean squared error (MSE) as the loss
+function, formulated as follows:
+MSE =
+
+n
+1∑
+y i )2
+(yi − ̂
+n i=1
+
+3.3. Multi-task definition
+3.3.1. SOH
+SOH is a metric used to describe the current condition of a lithiumion battery relative to its ideal or initial state [39,51–54]. It is
+commonly characterized as the ratio of the battery's present maximum
+capacity (Ct ) to its initial nominal capacity (C0 ), expressed as follows:
+( )
+Ct
+SOH =
+× 100%
+(44)
+C0
+
+(43)
+
+Hyperparameter tuning is performed via grid search, and the batch
+size is empirically set to 128. To mitigate randomness and ensure
+robustness against data partitioning biases, five independent training
+and validation runs are conducted under different random seeds in Py­
+thon. The final test results are averaged across all five test sets to
+guarantee statistical significance and reproducibility. This rigorous
+validation framework enhances the reliability of experimental
+conclusions.
+
+As the battery undergoes charge and discharge cycles, its capacity
+gradually declines, leading to a decrease in SOH.
+3.3.2. RUL
+The task of remaining useful life (RUL) prediction aims to estimate
+the number of cycles remaining before a battery reaches its End of
+Performance (EOP). The EOP is defined based on a SOH threshold,
+typically when SOH ≤ 0.8. Let C(c) denote the capacity at cycle c, and
+define the true EOP index as
+
+3.2. Model configurations
+In this study, a comprehensive comparison of six models is conducted
+10
+
+Journal of Energy Storage 161 (2026) 121823
+
+D. Li et al.
+
+Table 2
+The layer configurations of different deep learning models.
+Proposed
+
+CNN-Transformer
+
+Transformer
+
+MLP
+
+LSTM
+
+CNN
+
+Input
+Embed layer
+DSCA
+Dropout, Add&Norm
+DSConv module
+Add&Norm
+
+Input
+Embed layer
+Positional Encoder
+Softmax Attention
+Conv1D (1 × 3, 1) ReLU
+MaxPooling1D
+(2,2)
+Conv1D (1 × 3, 1)
+ReLU, Add&Norm
+Softmax Attention
+Add&Norm
+MLP
+Add&Norm
+Linear
+
+Input
+Embed layer
+Positional Encoder
+Softmax Attention
+Add&Norm
+Softmax Attention
+
+Input
+Embed layer
+Layer Norm
+Dense layer & ReLU
+Dense layer& dropout
+Add
+
+Input
+Linear
+LSTM layer (32)
+LSTM layer (32)
+LSTM layer (32)
+Linear
+
+Input
+Conv1D (1 × 5, 1) ReLU
+MaxPooling
+Conv1D (1 × 7, 1) ReLU
+MaxPooling
+Conv1D (1 × 5, 1) ReLU
+
+Add&Norm
+
+Linear
+
+MLP
+Linear
+
+MLP
+Add&Norm
+
+EOP = min{c ∈ ℕ|C(c) ≤ γC0 }.
+
+cathode material. Aging tests were conducted in a thermal chamber
+maintained at 40 ◦ C. The charging protocol involved a constant current
+(CC) phase at 1C rate until the voltage reached 4.2 V, followed by a
+constant voltage (CV) phase at 4.2 V until the current tapered to 0.02C.
+Subsequently, the batteries were discharged following a drive cycle
+derived from the urban Artemis profile. Characterization measurements
+were taken every 100 cycles to monitor degradation trends. The eight
+cells capacity degradation curves are shown in Fig. 4(a)-(b).
+The NASA Prognostics Data Repository contains experimental data
+from four 18,650-model Li-ion batteries (B0005, B0006, B0007, and
+B0018) subjected to standardized aging tests under controlled ambient
+conditions (24 ◦ C) [18]. Each battery underwent repeated chargedischarge cycles and impedance measurements to study degradation
+patterns. Charging followed a two-phase protocol: Constant Current
+(CC) at 1.5 A until reaching 4.2 V, followed by Constant Voltage (CV)
+until the current dropped to 20 mA. Discharge cycles were conducted at
+2 A CC mode, with cutoff voltages varying by battery: 2.7 V (B0005), 2.2
+V (B0007), and 2.5 V (B0006, B0018). The capacity degradation curves
+of these four batteries are shown in Fig. 4(c)-(d).
+The CALCE battery datasets [56] includes four prismatic lithium-ion
+batteries manufactured by LG Chem, each with a nominal capacity of
+1.1 Ah and employing lithium cobalt oxide as the cathode material. All
+aging experiments are conducted under room temperature conditions.
+The charging process follows a constant current protocol at 0.5 C until
+the voltage reaches 4.2 V, after which a constant voltage phase is applied
+at 4.2 V until the charging current falls below 0.02 A. Discharging is
+performed at a constant current of 2 A until the voltage drops to 2.7 V.
+The degradation patterns observed in the CALCE dataset are illustrated
+in Fig. 4(e).
+
+(45)
+
+Given an observation cycle c0 , the RUL in cycles is defined as
+RUL(c0 ) = EOP − c0 .
+
+(46)
+
+In practice, the predicted RUL is obtained by first determining the
+
+̂
+predicted EOP from the model's capacity forecast C(⋅):
+̂ = min{cʹ ≥ c0 | C(c
+̂ ʹ) ≤ γC0 },
+EOP
+
+̂ − c0 .
+̂ 0 ) = EOP
+RUL(c
+
+(47)
+
+Equations above indicate that, at a given evaluation point c0 , the
+total life can be expressed as EOP = c0 + RUL(c0 ) for the true value and
+̂ = c0 + RUL(c
+̂ 0 ) for the predicted value.
+EOP
+3.4. Experimental datasets
+To assess the generalization ability and performance superiority of
+the proposed model, three battery datasets, Oxford, NASA, and CALCE,
+are selected for evaluation. These datasets comprise batteries with
+different capacities, chemistries, and charge–discharge protocols, and
+the cycle counts differ substantially between the two battery types. The
+main characteristics of these datasets are summarized in Table 3.
+The Oxford battery dataset [55] contains data from eight Kokam
+SLPB533459H4 lithium-ion pouch cells, each featuring a nominal ca­
+pacity of 740 mAh. These cells utilize lithium cobalt oxide (LCO) as the
+Table 3
+Basic information of each battery dataset.
+Data Sources
+
+Oxford [28]
+
+NASA [15]
+
+CALCE [29]
+
+Cell types
+Cathode material
+Selected battery
+series
+Battery number
+Rated capacity
+(Ah)
+Capacity failure
+threshold (Ah)
+Charge protocol
+(rate)
+Discharge protocol
+(rate)
+Cut-off voltage (V)
+
+Pouch
+NCO-LCO
+Cell (1 to 8)
+8
+0.74
+
+18650 Cylindrical
+NCA
+B00 (05 to 07 and
+18)
+4
+2
+
+Prismatic
+LCO
+CS2 (35 to
+38)
+4
+1.1
+
+70%
+
+1.4 (70%)
+
+0.84 (76.4%)
+
+CC (2C)
+
+CC-CV
+(0.75C,4.2V)
+CC (1C)
+
+CC-CV
+(0.5C,4.2V)
+CC (1C)
+
+Cut-off current (A)
+
+–
+
+charge to 4.2
+discharge to 2.7/
+2.5/2.2/2.5
+charge to 0.02
+
+Experiment
+temperature
+(◦ C)
+Cycle numbers
+
+40
+
+24
+
+charge to 4.2
+discharge to
+2.7
+charge to
+0.05
+24
+
+8200/7700/8100/
+5100/5000/5000/
+8100/8100
+
+168/168/168/
+132
+
+881/935/
+971/995
+
+variance
+charge to 4.2
+discharge to 2.7
+
+Linear
+
+3.5. Feature engineering
+3.5.1. Health indicators extraction
+In this section, voltage, temperature, time, and capacity data from
+the battery charging process are analyzed and processed to derive four
+characteristic curves: Incremental Capacity (IC), Charge Voltage Time
+(CVT), Differential Temperature Voltage (DTV), and Differential Tem­
+perature Capacity (DTC), as shown in Fig. 5(a)-(d). From these curves,
+ten representative HIs are extracted, capturing key features related to
+battery degradation. The ten HIs and their corresponding descriptions
+are summarized in Table 4.
+Incremental Capacity (IC) analysis is a diagnostic technique used to
+assess the health of lithium-ion batteries by examining the differential
+relationship between capacity and voltage during charging or dis­
+charging processes [19]. The IC curve is obtained by computing the
+derivative of capacity (Q) with respect to voltage (V), represented
+mathematically as:
+
+11
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+Fig. 4. SOH degradation curves and corresponding voltage, current, and temperature profiles of (a–b) Oxford, (c–d) NASA, and (e) CALCE datasets.
+
+Fig. 5. All cycle curves of (a) DTV, (b) DTC, (c) IC and (d) CVT and the position of each HIs extraction.
+
+12
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+of battery aging and degradation. To leverage these characteristics, we
+extract the peak value of the DTC curve as HI9 and the corresponding
+capacity as HI10. The processed DTC curve and the positions of these
+extracted HIs are shown in Fig. 5(d). The DTC curve represents the rate
+of temperature change with respect to capacity during the charging
+process, providing insights into the battery's thermal characteristics and
+internal reaction mechanisms. It is defined as:
+( )
+T
+dT T(k + N) − T(k)
+=
+≈
+(51)
+DTC = d
+Q
+dQ Q(k + N) − Q(k)
+
+Table 4
+Multi-source health indicators.
+No.
+
+Description on Health Indicators
+
+HI1
+HI2
+
+The peak value of the incremental capacity (IC) curves
+The voltage corresponding to the peak of the incremental capacity (IC)
+curves
+The charge time within the voltage range of 3.8–4.2 V
+The charge time within the voltage range of 4.16–4.17 V
+The peak value of the differential temperature–voltage (DTV) curves
+The voltage corresponding to the peak of the differential
+temperature–voltage (DTV) curves
+The valley value of the differential temperature–voltage (DTV) curves
+The voltage corresponding to the valley of the differential
+temperature–voltage (DTV) curves
+The peak value of the differential temperature–capacity (DTC) curves
+The capacity corresponding to the peak of the differential
+temperature–capacity (DTC) curves
+
+HI3
+HI4
+HI5
+HI6
+HI7
+HI8
+HI9
+HI10
+
+( )
+Q
+dQ ΔQ
+=
+≈
+IC = d
+V
+dV ΔV
+
+where T, Q, k and N denotes the temperature, capacity, the k sample
+point and the interval of two sample points. To reduce the impact of
+significant noise in the DTC curve, a moving average smoothing process
+with a window size of 200 is applied.
+3.5.2. Health indicators selection
+The extraction of HIs is a crucial step in the SOH estimation of
+lithium-ion batteries [60–62], as the quality of the extracted indicators
+directly determines the precise of the final SOH estimation. The Pearson
+(γ) correlation coefficient (PCC) and the Spearman (ρ) correlation co­
+efficient (SCC) are calculated to analyze the correlation between HIs and
+SOH. PCC measures the linear correlation, while SCC assesses the
+monotonic relationship between variables, making it more suitable for
+capturing nonlinear dependencies. The formulas for PCC and SCC are
+given as follows:
+
+(48)
+
+The IC curve typically exhibits distinct peaks corresponding to spe­
+cific electrochemical reactions within the battery [57]. To better eval­
+uate the role of the IC curve in revealing battery degradation
+information, the IC curve is analyzed during the charging process, as
+shown in Fig. 5(a), the peaks and their associated voltages are marked as
+HI1 and HI2, respectively. The charge voltage curve records the varia­
+tion of battery voltage over time and is commonly used to extract HIs,
+such as the charging voltage time from 3.8 V to 4.2 V. Due to its
+simplicity in extraction and high correlation, inspired by a series of
+studies [2,20,52,58], the time intervals during which the charging
+voltage ranges from 3.8 V to 4.2 V and from 4.16 V to 4.17 V as health
+indicators are extracted as HI3 and HI4, respectively, as shown in Fig. 5
+(b). The calculation formula is as follows:
+CVT = t(V1 ) − t(V2 )
+
+n
+∑
+
+γ=
+
+cov(X, Y)
+
+σX σY
+
+(Xk − X)(Yi − Y)
+k
+,
+= √̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅
+n
+n
+∑
+∑
+(Xk − X)2 (Yk − Y)2
+k
+
+(52)
+
+k
+
+where n,Xk ,Yk ,X and Y are the number of sample, the value of true SOH,
+the HI, the mean of X and Y, respectively.
+∑n
+1
+i=1 (R(Xi ) − R(X) )(R(Yi ) − R(Y) )
+n
+̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅̅
+ρ=√
+(53)
+)(
+),
+√(
+√ ∑n
+∑
+2
+n
+2
+1
+√ 1
+i=1 (R(Xi ) − R(X) )
+i=1 (R(Yi ) − R(Y) )
+n
+n
+
+(49)
+
+where t represents the charging time when the voltage reaches V1 and
+V2 .
+The Differential Temperature (DT) curve is a valuable diagnostic tool
+for assessing the SOH of lithium-ion batteries [59]. By plotting the rate
+of temperature change against voltage during charging or discharging,
+the DT curve highlights subtle thermal behaviors that are often imper­
+ceptible in standard temperature profiles. This enhanced sensitivity
+enables the detection of minor variations in internal resistance and heat
+generation, which are indicative of aging mechanisms such as electrode
+degradation or electrolyte decomposition. To construct the DTV curve,
+one calculates the derivative of temperature with respect to voltage,
+expressed mathematically as:
+( )
+T
+dT T(k + N) − T(k)
+DTV = d
+=
+≈
+(50)
+V
+dV V(k + N) − V(k)
+
+where R(Xi ) and R(Yi ) are the ranks of the SOH and HI, respectively; n is
+the sample size.
+Furthermore, the correlation coefficients for all HIs of each battery
+cell can be calculated using the above formulas. The heatmap of PCC and
+SCC for cell1 to cell4 is shown in Fig. 6, where the strength of correlation
+is visually represented using circle size and color intensity. Larger and
+darker circles indicate a stronger correlation between the HI and SOH,
+while smaller and lighter circles indicate weaker correlations. An HI
+with a strong correlation (greater than 0.9) in one battery may exhibit a
+weaker correlation (less than 0.9) in another. For example, the PCC and
+SCC of HI10 are 0.95 and 0.94 for Cell1, respectively, whereas in Cell 3,
+they decrease to 0.88 and 0.86. This discrepancy may affect the pre­
+diction accuracy of a model trained on Cell 1 when applied to Cell 3.
+Therefore, an effective method for selecting strongly correlated HIs that
+are applicable across multiple battery cells is essential.
+Many existing SOH estimation methods select HIs solely based on the
+magnitude of their correlation coefficients. However, this approach
+often proves ineffective when the correlation distributions of different
+HIs vary significantly, such as under different battery chemistries or
+various temperature conditions. In these scenarios, an HI that performs
+well in one setting may not be suitable in another. Therefore, to ensure
+the robustness and applicability of selected HIs across diverse condi­
+tions, it is essential to introduce a more effective selection strategy that
+not only considers correlation coefficients but also incorporates a
+rational screening mechanism based on their distribution
+characteristics.
+Therefore, a HI selection algorithm is proposed. This method first
+
+where T, V, k and N denotes the temperature, voltage, the k sample point
+and the interval of two sample points. Since the DTV curve contains
+significant noise, a moving average smoothing process with a window
+size of 200 is employed to mitigate this effect.
+Considering that the peaks and valleys of the DTV curve can char­
+acterize the battery's thermal and electrochemical behaviors during
+charging, four HIs are extracted: the peak of the DTV curve (HI5), the
+voltage corresponding to the peak (HI6), the valley (HI7), and the
+voltage corresponding to the valley (HI8). These HIs reflect heat gen­
+eration, internal resistance changes, and phase transitions within the
+battery, providing insights into its degradation characteristics. The
+processed DTV curve and the positions of these four HIs are shown in
+Fig. 5(c).
+The DTC curve effectively highlights thermal anomalies, phase
+transitions, and heat generation patterns, making it a valuable indicator
+13
+
+Journal of Energy Storage 161 (2026) 121823
+
+D. Li et al.
+
+Fig. 6. Hotspot maps of PCC and SCC between SOH and ten HIs.
+
+calculates both the Pearson and Spearman correlation coefficients of
+multiple candidate HIs across all battery cells to jointly evaluate their
+linear and monotonic nonlinear relationships with battery degradation.
+Only HIs whose Pearson and Spearman correlation coefficients are both
+greater than 0.8 are retained, ensuring that the selected HIs exhibit
+strong and robust relevance to SOH under different operating
+
+conditions. The retained HIs are then ranked according to their corre­
+lation strength, and features with inter-feature correlation coefficients
+higher than 0.95 are further removed to eliminate highly redundant
+information while preserving sufficient feature diversity. Based on this
+process, the final HI subset is obtained following the screening proced­
+ure described in Table 5.
+Through our HIs selection method, three HIs (HI3, HI4, and HI6) that
+meet the selection criteria are identified. The PCC and SCC values of
+these three selected HIs for each battery are shown in Table 6. It can be
+observed that both HI3 and HI4 exhibit strong correlations, with PCC
+and SCC values exceeding 0.99, indicating their consistently high per­
+formance across all batteries. In comparison, HI6 shows a slightly lower
+correlation, with an average value of 0.9789, but still meets the selection
+criteria.
+The correlation-based HI selection is intentionally performed using
+data from multiple cells within the same battery group. This approach
+aims to ensure the statistical robustness and generalizability of the
+selected indicator, as a HI derived from a single cell may not adequately
+represent population-level degradation patterns. By evaluating candi­
+dates across several cells, we identify a composite HI that captures
+common degradation characteristics, thereby reducing reliance on cellspecific randomness.
+
+Table 5
+Steps of health indicators selection for a group of cells.
+Procedure: HIs selection
+1.Calculate the PCC (γ) and SCC (ρ) of n HIs for m cells
+2.Obtain the average PCC (γi ) and SCC (ρi ) for each HI
+3.Obtain ith HI (fi ) with γi >= 0.8 or ρi > = 0.8, and order from highest to lowest
+[
+]
+4.Construct A = f1 , f2,…, fn
+5.For i = 1, 2, …, n
+For j = 1, 2, …, m
+If γij ≤ 0.95 or ρij ≤ 0.95
+Delete fi from A
+End
+End
+End
+6.Output A
+
+14
+
+Journal of Energy Storage 161 (2026) 121823
+
+D. Li et al.
+
+Crucially, this selection process is confined to the within-group
+design phase. Once the optimal composite HI is determined for a
+given group, it is fixed and directly applied for feature extraction in
+subsequent health estimation tasks—including those involving unseen
+battery groups. No retrospective correlation analysis or re-selection is
+performed using data from the test sets. Therefore, the integrity of the
+evaluation is maintained, as the model training and testing phases
+strictly adhere to the principle of using mutually exclusive data sources.
+
+health indicators also influences the final estimation accuracy.
+Furthermore, Table 7 also reveals that the representational ability of
+the same HI varies significantly across different batteries. For example,
+the DTC feature performs significantly better than the IC feature on
+Cell5, whereas the opposite is observed for Cell3. However, the CVT
+feature, extracted using the proposed strong correlation-based HI se­
+lection method for battery groups, consistently achieves the best per­
+formance across all batteries. Therefore, considering the correlation of
+health indicators across all battery data is essential, as it greatly con­
+tributes to enhancing the model's generalization and robustness.
+
+4. Experimental results analysis
+This study conducts a series of experiments to comprehensively
+evaluate the performance and robustness of the proposed model. Three
+types of experiments are carried out across three distinct datasets: SOH
+estimation, RUL prediction, and ablation and complexity analysis. The
+SOH experiments not only assess the predictive accuracy of the proposed
+model but also serve to validate the effectiveness of the selected health
+indicators, demonstrating their capability to capture critical degrada­
+tion patterns. The RUL experiments further examine the model's ability
+to generalize across different battery types and operating conditions,
+providing a rigorous assessment of its prognostic reliability. Finally,
+ablation studies and computational complexity analyses are conducted
+to quantify the contributions of each module within the proposed ar­
+chitecture and to evaluate its efficiency in terms of model size and
+inference cost. Collectively, these experiments provide a thorough
+validation of both the accuracy and practical applicability of the pro­
+posed approach for lithium-ion battery health monitoring and remain­
+ing useful life prediction.
+
+4.2. Experiments II: Comparative study on SOH
+This subsection first presents the SOH estimation performance using
+individual features versus fused features within the same model, aiming
+to validate the effectiveness of the optimized health indicator selection
+methods. Subsequently, the selected health indicators are employed to
+conduct model comparisons and evaluations across three battery data­
+sets with different materials and operating conditions, fully demon­
+strating the superiority, effectiveness, and generalization capability of
+the proposed model.
+In the SOH prediction experiments, the input health indicators are
+selected and constructed according to the characteristics of the corre­
+sponding battery datasets.
+For the CALCE and NASA datasets, the SOH prediction experiments
+adopt HI3 as the sole input feature, following the feature selection al­
+gorithm described in Section 3.5. Compared with the Oxford dataset,
+these two datasets exhibit more pronounced short-term local fluctua­
+tions and larger sampling intervals, which limits the number of health
+indicators that simultaneously satisfy the strict selection criteria defined
+in Section 3.5. Under these conditions, HI3 remains the most stable and
+informative indicator, effectively characterizing the long-term capacity
+degradation trajectory and demonstrating strong correlation and
+robustness across multiple cells. Moreover, in order to ensure the use of
+a common health indicator across different datasets and enhance the
+generalizability of the proposed method, HI3 is consistently selected for
+the CALCE and NASA datasets.
+For the Oxford dataset, a multidimensional health indicator set
+consisting of HI3, HI4, and HI6 is employed as the model input. These
+pre-selected HIs, identified using the same selection strategy, jointly
+provide richer feature representations, which are beneficial for
+capturing the more complex and smoother degradation behaviors
+observed in the Oxford dataset.
+
+4.1. Experiments I: Comparative study on different HIs
+To validate the effectiveness of the proposed method for selecting
+strongly correlated HIs applicable to all cells in a group, The first 30%
+data of Cell1 is chosen as the training data. Only the strongly correlated
+indicators of Cell1 (with absolute PCC and SCC values greater than 0.94)
+are considered, without considering the correlation strength of health
+indicators from other test batteries. To avoid redundancy, only one
+feature is selected from each type of curve. The final selected health
+indicators are HI1, HI4, HI6, and HI10, which are respectively abbre­
+viated as the ‘IC’ feature, ‘CVT’ feature, ‘DTV’ feature, and ‘DTC’
+feature. Additionally, all four HIs are fed into the model together for a
+comprehensive performance evaluation, referred as ‘Fusion’. The SOH
+estimation results of each selected HI using the proposed model are
+shown in the Fig. 7.
+Table 7 shows the MAE, RMSE, and MAPE metrics of different HIs for
+this group of batteries using the proposed model, as well as the average
+MAE and RMSE for multiple batteries on a single feature. The results
+indicate that using the CVT feature consistently achieves high estimation
+accuracy, with all experimental MAPE values below 1%, while the other
+three individual features yield relatively average performance. Notably,
+when all four HIs (Fusion) are used together as input, the final estima­
+tion accuracy ranks second in terms of average RMSE and third in terms
+of average MAE and MAPE, demonstrating that the overall correlation of
+
+4.2.1. SOH estimation results on CS2 batteries
+To verify the effectiveness of the proposed model across different
+electrode materials and charge–discharge rates, additional experiments
+were conducted on the CS2 batteries. In particular, the CS2–35 cell was
+employed for model training and validation, where the first 30% of the
+cycle data were used for training and the remaining 70% for validation.
+This setup ensures that the model is evaluated on unseen data from the
+same cell. Furthermore, to assess the generalization capability and
+robustness of the model, the trained network was tested on three addi­
+tional cells under identical operating conditions. This experimental
+design enables comprehensive verification of both within-cell prediction
+accuracy and cross-cell generalization performance.
+As illustrated in Fig. 8, the proposed model achieves the closest fit to
+the actual SOH values across the four CS2-series cells, which is of
+considerable importance for practical applications. Moreover, the box­
+plots in the upper-right corner reveal that the error distribution of the
+proposed model lies closest to the zero axis, indicating its superior
+predictive performance during the experiments. The detailed subfigures
+further demonstrate the model's ability to effectively capture short-term
+capacity fluctuations. These results highlight the strong predictive ac­
+curacy and generalization capability of the proposed model.
+Table 8 further summarizes the predictive performance of the
+
+Table 6
+Selected HIs with PCC and SCC of all cells.
+HI3
+
+HI4
+
+HI6
+
+Battery
+
+γ
+
+ρ
+
+γ
+
+ρ
+
+γ
+
+ρ
+
+Cell1
+Cell2
+Cell3
+Cell4
+Cell5
+Cell6
+Cell7
+Cell8
+
+0.9999
+0.9999
+0.9999
+0.9997
+0.9998
+0.9999
+0.9999
+0.9999
+
+0.9999
+0.9998
+0.9999
+1.0000
+1.0000
+1.0000
+0.9999
+0.9999
+
+0.9999
+0.9999
+0.9999
+0.9999
+0.9998
+0.9999
+0.9999
+0.9999
+
+0.9998
+0.9999
+0.9999
+0.9994
+0.9999
+1.0000
+0.9999
+0.9999
+
+− 0.9783
+− 0.9731
+− 0.9556
+− 0.9699
+− 0.9739
+− 0.9686
+− 0.9753
+− 0.9785
+
+− 0.9779
+− 0.9785
+− 0.9593
+− 0.9843
+− 0.9788
+− 0.9758
+− 0.9880
+− 0.9883
+
+15
+
+

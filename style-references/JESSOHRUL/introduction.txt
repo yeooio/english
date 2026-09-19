@@ -1,0 +1,595 @@
+Journal of Energy Storage 161 (2026) 121823
+
+Contents lists available at ScienceDirect
+
+Journal of Energy Storage
+journal homepage: www.elsevier.com/locate/est
+
+Research papers
+
+Joint state of health and remaining useful life assessment of lithium-ion
+batteries using a novel attention mechanism-based deep learning model
+and multi-source optimized health indicators
+Dexiong Li a,b,* , Yan Xing a , Xiaopeng Li c
+a
+b
+c
+
+School of Mechanical Engineering, Southeast University, Nanjing, 211189, China
+China National Aeronautical Radio Electronics Research Institute, Shanghai, 200241, China
+Department of Mechanical Engineering, Harbin Institute of Technology, Shandong, 264209, China
+
+A R T I C L E I N F O
+
+A B S T R A C T
+
+Keywords:
+Lithium battery
+State-of-health estimation
+Deep learning
+Deep spatiotemporal conv-attention
+Differential temperature-voltage analysis
+
+Accurate assessment of the State of-Health (SOH) and Remaining Useful Life (RUL) of lithium-ion batteries is a
+core challenge for ensuring the safe operation of energy storage systems. Recent studies have emphasized the
+importance of computational efficiency while acknowledging that traditional models still require significant
+performance improvements. However, many existing joint SOH-RUL methods still rely on a single traditional
+model or stack multiple conventional models. Therefore, this paper proposes a novel deep learning framework
+based on a Deep Spatiotemporal Conv-Attention mechanism. It introduces a feature matrix similarity calculation
+and a lightweight convolution-based feature diversity module, enabling the model to capture both long- and
+short-term patterns, improve generalization, and reduce computational resource requirements. Furthermore, to
+preserve key degradation information from multi-sensor data, differential and integral methods are applied to
+extract various health indicators (HIs), and then an optimized HIs selection algorithm based on Pearson and
+Spearman correlation coefficients is proposed to screen these indicators. Finally, to comprehensively evaluate the
+effectiveness, generalization capability, robustness, computational efficiency, and complexity of the proposed
+method, comparative experiments were conducted against various mainstream state-of-the-art models using
+three battery datasets with different materials, charging-discharging protocols, and operating temperatures. The
+experimental results demonstrate that the proposed model achieves superior performance across all battery
+datasets, with a mean absolute percentage error for SOH below 1.156% and a relative error for RUL within
+2.210%, providing an efficient and reliable solution for the joint estimation of SOH and RUL in lithium-ion
+batteries.
+
+1. Introduction
+Lithium-ion batteries are regarded as one of the primary battery
+types for future applications due to their lightweight, high energy den­
+sity, and excellent cycling performance, making them highly promising
+for aviation industry, electric vehicle and other domains [1,2]. There­
+fore, precise estimation of the lithium-ion battery state-of-health (SOH)
+is essential for guaranteeing the reliability and safety of battery per­
+formance [3–5].
+Recent approaches to SOH estimation can generally be classified into
+model-driven and data-driven methods. [6]. Model-driven approaches
+simulate the internal chemical reaction mechanisms of batteries,
+enabling the characterization of failure modes in battery parameters
+
+with a certain level of interpretability and prediction accuracy [7,8]. In
+contrast, data-driven methods avoid the need for developing detailed
+electrochemical models or extensively analyzing electrochemical re­
+actions and battery aging mechanisms. Instead, they depend on sensorcollected data, such as current, voltage, temperature, and resistance
+throughout each cycle, to evaluate the present health condition of the
+battery through data-driven learning, providing generalization
+potential.
+The predominant data-driven methods currently include Convolu­
+tional Neural Networks (CNNs), Recurrent Neural Networks (RNNs),
+such as Long Short-Term Memory (LSTM) [9], Gated Recurrent Units
+(GRU) [10], and Transformers [11]. CNNs are adept in extracting local
+features using convolutional kernels, and reduce the spatial dimensions
+
+* Corresponding author at: School of Mechanical Engineering, Southeast University, Nanjing, 211189, China.
+E-mail address: 230219320@seu.edu.cn (D. Li).
+https://doi.org/10.1016/j.est.2026.121823
+Received 13 December 2025; Received in revised form 4 February 2026; Accepted 23 March 2026
+Available online 3 April 2026
+2352-152X/© 2026 Elsevier Ltd. All rights are reserved, including those for text and data mining, AI training, and similar technologies.
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+of features through pooling operations [12]. Qian et al. introduced a
+technique utilizing a one-dimensional CNN to estimate the state-ofhealth (SOH) of lithium-ion batteries, where random segments of the
+charging curve serve as the input [13]. The results showed that the
+proposed method performs well in estimating local capacity growth.
+RNNs maintain long-term dependencies and temporal dynamic features
+in time series data by recurrently connecting information from previous
+time steps. Transformers, employing multi-head self-attention mecha­
+nisms to process sequential data, can handle sequences more efficiently
+in parallel compared to traditional RNNs. Chen et al. applied the
+Transformer network to SOH estimation for lithium-ion batteries and
+illustrated that Transformer models outperform RNN-based models, in
+terms of both prediction performance and computational efficiency
+[14]. Jia et al. introduced a network that integrates Bidirectional GRU
+(Bi-GRU) and Transformers, demonstrating its superior accuracy,
+enhanced robustness, and improved generalization ability compared to
+the traditional Transformer model [15].
+In addition to model performance, the extraction of health indicators
+(HIs) is also crucial for the accuracy of SOH estimation. The extraction of
+these indicators primarily depends on various curves during the battery
+cycling process, such as voltage, current, temperature, and internal
+resistance variation curves [16]. Although Wang et al. [17] extracted
+HIs related to the battery's internal resistance, this process typically
+requires impedance spectrum measurements, which are time-consuming
+and require specialized instruments. On the other hand, Li et al. [18]
+extracted multiple features from batteries with different materials under
+various operating temperatures and charge-discharge rates. However,
+temperature related HIs are not consistently stable across different
+operating conditions. In contrast, the IC curve has shown better per­
+formance due to its strong correlation with the polarization reactions
+inside the battery, although data preprocessing is required to obtain
+high-quality indicators. For example, Li et al. [19] compared the effec­
+tiveness of different filtering methods and extracted HIs from various
+points on the IC curve.
+In contrast, time-based HIs extraction is simpler as it does not require
+differentiation processing. For instance, Wang et al. [1] extracted
+several statistical features, such as differences and slope standard devi­
+ation, from partial segments of charging voltage and current, and
+combined them with Physics-Informed Neural Networks (PINNs). This
+method achieved good results across various datasets. Furthermore, HIs
+based-on time differences are the simplest to extract. For example, Li
+et al. [20] used features related to constant current charging time as
+model inputs. This approach only requires the time difference of selected
+segments and does not require noise reduction of the original data. The
+authors used the Pearson Correlation Coefficient (PCC) to verify that
+voltage segments within a small range still have high representational
+ability. However, the method of extracting HIs from smaller segments is
+neither comprehensive nor efficient. To address this, Li et al. [2]
+employed smaller and higher-frequency charging time segments, and
+used PCC to compress the charging segments, aiming to extract more
+relevant HIs from shorter charging segments.
+While Transformers possess powerful global modeling capabilities,
+they have insufficient sensitivity to local features, whereas CNNs excel at
+extracting local features but involve extensive computational opera­
+tions. Depthwise separable convolutions have been proven to be an
+effective alternative to traditional CNNs, reducing computational
+resource consumption through pointwise and depthwise convolutions,
+thereby enabling rapid estimation of battery SOH.
+In the field of lithium-ion battery health management, although
+numerous studies have focused on predicting battery state-of-health
+(SOH) and remaining useful life (RUL), most methods remain limited
+to single-task predictions and lack joint estimation of SOH and RUL. For
+example, E. Chemali et al. leveraged the strong local feature extraction
+capability of convolutional neural networks (CNNs) to perform singletask SOH estimation [21], while Z. Li employed a combination of BiLSTM and Transformer networks to improve modeling of long-term
+
+sequential data [22]. S. Bockrath used a Temporal Convolutional
+Network (TCN) to directly estimate SOH from partial charge–discharge
+segments [23], and T. Wang applied a Transformer encoder for feature
+extraction within a self-supervised framework, also only for SOH pre­
+diction [24].
+In terms of RUL prediction, existing methods have similarly focused
+on single-task approaches. Y. Cai combined Transformers with signal
+decomposition techniques for RUL prediction [25], U. Saleem proposed
+the TransRUL model specifically for RUL estimation [26], and S. Ly
+improved LSTM models to construct RUL conditional probability density
+functions, enabling richer and more accurate RUL predictions [27]. Y.
+Liu first used CNNs to predict the maximum discharge capacity for each
+cycle to construct degradation curves, then applied empirical mode
+decomposition to extract global degradation trends, and finally
+employed a GRU–fully connected network to complete the RUL pre­
+diction task [28].
+Joint SOH–RUL assessment remains a challenging task, and existing
+studies mainly focus on effectively modeling the intrinsic coupling be­
+tween SOH and RUL and improving prediction accuracy. The core
+methodological strategies can be summarized from two aspects. First, in
+terms of joint modeling, shared parameters of the selected model layers
+are often adopted to learn general degradation representations, or
+multiple task-specific loss functions are integrated to enable coordinated
+training. Second, for accuracy enhancement, prior studies tend to in­
+crease the representational capacity of input data or employ advanced
+deep learning architectures, such as CNN and Transformer, as well as
+hybrid frameworks that combine multiple representative models to
+strengthen feature extraction and sequential prediction. These model
+designs are often further complemented by handcrafted feature engi­
+neering or data preprocessing techniques, such as denoising algorithms,
+to improve prediction accuracy and robustness. For example, B. Chen
+et al. employed a hybrid architecture combining multi-channel CNN,
+BiLSTM, BiGRU, and attention mechanisms to enhance prediction ac­
+curacy. While this approach improves performance, it may also intro­
+duce substantial redundancy in model training [29].
+Most models are trained on manually processed and selected fea­
+tures, which generally offer higher quality than raw data but may lose
+some critical degradation information. To address this limitation, some
+studies adopt data upscaling and convolutional operations to directly
+extract features from all raw data. For instance, N. Cai transformed
+battery cycling data into dual-modality images (curve images and Gra­
+mian Angular Field images) to capture degradation characteristics at the
+image level, and further employed a deep network based on depthwise
+separable convolutions, using feature fusion and interaction modules to
+directly output the results of SOH and RUL [30]. J. Chen et al. also
+reconstructed single-cycle charging data, including voltage and current,
+into 2D feature maps and applied a 2D convolutional neural network
+(2D-CNN) to extract spatial features related to degradation. These fea­
+tures were then combined with correlation-guided handcrafted features
+to form multi-scale hybrid representations. Joint optimization of the two
+targets was achieved through shared network parameters and taskspecific loss functions; however, this approach also imposes higher
+computational demands during training [31].
+Designing more refined feature extraction methods may be effective
+for SOH estimation, however, for large-scale time-series prediction tasks
+such as RUL prediction, a more comprehensive understanding of global
+information is required. To address this, R. Zheng applied Improved
+Complete Ensemble Empirical Mode Decomposition with Adaptive
+Noise (ICEEMDAN) to decompose the data into a series of intrinsic mode
+functions (IMFs), reducing noise in the raw data and enabling the
+learning of long-term degradation patterns from low-frequency modes.
+Key parameters of the Deep Belief Network (DBN) were further opti­
+mized using a Bayesian algorithm, resulting in the Optimized Deep
+Belief Network with Bayesian Algorithm (ODBN-BA) model for end-toend joint prediction of SOH and RUL [32]. Furthermore, P. Yang et al.
+proposed a multi-task learning model called Generalized Broad Learning
+2
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+System (GBLS) Booster, which combines CNN's strength in short-term
+feature extraction with the Transformer's capability for long-term
+sequence modeling. In this framework for joint SOH-RUL assessment,
+features were engineered and denoised using Complete Ensemble
+Empirical Mode Decomposition with Adaptive Noise (CEEMDAN), then
+passed through a shared network layer to learn general degradation
+representations, followed by task-specific output layers, thereby
+achieving both high accuracy and strong generalization performance
+[33].
+To address computational complexity and deployment efficiency in
+prediction, increasing attention has been given to lightweight model
+architectures and improved attention mechanisms. For instance, K. Lv
+adopted single-scale depthwise separable convolutions (DSConv) in the
+feature extraction module, reducing computational overhead while
+maintaining performance for RUL prediction [34]; D. Zhou proposed a
+lightweight temporal convolutional (TCN) feature extractor to enable
+online joint estimation of SOH and RUL, while significantly reducing
+parameters and computational cost [35]; S. Jafari employed a light­
+weight CNN-GRU hybrid structure to extract sequential features from
+charging curves, demonstrating the feasibility of using sequence net­
+works with fewer parameters for RUL prediction [36].
+In summary, with the development of computational resources and
+algorithms, simple single-input data and linear correlation coefficients
+are insufficient to allow data-driven approaches to potentially replace
+model-based methods in the future. Therefore, it is necessary to fully
+consider incorporating multimodal and multi-source inputs as learning
+material for the model, and to employ multiple correlation evaluation
+methods or design appropriate algorithms to assist the model in
+reducing the difficulty of learning battery SOH degradation patterns
+from raw data. This, to some extent, promotes the advancement of datadriven approaches.
+Meanwhile, with the rapid upgrade of computing devices, it has been
+increasingly demonstrated in many references that simple traditional
+machine learning models, such as Random Forest Regression and
+Extreme Learning Machine, struggle to find suitable functions to fit the
+relationship between inputs of diverse modalities, degradation patterns,
+and battery SOH. This necessitates state estimation models with more
+complex network architectures. Moreover, the trade-off between model
+complexity and accuracy is also a topic worthy of investigation, as it is
+closely related to maximizing model performance given the available
+computational resources, particularly on resource-constrained edge
+devices. Consequently, experiments on model complexity should also be
+regarded as an evaluation metric for model performance.
+In conclusion, the two main challenges in existing methods can be
+summarized as below:
+
+tributions are concluded as follows:
+(1) A multi-task deep learning framework based on DSConv and
+DSCA is proposed for the joint assessment of SOH and RUL. By
+reformulating the traditional attention computation, the pro­
+posed attention mechanism reduces the computational
+)
+(
+(
+)
+complexity from O N2 d to O Nd2 . Since the sequence length N
+in time-series applications is much larger than the feature
+dimension d(e.g., N≫d), this reformulation can effectively reduce
+the overall computational cost by approximately one order of
+magnitude or more.
+(2) To compensate for the reduced diversity caused by the rank
+limitation in the attention mechanism while maintaining
+computational efficiency, this work proposes multi-scale DSConv
+modules, which enhance the model's ability to capture both longterm degradation patterns and short-term local capacity recovery
+behaviors compared with traditional convolutions.
+(3) To ensure effective representation of health indicators (HIs) in
+multi-source online SOH estimation, a novel health indicator
+selection algorithm is developed. This method comprehensively
+evaluates the correlations between various HIs and SOH to ach­
+ieve standardized feature selection across different battery data­
+sets. In addition, a series of feature comparison experiments,
+including multiple and hybrid feature inputs, are conducted to
+validate the robustness and generalization capability of the
+selected indicators.
+(4) To address short-term capacity regeneration and noise interfer­
+ence, the complete ensemble empirical mode decomposition with
+adaptive noise (CEEMDAN) method is applied to decompose the
+raw capacity curves. The intrinsic mode function (IMF) with the
+highest correlation is selected to obtain a smoothed and quasimonotonic trend input. This data-driven approach requires no
+prior knowledge and significantly improves the stability and ac­
+curacy of RUL prediction.
+(5) Verification experiments were conducted on multiple battery
+datasets with different materials, capacities, and char­
+ge–discharge protocols to evaluate the proposed model's accu­
+racy, computational efficiency, and generalization capability.
+The results demonstrate that the proposed framework out­
+performs several state-of-the-art baseline models in both predic­
+tion precision and efficiency.
+The comparison between different existing SOH estimation methods
+is summarized in Table 1. Specifically, it is examined whether these
+methods can fully utilize various types of output data generated during
+battery operation, whether more effective HI selection algorithms can be
+designed (rather than simply relying on linear contrast (LC), PCC, or
+SCC, whether more efficient models can be developed instead of merely
+applying models from other domains, and whether experiments on
+model complexity have been considered for comparison.
+Accurate SOH-RUL assessment relies on extracting reliable HIs from
+battery operation data. In real-world applications, compared to the
+discharging process, the charging process demonstrates enhanced sta­
+bility and controllability [39–41], making it more suitable for identi­
+fying consistent and representative HIs.
+The overall workflow of the proposed method is illustrated in Fig. 1.
+In the first stage, full life-cycle aging tests are performed on the battery
+cells to obtain comprehensive operating data. In the second stage, the
+collected voltage, current, and temperature signals are smoothed, and
+the corresponding charge–discharge capacity variations are calculated
+and further decomposed using the CEEMDAN algorithm. The third stage
+applies differential and integral analysis to process and interpret the
+data, from which ten HIs are extracted from four characteristic curves.
+An optimized feature selection algorithm based on the PCC and SCC is
+then employed to identify the most representative HIs, and both
+
+(1) The raw data collected from multiple sensors contain diverse
+degradation-related features; however, many existing methods
+still rely on a single or limited data source. In addition, feature
+selection is often primarily guided by Pearson (PCC) and/or
+Spearman (SCC) correlation analyses, which may overlook other
+informative health indicators and, to some extent, influence the
+accuracy and generalization of the results.
+(2) In recent years, growing attention has been given to improving
+the computational efficiency of model design, as studies
+increasingly suggest that traditional models may still have room
+for performance enhancement. However, many existing joint
+estimation approaches for SOH and RUL mainly emphasize
+improving prediction accuracy through the integration of tradi­
+tional models or optimization algorithms, while giving relatively
+limited consideration to computational efficiency.
+To tackle these challenges, this work introduces a HI selection al­
+gorithm that considers the HI representation capabilities across all
+batteries in a group, and a Deep Spatiotemporal Conv-Attention (DSCA)
+mechanism for accurate and efficient SOH estimation. The main con­
+3
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+Table 1
+Comparison between different existing SOH estimation methods.
+Reference
+[1]
+[2]
+[12]
+[15]
+[16]
+[17]
+[37]
+[38]
+[23]
+[25]
+[31]
+[32]
+[45]
+Proposed
+
+Source data considered
+Current
+
+Voltage
+
+Temperature
+
+✓
+x
+x
+✓
+✓
+x
+✓
+✓
+x
+x
+x
+✓
+✓
+✓
+
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+
+x
+x
+✓
+x
+x
+x
+✓
+✓
+x
+x
+x
+✓
+✓
+✓
+
+HI selection method (author-designed)
+
+Assessment model (whether original)
+
+Efficiency considered
+
+PCC (x)
+PCC (✓)
+PCC + SCC (x)
+PCC (x)
+LC (x)
+LC (x)
+PCC (x)
+PCC (x)
+PCC (x)
+PCC + SCC (x)
+PCC (x)
+PCC (x)
+PCC + SCC (✓)
+PCC + SCC (✓)
+
+PINN (✓)
+BMSFormer (✓)
+BiGRU-Transformer (x)
+Transformer (x)
+Gaussian filter (x)
+Random Forest Regression (x)
+CNN-Transformer (x)
+CNN (x)
+Bi-LSTM (x)
+LSSVM-AdaBoost (x)
+LSTM (x)
+LSTM (x)
+Extreme Learning Machine (x)
+DSConv-Attention-based (✓)
+
+x
+✓
+x
+x
+x
+x
+✓
+x
+x
+x
+x
+x
+x
+✓
+
+individual and fused HIs are subsequently validated through compara­
+tive experiments. Furthermore, the selected features are segmented and
+reformatted into the structure required by the attention mechanism
+before being fed into the model for training and performance evaluation.
+In the final stage, the trained model parameters are shared between the
+SOH single-step prediction task and the RUL multi-step prediction task.
+These tasks are evaluated from different starting points and compared
+with state-of-the-art models to provide a comprehensive assessment of
+the proposed method.
+The remainder of this paper is organized as follows: Section 2 pro­
+vides a detailed explanation of the proposed algorithm and highlights its
+differences from conventional approaches. Section 3 describes the
+experimental setup and implementation details. Section 4 presents and
+discusses the results, including feature evaluation, accuracy and gener­
+alization analysis, model complexity comparison, and ablation studies.
+Finally, Section 5 summarizes the main findings and conclusions.
+
+))
+(
+(
+X(l) = LayerNorm H(l) + FFN H(l) ,
+
+(2)
+
+where X(l− 1) denotes the input to the l-th layer, MHSA(⋅) represents the
+multi-head self-attention mechanism, and FFN(⋅) denotes a feedforward
+neural network applied independently to each position. By stacking L
+such layers, the encoder backbone can effectively refine hierarchical
+representations while preserving global contextual information.
+Building on this backbone structure, the traditional multi-head
+attention mechanism applies multiple self-attention operations in par­
+allel. For each head, the input is linearly projected into query, key, and
+value representations, which are used to calculate attention weights
+based on the similarity between elements in the sequence. The weighted
+sum of the values produces the output of each head. The outputs of all
+heads are then concatenated and linearly transformed to form the final
+representation. Formally, for i-th head and l-th layer with input X(l− 1) :
+
+2. Methods
+This section introduces the methods used in this study, including the
+backbone principles and the proposed improvements. It provides a
+detailed description of the DSCA and DSConv modules, highlighting
+their principles and enhancements. Additionally, to mitigate the impact
+of short-term capacity recovery on SOH and RUL assessment accuracy in
+lithium-ion batteries, the CEEMDAN method is introduced for effective
+data denoising.
+
+Qi = X(l− 1) WiQ , K = X(l− 1) WiK , V = X(l− 1) WiV
+
+(3)
+
+(
+)
+Qi KT
+A = softmax √̅̅̅̅i
+dk
+
+(4)
+
+Hi = Ai Vi
+
+(5)
+
+(
+)
+MHSA X(l− 1) = Concat(H1 , H2 , …, Hh )WO
+
+(6)
+
+where WiQ , WiK , WiV are the learnable projection matrices, dk is the key
+dimension of each head, h is the number of heads, and WO is the output
+∑
+of projection matrix, and the function softmax(zi ) = exp(zi )/ j exp(zi )
+
+2.1. The designed deep spatiotemporal convolutional attention module
+
+normalizes the similarity scores into a valid probability distribution by
+exponentiating each score and dividing it by the sum of all expo­
+nentiated values, where i denotes the index of the current element being
+normalized, j iterates over all elements in the same vector, and z rep­
+resents the input vector containing all unnormalized scores.
+
+This section describes the backbone and the proposed DSCA module,
+which enhances feature extraction by integrating convolutional opera­
+tions with multi-head attention. It overcomes the limitations of tradi­
+tional attention mechanisms, efficiently capturing both local and global
+dependencies for SOH and RUL prediction.
+
+2.1.2. The proposed DSCA mechanism
+Traditional multi-head self-attention mechanisms excel at capturing
+long-range dependencies by computing global correlations across all
+elements in the sequence. However, this approach relies on Softmaxbased attention and sequential matrix multiplications, which often
+lead to high computational cost and limited efficiency when handling
+long-term degradation data of batteries. Moreover, conventional multihead structures may not fully exploit the local spatiotemporal patterns
+inherent in multi-source sensor signals, potentially constraining the
+model's ability to capture fine-grained health indicators. To address
+these limitations, this work introduces the Deep Spatiotemporal ConvAttention (DSCA) module, which integrates convolutional operations
+with an optimized attention mechanism. This design enhances the
+
+2.1.1. The traditional attention mechanism
+In recent years, Transformer-based architectures have become the
+backbone for a wide range of sequence modeling tasks, owing to their
+ability to capture long-range dependencies through stacked layers of
+multi-head attention and feedforward neural networks. A typical
+Transformer encoder is composed of multiple identical layers, each
+containing a multi-head self-attention module followed by a positionwise feedforward network. Formally, given an input sequence repre­
+sentation X ∈ ℝn×d , the encoder updates the hidden states through a
+residual connection and normalization strategy:
+))
+(
+(
+H(l) = LayerNorm X(l− 1) + MHSA X(l− 1) ,
+(1)
+4
+
+

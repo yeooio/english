@@ -1,0 +1,194 @@
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+(a) NASA (B0018)
+
+(b) CALCE (CS2_38)
+
+Fig. 13. Prediction Uncertainty Visualization. The red line represents ground truth, and the shaded area is the 90% Prediction Interval (PI). B0018 shows
+strong capacity regeneration, while CS2_38 exhibits rapid non-linear decay. SL-AgentNet effectively brackets these challenging fluctuations.
+
+(a) NASA Reliability
+
+(b) CALCE Reliability
+
+Fig. 14. Reliability Diagrams. Calibration curves across confidence levels (50%, 80%, 90%, 95%). Error bars indicate 95% Wilson score intervals. (a) NASA
+shows consistent conservative calibration (points above diagonal). (b) CALCE shows precise calibration at the 90% operating point (error bar intersects the
+diagonal).
+
+margins and uncertainty quantification results, are summarized in Table 14. The calibration quality was further verified via statistical testing
+(Table 15) and visual analysis (Fig. 14). The assessment relies on the
+probabilistic metrics (PICP, MPIW, and ACE) defined in Section 5.1.
+
+direct measurement and the high computational cost of standard deep
+learning models, a dual-pronged solution comprising systematic feature
+selection and a lightweight network architecture was developed.
+The proposed SL-AgentNet is characterized by its linear computational complexity. By integrating the AFF module with the Fast
+Local–Global Fusion Attention (FLFA) mechanism, the model captures
+long-range degradation dependencies while addressing the quadratic
+computational overhead (𝑂(𝑁 2 )) associated with traditional Transformers. Furthermore, the incorporation of FDFA and PIAF modules
+enhances feature diversity and non-linear representation, facilitating
+high estimation accuracy within a lightweight architecture.
+Experimental results on the Oxford, NASA, and CALCE datasets
+indicate that SL-AgentNet demonstrates enhanced performance compared to baseline models, including the LSTM and CNN-Transformer.
+Specifically, the model achieves significant accuracy gains, with MAE
+reductions reaching 74.78% on the Oxford dataset compared to the
+CNN-Transformer baseline. Crucially, this competitive performance is
+realized with a parameter count of only 6114 and a storage footprint of
+40.92 KB. Hardware-in-the-loop validation on a TI Cortex-M4 MCU has
+further confirmed the model’s engineering feasibility, where LUT optimization ensured real-time responsiveness with a negligible accuracy
+loss of within 0.3%.
+Despite these advancements, limitations remain regarding the reliance on stable constant-current segments for feature extraction. Future work aims to extend the framework to encompass a wider range
+
+Calibration analysis. Using the Exact Binomial Test (𝐻0 ∶ PICP =
+0.90):
+• NASA (Conservative Safety): The aggregate coverage is 95.83%
+(𝑝 < 0.001), indicating a safety-conservative bias that supports
+higher fault tolerance for degradation risks.
+• CALCE (Precise Calibration): The aggregate coverage is 90.01%
+(𝑝 = 1.00), confirming no significant deviation from the nominal
+level and demonstrating precise calibration.
+Reliability diagrams (Fig. 14) further support these findings, with
+CALCE closely following the ideal diagonal (ACE=0.061) and NASA
+showing consistent conservative behavior (ACE=0.129). This framework offers a stable safety margin (constant width intervals, Fig. 13)
+beneficial for robust BMS deployment.
+7. Conclusion
+This study presents a practical, computationally efficient framework
+for battery SOH estimation, designed to address the stringent operational constraints of vehicular BMS. By recognizing the limitations of
+20
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+of battery chemistries (e.g., LFP) and extreme dynamic operating conditions to further broaden its applicability in real-world scenarios.
+
+Feng, H., Zhang, L., 2024. A heterogeneous learner fusion method with supplementary
+feature for lithium-ion batteries state of health estimation. J. Energy Storage 92,
+111896. http://dx.doi.org/10.1016/j.est.2024.111896.
+Glorot, X., Bengio, Y., 2010. Understanding the difficulty of training deep feedforward neural networks. In: Teh, Y.W., Titterington, M. (Eds.), Proceedings of the
+Thirteenth International Conference on Artificial Intelligence and Statistics. In:
+Proceedings of Machine Learning Research, Vol. 9, PMLR, Chia Laguna Resort,
+Sardinia, Italy, pp. 249–256, https://proceedings.mlr.press/v9/glorot10a.html.
+Gomez, W., Wang, F.-K., Chou, J.-H., 2024. Li-ion battery capacity prediction
+using improved temporal fusion transformer model. Energy 296, 131114.
+http://dx.doi.org/10.1016/j.energy.2024.131114, https://linkinghub.elsevier.com/
+retrieve/pii/S0360544224008867.
+Gu, X., See, K., Li, P., Shan, K., Wang, Y., Zhao, L., Lim, K.C., Zhang, N.,
+2023. A novel state-of-health estimation for the lithium-ion battery using a
+convolutional neural network and transformer model. Energy 262, 125501.
+http://dx.doi.org/10.1016/j.energy.2022.125501, https://linkinghub.elsevier.com/
+retrieve/pii/S0360544222023830.
+Han, D., Pan, X., Han, Y., Song, S., Huang, G., 2023. Flatten transformer: vision
+transformer using focused linear attention. In: 2023 IEEE/CVF International Conference on Computer Vision (ICCV). IEEE, Paris, France, pp. 5938–5948. http:
+//dx.doi.org/10.1109/ICCV51070.2023.00548, tLDR: This paper proposes a novel
+Focused Linear Attention module, which introduces a simple yet effective mapping
+function and an efficient rank restoration module to enhance the expressiveness of
+self-attention while maintaining low computation complexity. https://ieeexplore.
+ieee.org/document/10377196/.
+Han, D., Ye, T., Han, Y., Xia, Z., Pan, S., Wan, P., Song, S., Huang, G., 2024. Agent
+attention : on the integration of softmax and linear attention. http://dx.doi.org/
+10.48550/arXiv.2312.08874, TLDR: Interestingly, it is shown that the proposed
+agent attention is equivalent to a generalized form of linear attention, therefore,
+agent attention seamlessly integrates the powerful Softmax attention and the highly
+efficient linear attention. http://arxiv.org/abs/2312.08874. cs.
+Hannan, M.A., How, D.N.T., Lipu, M.S.H., Mansor, M., Ker, P.J., Dong, Z.Y., Sahari, K.S.M., Tiong, S.K., Muttaqi, K.M., Mahlia, T.M.I., Blaabjerg, F., 2021. Deep
+learning approach towards accurate state of charge estimation for lithium-ion
+batteries using self-supervised transformer model. Sci. Rep. 11 (1), 19541. http:
+//dx.doi.org/10.1038/s41598-021-98915-8, tLDR: This article proposes the deep
+learning-based transformer model trained with self-supervised learning (SSL) for
+end-to-end SOC estimation without the requirements of feature engineering or
+adaptive filtering and achieves the lowest root-mean-square-error (RMSE) with the
+SSL framework.https://www.nature.com/articles/s41598-021-98915-8.
+He, K., Zhang, X., Ren, S., Sun, J., 2015a. Deep residual learning for image recognition.
+CoRR abs/1512.03385. http://arxiv.org/abs/1512.03385. arXiv:1512.03385.
+He, K., Zhang, X., Ren, S., Sun, J., 2015b. Delving deep into rectifiers: Surpassing
+human-level performance on imagenet classification. CoRR abs/1502.01852. http:
+//arxiv.org/abs/1502.01852. arXiv:1502.01852.
+Hu, Y., Du, H., Lu, J., Zhang, H., Li, S., Du, X., 2024. Interface synergistic stabilization
+of zinc anodes via polyacrylic acid doped polyvinyl alcohol ultra-thin coating. J.
+Energy Storage 87, 111444. http://dx.doi.org/10.1016/j.est.2024.111444.
+Huang, J., He, T., Zhu, W., et al., 2025. State of health estimation method for lithiumion batteries based on multi-feature fusion and swin transformer model. Ionics 31
+(11), 11811–11834. http://dx.doi.org/10.1007/s11581-025-06657-8, https://link.
+springer.com/article/10.1007/s11581-025-06657-8.
+Huang, K., Yao, K., Guo, Y., Lv, Z., 2023. State of health estimation of lithium-ion
+batteries based on fine-tuning or rebuilding transfer learning strategies combined
+with new features mining. Energy 282, 128739. http://dx.doi.org/10.1016/j.
+energy.2023.128739.
+Jia, C., Tian, Y., Shi, Y., Jia, J., Wen, J., Zeng, J., 2023. State of health prediction of
+lithium-ion batteries based on bidirectional gated recurrent unit and transformer.
+Energy 285, 129401. http://dx.doi.org/10.1016/j.energy.2023.129401, https://
+linkinghub.elsevier.com/retrieve/pii/S0360544223027950.
+Jin, H., Cui, N., Cai, L., Meng, J., Li, J., Peng, J., Zhao, X., 2023. State-of-health
+estimation for lithium-ion batteries with hierarchical feature construction and autoconfigurable Gaussian process regression. Energy 262, 125503. http://dx.doi.org/
+10.1016/j.energy.2022.125503.
+z. Kong, J., Yang, F., Zhang, X., Pan, E., Peng, Z., Wang, D., 2021. Voltage-temperature
+health feature extraction to improve prognostics and health management of
+lithium-ion batteries. Energy 223, 120114. http://dx.doi.org/10.1016/j.energy.
+2021.120114, tLDR: Using the proposed method, state of health and remaining
+useful life of lithium-ion batteries can be estimated and predicted with uncertainty
+measurements and root mean square error is smaller than 1% in all capacity estimation and relative RMSE is around 5% for RUL prediction, which provide higher
+accuracies than the existing methods.https://linkinghub.elsevier.com/retrieve/pii/
+S0360544221003637.
+Krause, F.C., Ruiz, J.P., Jones, S.C., Brandon, E.J., Darcy, E.C., Iannello, C.J.,
+Bugga, R.V., 2021. Performance of commercial Li-ion cells for future NASA missions
+and aerospace applications. J. Electrochem. Soc. 168 (4), http://dx.doi.org/10.
+1149/1945-7111/abf05f, 040504, publisher:IOP Publishing.
+Kuleshov, V., Fenner, N., Ermon, S., 2018. Accurate uncertainties for deep learning
+using calibrated regression. In: Dy, J., Krause, A. (Eds.), Proceedings of the
+35th International Conference on Machine Learning. In: Proceedings of Machine
+
+CRediT authorship contribution statement
+Huajiang Wang: Writing – review & editing, Writing – original
+draft, Conceptualization. Hao Li: Formal analysis, Data curation, Conceptualization. Zhengxing He: Methodology, Investigation, Funding
+acquisition. Xuan Chen: Methodology, Investigation. Hanglin Liu:
+Software, Resources, Project administration. Chao Chen: Validation,
+Supervision.
+Declaration of competing interest
+The authors declare that they have no known competing financial interests or personal relationships that could have appeared to
+influence the work reported in this paper.
+Acknowledgments
+This research was supported by the Sichuan Science and Technology Innovation Talent Project (No. 2024JDRC0013), the Scientific
+Research and Innovation Team Program of Sichuan University of Technology (No. SUSE652A006), and The Innovation Fund of Postgraduate,
+Sichuan University of Science & Engineering (No. Y2025098). Additionally, this study was supported by the computational resources provided
+by the High-Performance Computing Center, School of Computer Science and Engineering, Sichuan University of Science and Engineering.
+We would like to express our gratitude to the Sichuan New Energy Vehicle Innovation Center and the Ouyang Minggao Academy of Sciences
+Youth Talent Development Fund for their support of this project.
+Data availability
+Data will be made available on request.
+
+References
+Bai, J., Huang, J., Luo, K., Yang, F., Xian, Y., 2023. A feature reuse based multi-model
+fusion method for state of health estimation of lithium-ion batteries. J. Energy
+Storage 70, 107965. http://dx.doi.org/10.1016/j.est.2023.107965.
+Bai, T., Wang, H., 2023. Convolutional transformer -based multiview information
+perception framework for lithium-ion battery state-of-health estimation. IEEE
+Trans. Instrum. Meas. 72, 1–12. http://dx.doi.org/10.1109/TIM.2023.3300451,
+tLDR: Experiments by working through real operation datasets such as NASA
+PCoE and Oxford prove that the proposed convolution transformer-based multiview
+information perception framework (MVIP-Trans) can perfectly accomplish the SOH
+estimating task.https://ieeexplore.ieee.org/document/10198842/.
+Birkl, C.R., Roberts, M.R., McTurk, E., Bruce, P.G., Howey, D.A., 2017. Degradation
+diagnostics for lithium ion cells. J. Power Sources 341, 373–386. http://dx.
+doi.org/10.1016/j.jpowsour.2016.12.011, https://www.sciencedirect.com/science/
+article/pii/S0378775316316998.
+Cadini, F., Sbarufatti, C., Cancelliere, F., Giglio, M., 2019. State-of-life prognosis
+and diagnosis of lithium-ion batteries by data-driven particle filters. Appl. Energy 235, 661–672. http://dx.doi.org/10.1016/j.apenergy.2018.10.095, https://
+linkinghub.elsevier.com/retrieve/pii/S0306261918316635.
+Chaturvedi, N.A., Klein, R., Christensen, J., Ahmed, J., Kojic, A., 2010. Algorithms
+for advanced battery-management systems. IEEE Control Syst. Mag. 30 (3),
+49–68. http://dx.doi.org/10.1109/MCS.2010.936293, https://ieeexplore.ieee.org/
+document/5466167.
+Chen, Z., 2023. Attention is not all you need anymore. arXiv:2308.07661.
+Chen, L., Xie, S., Lopes, A.M., Bao, X., 2023. A vision transformer-based deep neural
+network for state of health estimation of lithium-ion batteries. Int. J. Electr.
+Power Energy Syst. 152, 109233. http://dx.doi.org/10.1016/j.ijepes.2023.109233,
+https://linkinghub.elsevier.com/retrieve/pii/S0142061523002909.
+Chicco, D., Warrens, M.J., Jurman, G., 2021. The coefficient of determination R squared is more informative than SMAPE, MAE, MAPE,MSE and RMSE in regression
+analysis evaluation. PeerJ Comput. Sci. 7, e623. http://dx.doi.org/10.7717/peerjcs.623, tLDR: The results demonstrate that the coefficient of determination (Rsquared) is more informative and truthful than SMAPE, and does not have the
+interpretability limitations of MSE, RMSE, MAE and MAPE.https://peerj.com/
+articles/cs-623.
+21
+
+

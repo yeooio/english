@@ -1,0 +1,193 @@
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+Contents lists available at ScienceDirect
+
+Engineering Applications of Artificial Intelligence
+journal homepage: www.elsevier.com/locate/engappai
+
+Research paper
+
+A linear-complexity deep learning framework for efficient battery State of
+Health estimation in resource-constrained systemsI
+Huajiang Wang a , Hao Li a , Zhengxing He a , Xuan Chen a , Hanglin Liu a , Chao Chen a,b
+a
+b
+
+,∗
+
+School of Computer Science and Engineering, Sichuan University of Science and Engineering, Yibin 644005, China
+Intelligent Perception and Control Key Laboratory of Sichuan Province, Sichuan University of Science and Engineering, Yibin 644005, China
+
+ARTICLE
+
+INFO
+
+Keywords:
+Lithium-ion batteries
+Battery State of Health estimation
+Linear attention mechanism
+Battery Management System
+Embedded deep learning
+Artificial intelligence applications
+
+ABSTRACT
+To address the computational bottleneck of deep learning, a key artificial intelligence (AI) technology, in
+resource-constrained Battery Management Systems (BMS), this paper presents a lightweight, linear-complexity
+State of Health (SOH) estimation framework. First, a systematic feature selection process identifies robust
+health indicators from partial voltage–time integrals, effectively reducing online extraction burdens. Subsequently, we propose SL-AgentNet (integrating Small-kernel and Large-kernel convolutions), an AI architecture
+designed to resolve the quadratic overhead of traditional Transformers. By integrating the Fast Local–
+Global Fusion Attention (FLFA) mechanism with diversity-enhancing modules, specifically the Fast Diversity
+Feature Fusion Attention (FDFA) and Parallel Informed Activation Function (PIAF), this AI model achieves
+linear complexity while capturing long-range degradation dependencies. Experiments on the Oxford, National
+Aeronautics and Space Administration (NASA), and Center for Advanced Life Cycle Engineering (CALCE)
+datasets demonstrate superior robustness, reducing the Mean Absolute Error (MAE) by 74.78% on the Oxford
+dataset against Convolutional Neural Network (CNN)-Transformer baselines. With a model size of only
+40.92 Kilobytes (KB), the AI framework proves its feasibility through hardware-in-the-loop validation on a
+Texas Instruments (TI) Cortex-M4 microcontroller, where a Look-Up Table (LUT) implementation maintains
+accuracy loss within 0.3%, demonstrating its readiness for embedded deployment.
+
+1. Introduction
+Global energy sustainability relies heavily on critical advancements
+across the broad energy storage and management spectrum. Recent
+years have witnessed diversified progress in this domain. In the realm
+of novel materials, significant strides have been made in stabilizing alternative chemistries, such as the interface synergistic stabilization for zinc anodes (Hu et al., 2024) and movable SiO2 reinforced
+coatings (Wu et al., 2025). Simultaneously, at the grid system level,
+new source-load coordinated optimization frameworks have been proposed to enhance distributed energy efficiency (Wang et al., 2025).
+Concurrently with these emerging technologies, Lithium-ion batteries
+(LIBs) currently remain the primary power source for Electric Vehicles
+(EVs). However, as LIB technology evolves towards higher energy
+densities (e.g., high-nickel cathodes, cell-to-pack (CTP) architectures),
+
+they exhibit highly non-linear and heterogeneous degradation behaviors. These complexities challenge the fidelity of traditional physical
+models, making accurate State of Health (SOH) monitoring within
+resource-constrained Battery Management Systems (BMS) increasingly
+challenging (Rouholamini et al., 2022; Krause et al., 2021).
+Accurate estimation of SOH is crucial for mitigating range anxiety
+and reducing the risk of potential failures. While direct measurement
+of capacity is typically considered accurate, it requires time-consuming
+full charge–discharge cycles, a requirement often impractical for online applications (Wei et al., 2018). Consequently, data-driven estimation methods that infer SOH from indirect sensor data have gained
+prominence. Researchers have extensively investigated various Health
+Indicators (HIs), such as incremental capacity (IC) curves, differential
+voltage analysis, and voltage integral areas, to characterize degradation (Wu et al., 2023; Feng and Zhang, 2024). However, these
+
+I This research was supported by the Sichuan Science and Technology Innovation Talent Project (No. 2024JDRC0013), the Scientific Research and Innovation
+Team Program of Sichuan University of Technology (No. SUSE652A006), and The Innovation Fund of Postgraduate, Sichuan University of Science & Engineering
+(No. Y2025098). Additionally, this study was supported by the computational resources provided by the High-Performance Computing Center, School of Computer
+Science and Engineering, Sichuan University of Science and Engineering. We would like to express our gratitude to the Sichuan New Energy Vehicle Innovation
+Center and the Ouyang Minggao Academy of Sciences Youth Talent Development Fund for their support of this project.
+∗ Corresponding author at: School of Computer Science and Engineering, Sichuan University of Science and Engineering, Yibin 644005, China.
+E-mail address: chenchao@suse.edu.cn (C. Chen).
+
+https://doi.org/10.1016/j.engappai.2026.115420
+Received 4 July 2025; Received in revised form 9 December 2025; Accepted 9 June 2026
+Available online 21 June 2026
+0952-1976/© 2026 Elsevier Ltd. All rights are reserved, including those for text and data mining, AI training, and similar technologies.
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+features may exhibit sensitivity to measurement noise or necessitate
+complex preprocessing. Early research predominantly focused on empirical models or standard machine learning. For instance, decision
+tree approaches were explored for fault detection during power swings
+(Mohanty et al., 2023), and enhanced protective relaying schemes were
+designed for compensated transmission lines (Mohanty et al., 2024).
+As highlighted in these studies across the broader energy sector, traditional methods often face a common constraint: the need to balance
+algorithmic sensitivity with computational efficiency under dynamic
+operating conditions.
+The proliferation of deep learning has facilitated the widespread
+adoption of Convolutional Neural Networks (CNNs) and Recurrent Neural Networks (RNNs) to capture complex aging dynamics. Nevertheless,
+CNNs are limited by their local receptive fields, while RNNs suffer from sequential processing constraints that hinder parallelization.
+While the Transformer architecture (Vaswani et al., 2017) excels at capturing long-term dependencies, it can introduce a bottleneck: standard
+self-attention entails quadratic computational complexity 𝑂(𝑁 2 ) with
+respect to sequence length.
+This substantial computational overhead is often challenging for
+automotive-grade microcontrollers (MCUs) (Xiong et al., 2019). Furthermore, deep Transformer models may be prone to the rank collapse
+issue (Chen, 2023), a phenomenon where output representations become identical across tokens. This convergence may lead to the loss of
+fine-grained local degradation details critical for early fault detection.
+To address these challenges, this paper proposes SL-AgentNet, a
+lightweight and efficient SOH estimation framework. In contrast to
+many existing methods that pursue structural complexity, the proposed
+approach aims to balance engineering feasibility with accuracy. The
+main contributions are:
+
+2.1. Model-based approaches
+Model-based methods are based on mathematical representations of
+the battery’s internal electrochemical or electrical dynamics.
+• Electrochemical Models (EMs): Models such as the Single Particle
+Model (SPM) and Pseudo-Two-Dimensional (P2D) model describe
+internal degradation mechanisms, including solid electrolyte interphase (SEI) growth and lithium plating, utilizing systems of
+Partial Differential Equations (PDEs) (Birkl et al., 2017). While
+offering high fidelity and physical interpretability, their high computational complexity and the difficulty of identifying numerous
+microscopic parameters online may render them less suitable
+for low-cost, resource-constrained BMS MCUs (Chaturvedi et al.,
+2010; Rechkemmer et al., 2019).
+• Equivalent Circuit Models (ECMs): ECMs simulate battery dynamics
+using electrical components, such as resistors and capacitors, and
+are frequently combined with adaptive filters like Kalman Filters
+(KF) or Particle Filters (PF) (Zhang et al., 2018; Peng et al.,
+2025). Although computationally lighter than EMs, their accuracy
+depends on the fidelity of the circuit structure. Furthermore, ECM
+parameters exhibit high sensitivity to environmental conditions,
+including temperature and C-rate (charge/discharge rate), and
+maintaining robustness across the full aging lifespan remains a
+significant challenge (Luo et al., 2022).
+2.2. Data-driven approaches
+Data-driven methods treat the battery as a black box, mapping
+extracted features directly to SOH. These methods have gained prominence due to their flexibility Richardson et al. (2017) and decoupling
+from complex physical parameters. Recent work has also emphasized
+security considerations in battery state estimation Tian et al. (2023).
+
+1. Structured Feature Selection Framework: We propose a data-driven
+screening methodology based on the Constant Current Charging/Discharging Area (CCCA/CCDA). In contrast to static feature selection, this framework treats the observation window
+as a learnable hyperparameter, adaptively identifying a datasetspecific optimized interval. This facilitates the extraction of a
+robust Health Indicator (HI) that reduces the online computation
+burden while enhancing correlation with capacity fade.
+2. Integrated Lightweight Architecture: We introduce the SL-AgentNet,
+featuring a tri-branch design. The core Fast Local–Global Fusion
+Attention (FLFA) reduces complexity from quadratic 𝑂(𝑁 2 ) to
+linear 𝑂(𝑁) by employing a single-agent mechanism (𝑛 = 1)
+with convolutional compensation. To mitigate potential feature
+collapse, we integrate the Fast Diversity Feature Fusion Attention (FDFA) for orthogonal significance filtering and the Parallel
+Informed Activation Function (PIAF) for heterogeneous nonlinear mapping. This architecture aims to achieve enhanced
+representational capability with a compact parameter set.
+3. Validation of Feasibility and Reliability: Comprehensive experiments on the Oxford, NASA, and CALCE datasets demonstrate
+that SL-AgentNet achieves competitive accuracy, exemplified by
+an RMSE of 0.0052 on NASA, even when trained on 30% of
+early-life data. Furthermore, we provide a rigorous analysis of
+computational efficiency and uncertainty quantification. Validated on a TI Cortex-M4 MCU, the proposed LUT-based implementation achieves negligible precision loss (< 0.3%), proving
+its feasibility for resource-constrained embedded instrumentation.
+
+2.2.1. Feature engineering: Health indicators (HIs)
+The efficacy of data-driven models is closely linked to the quality
+of input features.
+• Differential Analysis: Incremental Capacity Analysis (ICA) and Differential Voltage Analysis (DVA) are widely employed to identify
+degradation modes (z. Kong et al., 2021). Alternative approaches
+exploit differential temperature Tian et al. (2020) or entropybased metrics Widodo et al. (2011) to characterize degradation. However, mathematically, calculating derivatives (𝑑𝑄∕𝑑𝑉
+or 𝑑𝑉 ∕𝑑𝑄) from discrete sampling points can act as a high-pass
+filter, which may amplify sensor noise. Consequently, these methods require heavy smoothing preprocessing, introducing latency
+and computational overhead.
+• Raw Data and Geometric Features: While utilizing raw charging
+curves directly avoids feature engineering, it may often lead to
+input redundancy. Geometric features, such as the time intervals of equal discharge voltage difference (TIEDVD) (Liu et al.,
+2013), voltage integral areas (Zhang et al., 2024a), and novel
+health indicators Zhou et al. (2016) offer enhanced stability.
+Multi-feature fusion strategies have also been widely explored Lin
+et al. (2022), Son et al. (2022), with recent works investigating
+automated feature selection Li and Chen (2025). However, prior
+works typically employ empirically fixed voltage windows, often
+lacking a systematic mechanism to adapt to the specific aging
+fingerprints of different battery chemistries, such as Nickel Cobalt
+Manganese (NCM) versus Lithium Iron Phosphate (LFP).
+
+2. Related work
+Methodologies for battery SOH estimation can be classified into
+model-based and data-driven approaches Xie et al. (2024). This section reviews representative techniques in each category and analyzes
+their specific limitations within the context of vehicular embedded
+applications.
+
+2.2.2. Deep learning architectures
+Deep learning has transformed SOH estimation by enabling end-toend feature learning.
+2
+
+

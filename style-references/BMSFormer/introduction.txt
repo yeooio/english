@@ -1,0 +1,260 @@
+Energy 313 (2024) 134030
+
+Contents lists available at ScienceDirect
+
+Energy
+journal homepage: www.elsevier.com/locate/energy
+
+BMSFormer: An efficient deep learning model for online state-of-health
+estimation of lithium-ion batteries under high-frequency early SOC data
+with strong correlated single health indicator
+Xiaopeng Li a , Minghang Zhao a,c,*, Shisheng Zhong a,b,c , Junfu Li d, Song Fu b, Zhiqi Yan e
+a
+
+Department of Mechanical Engineering, Harbin Institute of Technology, Weihai, Shandong, 264209, China
+School of Mechatronics Engineering, Harbin Institute of Technology, Harbin, Heilongjiang, 150000, China
+Weihai Key Laboratory of Intelligent Operation and Maintenance, Harbin Institute of Technology, Weihai, Shandong, 264209, China
+d
+School of Automotive Engineering, Harbin Institute of Technology, Weihai, Shandong, 264209, China
+e
+College of Aeronautical Engineering, Civil Aviation University of China, Tianjin, 300300, China
+b
+c
+
+A R T I C L E I N F O
+
+A B S T R A C T
+
+Handling editor: Prof X Ou
+
+The efficient and accurate state-of-health (SOH) estimation is crucial for reducing risks and ensuring effective
+application in battery management systems (BMS) of resource-limited devices. However, many recent state-ofthe-art SOH estimation approaches rely on resource-consuming structures to obtain good performance. In this
+paper, an efficient deep learning model for SOH estimation, namely BMSFormer, is constructed. BMSFormer
+mainly integrates a Local-Global Fusion Attention module to capture both long-term and short-term de­
+pendencies while reducing computational complexity compared to traditional Softmax-based attention. Addi­
+tionally, two kinds of depthwise separable convolution are embedded to fuse multi-scale and multi-channel
+features, enhancing feature diversity with fewer parameters than standard convolution. Three widely used
+battery datasets, each with different chemistries and operating conditions, are employed to evaluate the per­
+formance of BMSFormer. The experiments results illustrate that the proposed model achieves higher accuracy,
+lower computational consumption, and stabler performance across various hyperparameter combinations
+compared to alternative models.
+
+Keywords:
+State of health
+Lithium-ion batteries
+Efficiency estimation
+Local-global fusion attention
+Depthwise feature fusion
+
+1. Introduction
+Nowadays, with the advantages of high energy density, low selfdischarge rate and long service life, lithium-ion batteries have become
+one of the main energy storage devices in civil airlines, electric vehicles,
+mobile devices, aerospace and other domains [1]. Although, lithium-ion
+batteries bring convenience to people’s lives, they also pose latent safety
+hazards. These hazards primarily arise from the complicated degrada­
+tion processes brought by complex internal chemical structure, different
+working conditions and environment. Therefore, precise monitoring and
+state estimation are essential to enhance battery safety, reliability, and
+performance.
+As an essential guard of battery safe and efficient operation, battery
+management system (BMS) can record real-time data, manage cell bal­
+ance, estimate internal status and provide emergency protection [2–4].
+The internal states, such as state-of-health (SOH), cannot be measured
+
+directly. At the same time, due to the limited storage space of embedded
+devices, they often rely on online estimations using simple approaches,
+such as Kalman filter (KF) and its variants [5–7], classical physical
+models [8], equivalent circuit models (ECM) [9] and traditional ma­
+chine learning (ML) algorithms like support vector machines (SVM) [10]
+and random forest (RF) [11]. However, on one hand, when faced with
+nonlinear and unstable data from online monitoring and historical cy­
+cles, traditional models struggle to provide high performance due to
+their structural constraints [12,13]; On the other hand,
+high-performance deep models are generally not feasible enough for
+convenient deployment on BMS due to their computationally expensive
+structures. Actually, since the emergence of AlexNet [14], the predom­
+inant trend in model architecture has been towards increasing depth and
+size, but many real-world applications need to be performed in real-time
+and/or on limited resource mobile devices [15]. Thereby, the
+high-performance deep models have a certain demand to be compact
+
+* Corresponding author. Department of Mechanical Engineering, Harbin Institute of Technology, Weihai, Shandong, 264209, China.
+E-mail address: zhaomh@hit.edu.cn (M. Zhao).
+https://doi.org/10.1016/j.energy.2024.134030
+Received 27 September 2024; Received in revised form 15 November 2024; Accepted 27 November 2024
+Available online 30 November 2024
+0360-5442/© 2024 Elsevier Ltd. All rights are reserved, including those for text and data mining, AI training, and similar technologies.
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+and exhibit low computational cost for practical applications in the
+future.
+The recent SOH estimation approaches could be divided into two
+main categories: (1) model-based approaches, including electrochemical
+models and empirical models, (2) data-driven approaches, including
+machine learning and deep learning methods [16–19].
+
+a self-attention mechanism to capture global dependencies between
+input and output. Due to its significant advantage in parallel computing
+and global modeling, Transformer has already achieved immense suc­
+cess across multiple domains [39–41]. Since Hannan et al. [42] applied
+the Transformer to estimate SOH of batteries in 2021, subsequent
+models have tended to increase in complexity. For instance, Gomez et al.
+[43] introduced an improved temporal fusion Transformer, integrating a
+Bi-LSTM encoder-decoder layer to enhance performance. Jia et al. [44]
+proposed a hybrid prediction model by combining bidirectional gated
+recurrent unit and Transformer. In another study, Gu et al. [45] sug­
+gested a novel approach using data pre-processing methods and a
+CNN-Transformer framework. Bai et al. [46] introduced a
+2D-CNN-Transformer model using matrixing data, while Chen et al. [47]
+applied a vision-Transformer network (VIT) for SOH estimation,
+involving extra data flattening operations. Most existing methods do not
+attempt to simplify the structures of the Transformer-based networks,
+instead, they integrated it directly with other modules or models,
+resulting in computationally complicated approaches.
+Three main problems faced by many recent approaches for battery
+SOH estimation, can be summarized as follows.
+
+(1) Model-based approaches simulate the electrochemical principles
+in batteries using mathematical equations or circuit components
+[20]. Electrochemical models (e.g., single-particle model and
+pseudo-two-dimensional model) utilize a series of differential
+equations to represent the electrochemical reaction processes in
+the battery. While these models may offer high accuracy, they
+often require extensive computational resources, making online
+estimation challenging; and many parameters, such as particle
+radius and diffusion coefficients, are difficult to obtain [21,22].
+In contrast, as a widely employed empirical model, equivalent
+circuit model (ECM), simulates battery internal behavior with
+circuit components such as resistors and capacitors [9,23]. ECMs
+(e.g., Thevenin, PNGV, GNL and RC models) have relatively low
+computational complexity and easy parameter identification.
+However, they cannot fully capture battery internal changes,
+probably resulting in lower accuracy compared to electro­
+chemical models.
+(2) Data-driven approaches can be trained using historical data and
+mostly have lower dependencies on the internal degradation
+mechanism of batteries compared to model-based approaches
+[23]. They employ various algorithms to establish the relation­
+ships between input (health indicators, HIs) and output (state-­
+of-health, SOH), then use new data for SOH estimation. Thereby,
+since a few years ago, many researchers tend to focus on estab­
+lishing stronger data-driven models. For instance, Fei et al. [24]
+crafted 42 HIs from five kinds of main recorded data including
+voltage, current, temperature, internal resistance and capacity,
+and then fed them into five representative machine learning (ML)
+models including the Gaussian process regression (GPR) [25],
+support vector machine (SVM) [10], random forest (RF) [26],
+gradient boosting regression tree (GBRT) [27] and neural
+network (NN) [28]. Benefiting from the prosperity of deep
+learning (DL) methods, in recent years, many works employ
+convolutional neural networks (CNNs), recurrent neural net­
+works (RNNs), and Transformers to estimate the states of batte­
+ries. For example, depending on the powerful local feature
+extraction ability of CNNs, Yang et al. [29] utilized 1D-CNN to
+handle capacity degradation datasets, while Lee et al. [30]
+transformed the data into a two-dimensional format and
+employed 2D-CNN. Additionally, dense neural network [31] was
+also attempted in similar research.
+
+(1) Computational Complexity Limitations: In the field of battery
+state estimation, many existing deep learning models attempt to
+achieve higher accuracy by increasing the complexity of model
+structures or/and combining different classical models. Those
+approaches introduce numerous unnecessary parameter updates,
+thereby increasing computational resource demands. Such
+complexity may hinder future applications in resourceconstrained devices, such as BMS.
+(2) Estimation Accuracy Challenges: Many current approaches
+face accuracy challenges due to inherent computational con­
+straints within the model itself, insufficient representational ca­
+pabilities of the extracted health indicators, or the input of many
+weakly correlated health indicators, which together negatively
+impact the accuracy of SOH estimation results.
+(3) Performance Stability Issues: The training and optimization
+process often require extensive hyperparameter tuning to achieve
+higher performance, which consumes a lot of time and compu­
+tational resources before reaching the desired goals. Such con­
+sumption can be effectively reduced if the model is able to
+maintain stable and high performance across various hyper­
+parameter configurations. However, most existing methods only
+present their optimal results without demonstrating the model’s
+ability to solve this problem.
+To address these challenges, this article develops an efficient deep
+learning model, namely BMSFormer, for SOH estimation of lithium-ion
+batteries, with the goal of optimizing computational resource usage,
+balancing accuracy and efficiency, and enhancing model stability for
+reliable performance. The main contributions are summarized as
+follows.
+
+However, traditional CNNs are not adept at dealing with long timeseries data, as this requires numerous convolutional layers to fuse local
+features that are distant from each other. RNNs and their variants such
+as gated recurrent unit (GRU) and long short-term memory (LSTM)
+attempt to overcome this challenge with hidden layers, state cells and
+various gates. These components function like a “nerve cell” that can
+storage information and pass it from one time step to the next for
+computation. Nonetheless, due to the sequential dependence, it is not
+convenient enough for traditional RNNs to make full use of modern
+multi-threaded GPU resources, even though recent works have achieved
+some improvements in computational efficiency like bidirectional long
+short-term memory (Bi-LSTM) [32,33], Attention-based Spa­
+tial-Temporal LSTM (ASTLSTM) [34], CNN-LSTM [35], CNN-ASTLSTM
+[36], and CNN-GRU [37], while the fundamental constraint of
+limited-sequential computation still remains.
+To address the above problem, Vaswani [38] proposed the Trans­
+former, a model architecture avoiding recurrence and instead relying on
+
+(1) By progressively shortening the window size and step size, health
+indicators (HIs) with higher correlations to the battery health
+state are identified within two high-frequency SOC charge and
+discharge segments. This approach successfully achieves Pearson
+correlation coefficient (PCC) values averaging over 0.99 across
+three different kinds of battery.
+(2) A Local-Global Fusion Attention module is constructed to effec­
+tively capture both short-term and long-term features while
+reducing computational complexity compared to traditional
+Softmax-based attention mechanisms.
+(3) Two kinds of depthwise separable convolution module with small
+kernel size (DSConv-S) and large kernel size (DSConv-L) are
+embedded to fuse multi-scale and multi-channel features,
+
+2
+
+X. Li et al.
+
+Energy 313 (2024) 134030
+
+enhancing feature diversity with fewer parameters than standard
+convolution.
+
+2. Preliminaries
+2.1. Overview of the developed SOH estimation approach
+
+The remaining sections of this paper are arranged as follows. Sec­
+tion2 describes the major steps of the developed SOH estimation
+approach and the basic information of three different kinds of battery
+datasets. Section 3 introduces the structure and modules of BMSFormer.
+Section 4 presents comprehensive validations and compares BMSFormer
+with four prevailing deep learning models. Finally, the conclusions are
+summarized in Section 5.
+
+The SOH is a critical metric for evaluating health status of batteries.
+While there is still no standardized definition for SOH, battery capacity
+remains the most utilized representation [31], as illustrated below:
+SOH =
+
+Ccurrent
+× 100%,
+Crated
+
+(1)
+
+where Ccurrent and Crated are the current capacity and rated capacity,
+respectively.
+As illustrated in Fig. 1, the developed SOH estimation approach
+
+Fig. 1. Flowchart of developed SOH estimation approach.
+3
+
+

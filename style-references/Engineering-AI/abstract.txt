@@ -1,0 +1,86 @@
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+Contents lists available at ScienceDirect
+
+Engineering Applications of Artificial Intelligence
+journal homepage: www.elsevier.com/locate/engappai
+
+Research paper
+
+A linear-complexity deep learning framework for efficient battery State of
+Health estimation in resource-constrained systemsI
+Huajiang Wang a , Hao Li a , Zhengxing He a , Xuan Chen a , Hanglin Liu a , Chao Chen a,b
+a
+b
+
+,∗
+
+School of Computer Science and Engineering, Sichuan University of Science and Engineering, Yibin 644005, China
+Intelligent Perception and Control Key Laboratory of Sichuan Province, Sichuan University of Science and Engineering, Yibin 644005, China
+
+ARTICLE
+
+INFO
+
+Keywords:
+Lithium-ion batteries
+Battery State of Health estimation
+Linear attention mechanism
+Battery Management System
+Embedded deep learning
+Artificial intelligence applications
+
+ABSTRACT
+To address the computational bottleneck of deep learning, a key artificial intelligence (AI) technology, in
+resource-constrained Battery Management Systems (BMS), this paper presents a lightweight, linear-complexity
+State of Health (SOH) estimation framework. First, a systematic feature selection process identifies robust
+health indicators from partial voltage–time integrals, effectively reducing online extraction burdens. Subsequently, we propose SL-AgentNet (integrating Small-kernel and Large-kernel convolutions), an AI architecture
+designed to resolve the quadratic overhead of traditional Transformers. By integrating the Fast Local–
+Global Fusion Attention (FLFA) mechanism with diversity-enhancing modules, specifically the Fast Diversity
+Feature Fusion Attention (FDFA) and Parallel Informed Activation Function (PIAF), this AI model achieves
+linear complexity while capturing long-range degradation dependencies. Experiments on the Oxford, National
+Aeronautics and Space Administration (NASA), and Center for Advanced Life Cycle Engineering (CALCE)
+datasets demonstrate superior robustness, reducing the Mean Absolute Error (MAE) by 74.78% on the Oxford
+dataset against Convolutional Neural Network (CNN)-Transformer baselines. With a model size of only
+40.92 Kilobytes (KB), the AI framework proves its feasibility through hardware-in-the-loop validation on a
+Texas Instruments (TI) Cortex-M4 microcontroller, where a Look-Up Table (LUT) implementation maintains
+accuracy loss within 0.3%, demonstrating its readiness for embedded deployment.
+
+1. Introduction
+Global energy sustainability relies heavily on critical advancements
+across the broad energy storage and management spectrum. Recent
+years have witnessed diversified progress in this domain. In the realm
+of novel materials, significant strides have been made in stabilizing alternative chemistries, such as the interface synergistic stabilization for zinc anodes (Hu et al., 2024) and movable SiO2 reinforced
+coatings (Wu et al., 2025). Simultaneously, at the grid system level,
+new source-load coordinated optimization frameworks have been proposed to enhance distributed energy efficiency (Wang et al., 2025).
+Concurrently with these emerging technologies, Lithium-ion batteries
+(LIBs) currently remain the primary power source for Electric Vehicles
+(EVs). However, as LIB technology evolves towards higher energy
+densities (e.g., high-nickel cathodes, cell-to-pack (CTP) architectures),
+
+they exhibit highly non-linear and heterogeneous degradation behaviors. These complexities challenge the fidelity of traditional physical
+models, making accurate State of Health (SOH) monitoring within
+resource-constrained Battery Management Systems (BMS) increasingly
+challenging (Rouholamini et al., 2022; Krause et al., 2021).
+Accurate estimation of SOH is crucial for mitigating range anxiety
+and reducing the risk of potential failures. While direct measurement
+of capacity is typically considered accurate, it requires time-consuming
+full charge–discharge cycles, a requirement often impractical for online applications (Wei et al., 2018). Consequently, data-driven estimation methods that infer SOH from indirect sensor data have gained
+prominence. Researchers have extensively investigated various Health
+Indicators (HIs), such as incremental capacity (IC) curves, differential
+voltage analysis, and voltage integral areas, to characterize degradation (Wu et al., 2023; Feng and Zhang, 2024). However, these
+
+I This research was supported by the Sichuan Science and Technology Innovation Talent Project (No. 2024JDRC0013), the Scientific Research and Innovation
+Team Program of Sichuan University of Technology (No. SUSE652A006), and The Innovation Fund of Postgraduate, Sichuan University of Science & Engineering
+(No. Y2025098). Additionally, this study was supported by the computational resources provided by the High-Performance Computing Center, School of Computer
+Science and Engineering, Sichuan University of Science and Engineering. We would like to express our gratitude to the Sichuan New Energy Vehicle Innovation
+Center and the Ouyang Minggao Academy of Sciences Youth Talent Development Fund for their support of this project.
+∗ Corresponding author at: School of Computer Science and Engineering, Sichuan University of Science and Engineering, Yibin 644005, China.
+E-mail address: chenchao@suse.edu.cn (C. Chen).
+
+https://doi.org/10.1016/j.engappai.2026.115420
+Received 4 July 2025; Received in revised form 9 December 2025; Accepted 9 June 2026
+Available online 21 June 2026
+0952-1976/© 2026 Elsevier Ltd. All rights are reserved, including those for text and data mining, AI training, and similar technologies.
+
+

@@ -1,0 +1,1721 @@
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Fig. 8. Comparison of (a) a traditional Series Informed Activation Function and (b) the proposed Parallel Informed Activation Function (PIAF).
+
+where 𝐖1 , 𝐖2 , 𝐖3 ∈ R𝑑×𝑑 denote learnable weight matrices. By synergizing these complementary mathematical properties, PIAF yields a
+feature richness enhanced compared to that of homogeneous activation
+layers.
+
+5.1.2. Uncertainty quantification metrics
+To evaluate the reliability of the prediction intervals (PIs), we
+adopted three probabilistic metrics based on established calibration
+frameworks (Kuleshov et al., 2018):
+• Prediction Interval Coverage Probability (PICP): This metric measures the proportion of ground-truth values falling within the
+predicted intervals [𝐿𝑖 , 𝑈𝑖 ] at a nominal confidence level:
+
+5. Results and discussion
+This section presents a systematic evaluation of the proposed SLAgentNet framework, benchmarked against four baseline models, including the Transformer, LSTM, CNN-Transformer, and CNN-LSTM,
+across three authoritative battery datasets. To ensure experimental
+rigor and simulate a realistic ‘‘early prediction’’ scenario, we adhered to
+a strict protocol where models were trained using only the initial 30%
+of cycle data. Consequently, the remaining 70% served as the unseen
+test horizon for prognostic evaluation.
+In addition to reporting estimation accuracy, this section elucidates
+the mechanistic origins of performance gains, verifies model robustness
+through rigorous ablation and sensitivity analyses, quantifies prediction
+uncertainty, and addresses the limitations of the current approach. This
+holistic assessment validates the practical viability of the framework for
+resource-constrained vehicular instrumentation.
+
+1∑
+I{𝑦𝑖 ∈ [𝐿𝑖 , 𝑈𝑖 ]}
+𝑛 𝑖=1
+𝑛
+
+PICP =
+
+(22)
+
+where I{⋅} is the indicator function.
+• Mean Prediction Interval Width (MPIW): This metric quantifies the
+sharpness, or efficiency, of the uncertainty bounds:
+1∑
+(𝑈 − 𝐿𝑖 )
+𝑛 𝑖=1 𝑖
+𝑛
+
+MPIW =
+
+(23)
+
+• Average Calibration Error (ACE): To summarize global calibration
+quality, we report the ACE computed as the average absolute
+deviation across a discretized grid  of nominal confidence levels
+(e.g.,  = {0.5, 0.8, 0.9, 0.95}) (Kuleshov et al., 2018):
+1 ∑
+ACE =
+(24)
+|PICP(𝑐) − 𝑐|
+|| 𝑐∈
+
+5.1. Evaluation metrics
+
+This metric quantifies the average misalignment between the
+expected coverage 𝑐 and the observed coverage PICP(𝑐), where
+a value closer to 0 indicates superior calibration.
+
+To comprehensively assess the performance of the proposed framework, we employed a multi-dimensional evaluation protocol comprising both deterministic error metrics and probabilistic uncertainty metrics.
+
+5.2. Model robustness and hyperparameter analysis
+To address theoretical concerns regarding training stability and validate the robustness of our lightweight design choices, the initialization
+strategy, convergence dynamics, and hyperparameter sensitivity were
+analyzed.
+
+5.1.1. Deterministic accuracy metrics
+Four standard metrics were utilized to gauge estimation precision
+(Chicco et al., 2021): Coefficient of Determination (𝑅2 ), Mean Absolute Error (MAE), Mean Absolute Percentage Error (MAPE), and Root
+Mean Square Error (RMSE). While MAE and MAPE reflect general
+accuracy, RMSE is particularly critical for BMS safety, as it penalizes
+larger prediction errors that could lead to hazardous overcharging or
+over-discharging. These metrics are defined as:
+√
+√ 𝑛
+𝑛
+√1 ∑
+1∑
+MAE =
+|𝑦𝑖 − 𝑦̂𝑖 |, RMSE = √
+(𝑦 − 𝑦̂𝑖 )2
+(20)
+𝑛 𝑖=1
+𝑛 𝑖=1 𝑖
+∑𝑛
+𝑛
+(𝑦𝑖 − 𝑦̂𝑖 )2
+1 ∑ || 𝑦𝑖 − 𝑦̂𝑖 ||
+MAPE =
+, 𝑅2 = 1 − ∑𝑖=1
+(21)
+|
+|
+𝑛
+𝑛 𝑖=1 | 𝑦𝑖 |
+̄2
+𝑖=1 (𝑦𝑖 − 𝑦)
+
+5.2.1. Initialization strategy and convergence analysis
+Unbounded kernel functions, such as ReLU, often pose challenges
+to the training stability of linear attention mechanisms. To promote
+robust convergence for SL-AgentNet, its initialization strategy and convergence behavior were analyzed using quantitative metrics derived
+from the training logs of representative battery cells (NASA B0005 and
+CALCE CS2_35).
+Initialization strategy. By fixing the number of agent tokens to 𝑛 = 1,
+the theoretical lower bound linear complexity 𝑂(𝑁𝑑) was achieved.
+In contrast to standard Agent Attention implementations that derive
+agents via dynamic pooling, the single agent token 𝐀 ∈ R1×𝑑 was
+defined as a static learnable anchor. While this design provides a
+
+where 𝑦𝑖 and 𝑦̂𝑖 represent the ground-truth and predicted SOH values,
+respectively; 𝑦̄ denotes the mean of observed values, and 𝑛 is the sample
+size.
+11
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+(a) NASA B0005
+
+(b) CALCE CS2_35
+
+Fig. 9. Comparison of training loss convergence dynamics. (a) On NASA B0005, SL-AgentNet achieves rapid convergence, crossing the 10% relative loss threshold
+at epoch 4, compared to epoch 58 for the Transformer. (b) On CALCE CS2_35, SL-AgentNet maintains a significantly lower and smoother loss profile in the late
+training phase, validating the stabilizing effect of the proposed initialization and filtering mechanisms.
+Table 6
+Hyperparameter grid search space.
+
+consistent global reference, it introduces a potential stability risk: if
+initialized with large negative magnitudes, 𝐀 may cause specific feature
+dimensions to become permanently deactivated by the ReLU kernel, a
+phenomenon known as the dead neuron problem (He et al., 2015b).
+To mitigate this risk, a Truncated Normal Distribution strategy was
+adopted for 𝐀:
+𝐀 ∼ 𝑡𝑟𝑢𝑛𝑐 (𝜇 = 0, 𝜎 = 0.02, 𝑎 = −2𝜎, 𝑏 = 2𝜎)
+
+Hyperparameter
+
+Search space/Values
+
+Learning rate
+Network depth (𝐿)
+Dense dimension
+Embedding dimension (𝑑)
+
+[0.001, 0.01]
+[1, 2, 4, 8]
+[16, 32, 64, 128]
+[16, 32, 64, 128]
+
+(25)
+
+𝜇 = 0 was selected rather than a positive bias to maintain variance
+consistency with standard initialization schemes such as Xavier (Glorot
+and Bengio, 2010), thereby avoiding distributional shifts that could
+destabilize downstream layers. The truncation aims to mitigate extreme
+negative outliers; by confining initial values near zero, the aim was to
+maintain even negative entries within a recoverable range, allowing
+gradients to reactivate them during early training phases.
+
+approach simulates a realistic deployment scenario where hyperparameters are calibrated offline using historical run-to-failure data prior to
+deployment on active vehicles.
+Calibration protocol. For each dataset, the first battery (e.g., NASA
+B0005) was designated as the historical reference cell. The hyperparameter selection process followed a protocol to minimize methodological
+data leakage:
+
+Convergence properties. The training dynamics of SL-AgentNet were
+benchmarked against the standard Transformer baseline. To quantify
+the convergence speed, a relative convergence threshold was defined,
+marking the epoch where the training loss first drops below 10% of the
+initial mean loss. As illustrated in Fig. 9, quantitative analysis reveals
+two distinct advantages:
+
+1. Training Split: The model was trained using only the first 30% of
+the reference cell’s data.
+2. Validation Split: The performance of distinct hyperparameter configurations was evaluated on the remaining 70% of the reference
+cell. This tests the model’s ability to extrapolate from early-life
+patterns to end-of-life degradation.
+3. Fixed Deployment: The optimal configuration identified from this
+historical reference was subsequently frozen and applied to all
+other test batteries (e.g., B0006, B0007, B0018) without further
+tuning.
+
+• Rapid Optimization (NASA B0005): SL-AgentNet demonstrates improved optimization efficiency on the NASA B0005 cell. Under
+the defined 10% threshold criterion, the model enters the lowerror regime within just 4 epochs (threshold ≈ 0.010), whereas the
+Transformer requires 58 epochs (threshold ≈ 0.018). Furthermore,
+the Cumulative Training Loss (CTL), calculated as the integral of
+the loss curve over time, is approximately 2.8 times lower for SLAgentNet than for the Transformer (1.83 vs. 5.14), indicating a
+much more direct optimization trajectory.
+• Stability and Smoothness (CALCE CS2_35): In the asymptotic convergence phase (the final 20 epochs) on the CALCE CS2_35 cell,
+SL-AgentNet exhibits enhanced stability. The standard deviation
+of the loss is reduced by an order of magnitude compared to
+the baseline (9.4 × 10−4 vs. 8.1 × 10−3 ). This stability may be
+attributed to the S-DSConv module embedded in the FLFA, which
+acts as a local smoothing mechanism. This structural prior implicitly suppresses high-frequency noise in the gradients, reducing
+the oscillation often observed in unnormalized linear attention
+architectures.
+
+The grid search covered key structural parameters as detailed in
+Table 6. Fig. 10 visualizes the sensitivity of 𝑅2 on the NASA B0005
+reference cell during the validation phase.
+Sensitivity to the embedding dimension (𝑑) and network depth (𝐿)
+was specifically analyzed. The analysis reveals consistent trends:
+• Optimal Configuration (Fig. 10): The configuration (𝑑 = 16, 𝐿 = 1)
+achieved the highest validation accuracy (𝑅2 = 0.9866). This
+indicates that a compact feature space is sufficient to capture the
+degradation dynamics.
+• Validity of Shallow Attention (𝐿 = 1): Increasing the attention
+depth to 𝐿 = 4 resulted in a performance drop (𝑅2 ≈ 0.94), a result
+consistent with the principle of parsimony. Although 𝐿 = 1 may
+appear shallow, the SL-AgentNet is not representationally limited.
+The integrated S-DSConv module provides local feature extraction, and the multi-branch PIAF module contributes significant
+non-linear depth. Consequently, a single global attention block is
+
+5.2.2. Hyperparameter sensitivity and selection methodology
+To optimize the model architecture while adhering to the ‘‘Early
+Prediction’’ constraint, a historical reference strategy was adopted. This
+12
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Fig. 10. Hyperparameter sensitivity analysis (𝑅2 ) performed on the NASA B0005 historical reference cell. The heatmap shows validation performance on the
+unseen latter 70% of the cycle life (model trained on first 30%). Darker blue indicates higher accuracy. The selected optimal configuration is (𝑑 = 16, 𝐿 = 1).
+
+sufficient to aggregate these rich features without the overfitting
+risks associated with deeper stacks on sparse battery data.
+
+5.3.2. Precision in linear decay (Cells 1, 3, 7, & 8)
+For cells exhibiting relatively smooth linear decay, such as Cells 1, 3,
+7, and 8, the primary challenge involves minimizing steady-state error
+and jitter caused by measurement noise. SL-AgentNet achieves strong
+alignment with the ground truth, yielding 𝑅2 values exceeding 0.998;
+for instance, Cell 3 achieves 0.9990. Here, the post-fusion L-DSConv
+module plays an important role. Its large receptive field smooths out
+sensor noise while preserving the dominant aging trend. Consequently,
+SL-AgentNet achieves a lower average MAE of 0.0029 and an RMSE
+of 0.0041, representing a 60.8% reduction in MAE compared to the
+Transformer baseline (0.0074). This demonstrates its capability to balance dynamic sensitivity via the S-DSConv with static stability via the
+L-DSConv.
+
+Based on these validation results on the historical reference, the
+robust configuration of 𝑑 = 16, 𝐿 = 1 was selected for all subsequent
+testing.
+5.3. Comparison on Oxford dataset: Handling abrupt degradation
+Fig. 11 and Table 7 present the estimation results on the Oxford
+dataset. While all models capture the general linear decay trend, a granular analysis of the degradation trajectories reveals critical differences
+in dynamic response characteristics.
+5.3.1. Responsiveness to instantaneous drops (Cells 2 & 6)
+A challenge inherent to the Oxford dataset is the presence of abrupt
+SOH drops or local knee-points, which are particularly visible in Cell 2
+and Cell 6.
+
+5.4. Generalization analysis: Capacity regeneration and non-linearity
+The NASA and CALCE datasets present more complex aging dynamics, including significant capacity regeneration and accelerated
+non-linear tails. The robustness of SL-AgentNet is analyzed as follows
+(refer to Table 8 and Fig. 12):
+
+• Baseline Limitations (Hysteresis Effect): As evidenced by the magnified regions of Fig. 11, sequential models such as the LSTM
+and CNN-LSTM often suffer from a pronounced hysteresis effect,
+or phase lag. Constrained by recurrent memory inertia, these
+architectures may struggle to synchronize with rapid downward
+transitions. This results in a negative time lag and a consistent
+underestimation of the instantaneous degradation magnitude.
+• SL-AgentNet Advantage: In contrast, SL-AgentNet exhibits
+improved temporal alignment, closely tracking these abrupt drops
+with minimal lag. Mechanistically, this responsiveness is driven
+by the S-DSConv module embedded within the FLFA block. By executing convolution operations prior to attention aggregation, the
+S-DSConv acts as a high-frequency feature extractor. This component remains highly sensitive to immediate gradient changes,
+allowing the model to adapt rapidly to local structural shifts
+without the memory inertia typical of RNNs.
+
+Capturing capacity regeneration (NASA case). The NASA batteries, exemplified by B0005, are characterized by frequent capacity regeneration phenomena that appear as local upward spikes in the SOH
+curve.
+• Observation: Standard Transformers often overreact to these local
+variations or treat them as noise due to a lack of structural regularization. In contrast, SL-AgentNet captures both the amplitude
+and timing of these regeneration peaks, achieving a low RMSE of
+0.0072 on B0005.
+• Mechanism: This fine-grained capture capability is attributed to
+the FDFA module. By introducing a non-linear pre-activation
+(ReLU) branch, the FDFA acts as a significance filter that highlights high-energy local changes, such as regeneration spikes,
+13
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Fig. 11. The experimental results of different models on the Oxford dataset.
+
+against the background of gradual decay. This enables the model
+to distinguish meaningful physical recovery from random measurement noise.
+
+local noise, our FLFA module aggregates information into a single
+static agent. This agent learns the global degradation prototype,
+prioritizing the dominant accelerated aging trend over transient
+fluctuations. This contributes to the model maintaining a tight
+global fit even during highly non-linear late-life stages.
+
+Tracking accelerated aging trends (CALCE case). The CALCE batteries,
+such as CS2_38, exhibit a rapid ‘‘diving’’ behavior or accelerated aging
+in the late life cycle.
+
+In summary, SL-AgentNet achieves an average RMSE of 0.0169
+across the combined datasets, outperforming the Transformer (0.0402)
+and LSTM (0.0260). This demonstrates that our ‘‘Local–Global’’ architectural design generalizes effectively across different battery
+chemistries and degradation modes.
+
+• Observation: While the response of SL-AgentNet to minute instantaneous drops in this dataset is moderate compared to the NASA
+case, its overall fitting precision regarding the accelerated decay
+trajectory is significantly better than the baselines. For instance,
+on CS2_38, SL-AgentNet achieves an RMSE of 0.0249, outperforming both the Transformer (0.0344) and LSTM (0.0331).
+• Mechanism: This robustness is attributed to the Global Agent
+Anchor. Unlike standard attention mechanisms which compute
+pairwise 𝑁 × 𝑁 dependencies and often dilute the trend with
+
+5.5. Ablation study and contribution decoupling
+To evaluate the contributions of the proposed framework and disentangle the sources of performance gains, a systematic ablation study
+14
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Fig. 12. (a) The validation results of five models on CS2_35 and B0005. (b) The test results using five models trained on CS2_35. (c) The test results using five
+models trained on B0005.
+
+was conducted. This analysis is structured into three tiers: a macrolevel decoupling of Health Indicators (HIs) versus model architecture, a micro-level analysis of specific component effectiveness, and an
+interaction analysis of the attention mechanisms.
+
+Experimental Constraint (The ‘‘Early Prediction’’ Challenge): Importantly, to demonstrate data efficiency, an ‘‘Early Prediction’’ protocol
+was adopted where our model was trained using only the first 30%
+of cycle data. This stands in contrast to benchmark methods, which
+typically utilize 50%–70% of lifecycle data, thereby possessing an
+informational advantage.
+As presented in Table 9, the comparison reveals two key insights:
+
+5.5.1. Macro-ablation: Decoupling HIs and model architecture
+A pivotal research inquiry concerns the attribution of performance
+gains: do they arise from the proposed Systematic HIs (CCCA/CCDA)
+or the specialized SL-AgentNet architecture? To decouple these contributions and position our work within the landscape of state-of-theart methods, our approach was benchmarked against recent results
+reported in the literature on identical datasets.
+
+1. Contribution of Systematic HIs (High Information Density): Standard LSTM models employing traditional manual/IC features
+and trained on 50% data achieve an RMSE of 0.0183, as reported by Yan et al. (2025). Importantly, when employing our
+15
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Table 7
+SOH estimation errors of different models on the Oxford dataset.
+
+Table 8
+Estimation results on the CALCE and NASA datasets.
+
+Cells
+
+Methods
+
+𝑅2
+
+MAE
+
+MAPE
+
+RMSE
+
+Cell
+
+Methods
+
+𝑅2
+
+MAE
+
+MAPE
+
+RMSE
+
+Cell1*
+
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+
+0.9985
+0.9649
+0.9895
+0.9616
+0.8687
+0.9809
+0.9444
+0.9779
+0.8576
+0.9686
+0.9990
+0.9752
+0.9977
+0.9270
+0.9738
+0.9932
+0.9801
+0.9954
+0.9373
+0.9648
+0.9903
+0.9760
+0.9944
+0.9530
+0.9659
+0.9910
+0.9665
+0.9914
+0.9280
+0.9734
+0.9990
+0.9723
+0.9961
+0.9258
+0.9709
+0.9989
+0.9707
+0.9967
+0.9274
+0.9751
+0.9938
+0.9688
+0.9923
+0.9272
+0.9577
+
+0.0011
+0.0051
+0.0028
+0.0053
+0.0098
+0.0063
+0.0136
+0.0085
+0.0217
+0.0102
+0.0016
+0.0076
+0.0023
+0.0131
+0.0078
+0.0040
+0.0058
+0.0028
+0.0103
+0.0077
+0.0042
+0.0052
+0.0025
+0.0073
+0.0062
+0.0030
+0.0068
+0.0034
+0.0099
+0.0060
+0.0015
+0.0069
+0.0026
+0.0112
+0.0070
+0.0017
+0.0084
+0.0028
+0.0132
+0.0077
+0.0029
+0.0074
+0.0035
+0.0115
+0.0078
+
+0.0015
+0.0045
+0.0023
+0.0044
+0.0077
+0.0084
+0.0096
+0.0058
+0.0204
+0.0081
+0.0019
+0.0051
+0.0019
+0.0110
+0.0056
+0.0048
+0.0050
+0.0021
+0.0075
+0.0057
+0.0049
+0.0049
+0.0019
+0.0051
+0.0044
+0.0036
+0.0053
+0.0019
+0.0082
+0.0036
+0.0018
+0.0049
+0.0022
+0.0096
+0.0054
+0.0021
+0.0059
+0.0025
+0.0114
+0.0060
+0.0036
+0.0057
+0.0026
+0.0097
+0.0058
+
+0.0014
+0.0077
+0.0041
+0.0079
+0.0139
+0.0109
+0.0159
+0.0103
+0.0348
+0.0142
+0.0021
+0.0079
+0.0032
+0.0177
+0.0098
+0.0047
+0.0081
+0.0035
+0.0118
+0.0096
+0.0046
+0.0078
+0.0030
+0.0079
+0.0072
+0.0049
+0.0086
+0.0032
+0.0131
+0.0061
+0.0018
+0.0075
+0.0036
+0.0154
+0.0091
+0.0022
+0.0093
+0.0041
+0.0187
+0.0104
+0.0041
+0.0091
+0.0044
+0.0159
+0.0100
+
+B0005*
+
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+
+0.9866
+0.9553
+0.9280
+0.9402
+0.7802
+
+0.0050
+0.0130
+0.0165
+0.0151
+0.0289
+
+0.0068
+0.0109
+0.0149
+0.0135
+0.0263
+
+0.0072
+0.0150
+0.0211
+0.0187
+0.0374
+
+B0006
+
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+
+0.9885
+0.9564
+0.9713
+0.9568
+0.9191
+
+0.0086
+0.0252
+0.0204
+0.0251
+0.0343
+
+0.0111
+0.0199
+0.0172
+0.0207
+0.0294
+
+0.0130
+0.0274
+0.0238
+0.0285
+0.0418
+
+B0007
+
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+
+0.9924
+0.9699
+0.9766
+0.9762
+0.9337
+
+0.0045
+0.0136
+0.0120
+0.0121
+0.0203
+
+0.0054
+0.0108
+0.0100
+0.0094
+0.0166
+
+0.0069
+0.0139
+0.0128
+0.0116
+0.0217
+
+B0018
+
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+
+0.9845
+0.9459
+0.9422
+0.9523
+0.8668
+
+0.0084
+0.0170
+0.0176
+0.0160
+0.0267
+
+0.0108
+0.0133
+0.0160
+0.0111
+0.0238
+
+0.0121
+0.0169
+0.0212
+0.0144
+0.0321
+
+CS2_35*
+
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+
+0.9867
+0.9380
+0.9895
+0.9797
+0.9800
+
+0.0148
+0.0472
+0.0194
+0.0270
+0.0268
+
+0.0251
+0.0363
+0.0132
+0.0207
+0.0214
+
+0.0218
+0.0702
+0.0232
+0.0333
+0.0372
+
+CS2_36
+
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+
+0.9834
+0.9491
+0.9814
+0.9533
+0.9798
+
+0.0193
+0.0531
+0.0321
+0.0509
+0.0334
+
+0.0367
+0.0355
+0.0247
+0.0424
+0.0228
+
+0.0303
+0.0901
+0.0475
+0.0607
+0.0551
+
+CS2_37
+
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+
+0.9902
+0.9541
+0.9895
+0.9621
+0.9833
+
+0.0131
+0.0404
+0.0194
+0.0367
+0.0244
+
+0.0232
+0.0278
+0.0138
+0.0313
+0.0178
+
+0.0187
+0.0535
+0.0249
+0.0438
+0.0329
+
+CS2_38
+
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+
+0.9819
+0.9773
+0.9780
+0.9535
+0.9813
+
+0.0205
+0.0279
+0.0275
+0.0399
+0.0253
+
+0.0303
+0.0207
+0.0229
+0.0340
+0.0187
+
+0.0249
+0.0344
+0.0331
+0.0457
+0.0306
+
+Average
+
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+
+0.9868
+0.9558
+0.9696
+0.9592
+0.9281
+
+0.0118
+0.0297
+0.0206
+0.0278
+0.0275
+
+0.0187
+0.0219
+0.0166
+0.0229
+0.0221
+
+0.0169
+0.0402
+0.0260
+0.0321
+0.0361
+
+Cell2
+
+Cell3
+
+Cell4
+
+Cell5
+
+Cell6
+
+Cell7
+
+Cell8
+
+Average
+
+Cell1* indicates that the model was trained on this cell using 30% of the early data,
+and its values are averaged among ten experiments. The best results are marked in
+bold and underlined.
+
+B0005* and CS2_35* denote that they are the training sets with 30% of the early data.
+The best results are marked in bold and underlined.
+
+proposed Systematic HIs (CCCA/CCDA) with a standard LSTM,
+even under the strict limitation of 30% training data, the model
+maintains a comparable RMSE of 0.0211. Moreover, equipping
+a standard Transformer with our HIs yields an RMSE of 0.0150,
+matching or marginally outperforming the baseline reported by
+Xu et al. (2024) (RMSE 0.0151), despite the data scarcity. These
+results suggest that our screened HIs possess high ‘‘information
+density’’, enabling standard models to extract robust degradation
+patterns from sparse early-life data where traditional features
+often fail.
+2. Contribution of SL-AgentNet Architecture (Architectural Efficacy):
+A notable performance enhancement is attributed to the model
+architecture. Under the identical 30% data constraint, upgrading
+from a standard Transformer (RMSE 0.0150) to the proposed
+SL-AgentNet (RMSE 0.0052) yields a 65.3% error reduction.
+This suggests that while Systematic HIs provide a robust, noiseimmune foundation, the architectural innovations, specifically
+the linear-complexity FLFA, the multi-branch PIAF, and the SDSConv, play a key role in modeling the complex, non-linear
+dependencies required for high-precision early prediction.
+
+5.5.2. Micro-ablation I: Component effectiveness analysis
+To validate the efficacy of key architectural components, ablation studies were conducted focusing on convolutional modules and
+activation functions across the Oxford, NASA, and CALCE datasets.
+Impact of depthwise separable convolutions (S/L-DSConv). The proposed
+framework integrates two distinct convolutional modules: the smallkernel S-DSConv embedded within the FLFA module for pre-attention
+local enhancement, and the large-kernel L-DSConv positioned after the
+AFF module for post-fusion refinement. Their specific contributions
+were assessed by substituting them with standard convolutions. Although standard convolutions possess higher parameter counts and theoretically larger capacities, the results in Table 10 indicate performance
+degradation, thereby supporting the efficiency of our design:
+• Pre-Attention Local Enhancement (S-DSConv): Substituting the
+S-DSConv with a standard convolution corresponds to an accuracy
+drop, notably increasing the RMSE from 0.0041 to 0.0102 on the
+Oxford dataset. This suggests that the parameter-heavy standard
+convolution may be prone to overfitting on sparse battery data.
+16
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Table 9
+Macro-Ablation: Decoupling contributions against literature benchmarks (NASA B0005).
+Source
+
+Train data
+
+RMSE
+
+MAE
+
+Literature Benchmarks (Traditional HIs)
+Yan et al. Yan et al. (2025)
+Standard LSTM + 12 Manual Feat.
+Xu et al. Xu et al. (2024)
+Transformer + IC Peak Area
+Huang et al. Huang et al. (2025)
+Swin Transformer + Multi-features
+
+50%
+Start Cyc 70a
+50%
+
+0.0183
+0.0151
+0.0097
+
+0.0160
+0.0105
+0.0072
+
+Our Framework (Systematic HIs: CCCA/CCDA)
+Our baseline
+Standard Transformer
+Our baseline
+Standard LSTM
+Proposed
+SL-AgentNet
+
+30%
+30%
+30%
+
+0.0150
+0.0211
+0.0052
+
+0.0130
+0.0165
+0.0062
+
+a
+
+Methodology (Model + Feature)
+
+Xu et al. utilize a fixed starting point (cycle 70) for prediction.
+
+Table 10
+Ablation study of convolutional modules (average results).
+
+Table 11
+Performance comparison of activation strategies (average results).
+
+Dataset
+
+Convolution configuration
+
+𝑅2
+
+RMSE
+
+MAE
+
+NASA
+
+Std. Conv (Replaces S-DSConv)
+Std. Conv (Replaces L-DSConv)
+Full SL-AgentNet (S+L DSConv)
+
+0.9764
+0.8933
+0.9880
+
+0.0121
+0.0259
+0.0098
+
+0.0099
+0.0237
+0.0066
+
+Oxford
+
+Std. Conv (Replaces S-DSConv)
+Std. Conv (Replaces L-DSConv)
+Full SL-AgentNet (S+L DSConv)
+
+0.9627
+0.9720
+0.9938
+
+0.0102
+0.0087
+0.0041
+
+0.0075
+0.0071
+0.0029
+
+Std. Conv (Replaces S-DSConv)
+Std. Conv (Replaces L-DSConv)
+Full SL-AgentNet (S+L DSConv)
+
+0.8422
+0.8240
+0.9856
+
+0.0686
+0.0719
+0.0239
+
+0.0512
+0.0547
+0.0169
+
+CALCE
+
+Dataset
+
+Module variant
+
+𝑅2
+
+RMSE
+
+MAE
+
+NASA
+
+Standard MLP (GeLU)
+PIAF-MLP (Ours)
+
+0.9612
+0.9880
+
+0.0155
+0.0098
+
+0.0139
+0.0066
+
+Oxford
+
+Standard MLP (GeLU)
+PIAF-MLP (Ours)
+
+0.9845
+0.9938
+
+0.0068
+0.0041
+
+0.0055
+0.0029
+
+CALCE
+
+Standard MLP (GeLU)
+PIAF-MLP (Ours)
+
+0.9826
+0.9856
+
+0.0264
+0.0239
+
+0.0197
+0.0169
+
+stepwise ablation was conducted on the CALCE and NASA datasets.
+The AAT-1d was utilized as the baseline and progressively integrated
+the modules. The results are detailed in Table 12.
+
+In contrast, the S-DSConv functions as a structural regularizer; by
+decoupling spatial and channel correlations, it imposes a beneficial inductive bias that encourages the model to focus on essential
+high-frequency local patterns rather than noise.
+• Post-Fusion Global Refinement (L-DSConv): Replacing the LDSConv leads to a performance decline, particularly on the CALCE
+dataset where the RMSE increases to 0.0719. This suggests that a
+lightweight, large-kernel convolution is beneficial for smoothing
+fused attention features and extracting long-term degradation
+trends prior to the final regression stage.
+
+Quantitative evidence of synergy. Experimental results, particularly on
+the CALCE dataset, suggest a super-additive synergistic effect:
+• Individual Gains: On the CALCE dataset, adding the FDFA alone
+improves the MAE by 0.0019, reducing it from 0.0200 to 0.0181.
+Similarly, the independent addition of the FLFA yields a marginal
+improvement of 0.0005, lowering the MAE from 0.0200 to
+0.0195. Consequently, the arithmetic sum of these isolated gains
+is 0.0024.
+• Combined Gain: When both modules are integrated into the full
+AFF framework, the MAE drops significantly to 0.0169. This
+represents a total gain of 0.0031.
+• Conclusion: Since the combined gain of 0.0031 exceeds the arithmetic sum of 0.0024, this indicates a positive synergistic interaction. The modules do not merely operate in parallel; rather, they
+mutually reinforce the predictive capability of the model.
+
+Impact of heterogeneous activation (PIAF vs. Standard MLP). The PIAF
+module functions as the final regression head. This heterogeneous
+design, which combines ReLU, Tanh, and Identity functions, was compared against a standard MLP baseline configured with homogeneous
+Gaussian Error Linear Unit (GeLU) activation. As summarized in
+Table 11, the results demonstrate the effectiveness of the heterogeneous
+strategy.
+
+Mechanistic explanation: Orthogonality and complementarity. This synergy arises because the two modules operate on nearly orthogonal
+feature dimensions, thereby generating complementary feature subspaces. The FDFA branch, utilizing non-linear ReLU pre-activation,
+targets the amplitude domain. It acts as a significance filter that isolates
+high-energy degradation signals from background noise. Conversely,
+the parallel FLFA branch, equipped with S-DSConv and linear attention,
+focuses on the spatio-temporal structural domain to capture local–
+global dependencies regardless of signal magnitude. By fusing these
+distinct perspectives, specifically amplitude significance and temporal
+structure, the model achieves a comprehensive representation where
+the strengths of one branch compensate for the limitations of the other.
+This results in robustness that transcends simple summation.
+
+• On the NASA dataset, replacing the standard MLP with PIAF
+reduces the MAE from 0.0139 to 0.0066, representing a 52.5% reduction. This gain suggests that the Tanh branch in PIAF, with its
+saturation boundaries, captures the distinct voltage plateaus and
+abrupt degradation shifts typical of the NASA dataset, phenomena
+that the unbounded GeLU struggles to model accurately.
+• On the Oxford dataset, PIAF achieves an RMSE of 0.0041 compared to 0.0068 for the baseline, corresponding to a 39.7% reduction.
+• Even on the CALCE dataset, PIAF maintains its advantage, lowering the RMSE from 0.0264 to 0.0239.
+This widespread improvement suggests that the ‘‘mixture of activations’’ strategy captures complex non-linearities that a single homogeneous activation function fails to model, thereby validating the feature
+richness of our design.
+
+5.6. Computational efficiency and feasibility analysis for BMS
+To rigorously assess the suitability of SL-AgentNet for resourceconstrained embedded BMS, we conducted a comprehensive benchmark focusing on four critical engineering metrics:
+
+5.5.3. Micro-ablation II: Interaction analysis of attention modules
+To elucidate the interaction dynamics between the diversity
+-enhancing FDFA and the efficiency-focused FLFA modules, specifically
+regarding whether their contributions are additive or synergistic, a
+
+• Floating Point Operations (FLOPs): Represents the theoretical
+computational complexity. In this study, we report the cumulative
+17
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+• FLOPs (Macro-scale Cost): The FLOPs values reported in Table
+13 quantify the cumulative computational cost for processing a
+complete battery charge/discharge cycle. Derived from a representative Oxford dataset cycle comprising thousands of time
+steps, this metric evaluates the total energy consumption for a
+full diagnostic event.
+• Latency (Micro-scale Response): Latency measures the inference time for a single sliding window input (e.g., 𝑁 = 4),
+representing the instantaneous response time required by the BMS
+controller per execution step.
+
+Table 12
+Interaction ablation of FDFA and FLFA modules (Avg. results).
+Dataset
+
+Attention variant
+
+𝑅2
+
+RMSE
+
+MAE
+
+MAPE
+
+CALCE
+
+Baseline (AAT-1d)
++ FDFA (Diversity)
++ FLFA (Global–Local)
+Full AFF (Combined)
+
+0.9828
+0.9850
+0.9841
+0.9856
+
+0.0256
+0.0242
+0.0249
+0.0239
+
+0.0200
+0.0181
+0.0195
+0.0169
+
+0.0349
+0.0333
+0.0326
+0.0288
+
+NASA
+
+Baseline (AAT-1d)
++ FDFA (Diversity)
++ FLFA (Global–Local)
+Full AFF (Combined)
+
+0.8933
+0.9791
+0.9837
+0.9880
+
+0.0259
+0.0117
+0.0103
+0.0098
+
+0.0237
+0.0086
+0.0074
+0.0066
+
+0.0325
+0.0113
+0.0094
+0.0085
+
+Consequently, high cumulative FLOPs do not contradict low instantaneous latency. Given that SOH estimation is a low-frequency prognostic
+task—typically executed once per cycle or at minute-level intervals—
+the cumulative load is distributed over extended durations. This renders
+the 0.77 ms per-step latency likely compatible with automotive MCU
+background task scheduling.
+
+FLOPs required to process a complete charging cycle (macro-scale
+cost), serving as a proxy for total energy consumption.
+• Number of Parameters (Params): Indicates the model’s architectural complexity. Fewer parameters reduce memory access
+frequency and the risk of overfitting on small datasets.
+• Model Size (Storage): The actual Flash memory footprint required to store model weights, which is a stringent constraint for
+automotive microcontrollers (typically < 1 MB).
+• Inference Latency: The real-world execution time required to
+process a single input sequence (micro-scale response). This determines whether the model can operate within the real-time
+scheduling slot (e.g., 10 ms task cycle) of the BMS.
+
+5.6.4. The efficiency-accuracy trade-off
+SL-AgentNet distinguishes itself through a strategic balance between
+resource consumption and estimation reliability. While the CNN-LSTM
+baseline offers the lowest computational cost (115 M FLOPs) and
+marginally faster inference (0.74 ms), this lightweight nature compromises representation capacity, resulting in a relatively high RMSE of
+0.0100. In safety-critical BMS applications, an estimation error of 1%
+is frequently deemed the threshold of unreliability, potentially necessitating conservative battery utilization or obscuring rapid degradation
+signals.
+Conversely, SL-AgentNet exchanges a manageable increase in computational load—remaining well within the sub-millisecond safety margin of 0.77 ms—for enhanced performance. By reducing the RMSE to
+0.0042, our model achieves a 58% error reduction relative to CNNLSTM. This trade-off is justifiable for modern electric vehicles: the
+incremental increase in storage (40 KB vs. 15 KB) and FLOPs is negligible for automotive-grade MCUs, whereas the improved accuracy
+contributes to extended battery lifespan and safer operational limits.
+Thus, SL-AgentNet provides an effective solution where precision is
+paramount, yet hardware constraints remain respected.
+
+5.6.1. Experimental setup for latency measurement
+Unlike theoretical FLOPs, inference latency is typically considered a
+primary determinant of real-time feasibility on embedded controllers.
+A standardized benchmark environment was established using a CPU
+to simulate the sequential processing characteristic of BMS MCUs,
+adhering to the following protocols:
+• Device & Process: Measurements were executed on a CPU with
+a batch size of 1 to mimic the stream-processing nature of BMS
+operations. The protocol comprised 10 warm-up runs followed by
+1000 active measurement cycles to promote statistical robustness;
+only forward inference time was recorded, excluding data I/O
+overhead.
+• Input Constraints: The input dimensions were fixed at (1, 𝑁, 𝐶).
+While Transformer and LSTM baselines utilized a context window
+of 𝑁 = 5, SL-AgentNet employed a restricted window of 𝑁 =
+4 due to the architectural configuration of the Agent mechanism. Achieving improved accuracy with this reduced receptive
+field—𝑁 = 4 versus 𝑁 = 5—highlights the enhanced efficiency of
+SL-AgentNet’s feature extraction capabilities.
+
+5.6.5. Implementation challenges and hardware validation
+Deploying deep learning models on embedded systems requires
+addressing specific hardware limitations, particularly regarding nonlinear operations.
+Floating-point unit (FPU) limitations. The proposed PIAF module utilizes heterogeneous activation functions (e.g., Tanh, GeLU) involving
+exponential calculations (𝑒𝑥 ). On low-power automotive MCUs, these
+operations can be computationally expensive and may induce latency
+jitter.
+
+5.6.2. Inference latency and real-time capability
+Table 13 indicates that SL-AgentNet achieves a sub-millisecond inference latency of 0.7656 ms alongside a throughput of 1306 samples/s.
+Furthermore, the model demonstrates the lowest latency standard deviation of 0.0907 ms among all tested architectures. This minimal variance suggests enhanced temporal stability—an important factor for supporting deterministic behavior in safety-critical Real-Time Operating
+Systems (RTOS).
+Although the LSTM baseline exhibits marginally lower latency (≈
+0.69 ms) due to minimal recurrent overhead in short sequences, SLAgentNet performs comparably to the efficient CNN-LSTM (≈ 0.74 ms)
+and outperforms Transformer-based models (≈ 1.0–1.1 ms). These results indicate that the linear-complexity FLFA module mitigates the
+computational burden typically inherent in attention mechanisms.
+
+Hardware-in-the-loop validation. To validate the feasibility of the proposed framework, we conducted deployment experiments on a TI
+Cortex-M4 microcontroller at Sichuan SEVCLAB Testing Technology Co., Ltd. (a subsidiary of the Tsinghua University Prof. Ouyang
+Minggao Academician Workstation).
+• Look-Up Table (LUT) Optimization: We implemented the
+exponential-heavy activations using LUTs with piecewise linear
+interpolation. This is a standard industry practice to balance
+precision and speed.
+• Experimental Results: Comparative testing between the PCbased floating-point inference and the MCU-based LUT implementation confirms that the optimization significantly reduces
+cycle counts. Crucially, the SOH estimation discrepancy (accuracy
+loss) introduced by this approximation is controlled strictly within
+0.3%, which is negligible for BMS applications.
+
+5.6.3. Distinguishing cumulative FLOPs from low latency
+A potential ambiguity arises when contrasting the high FLOPs count
+(589 M) with the minimal latency (0.77 ms). It is important to clarify the physical definition of these metrics within our experimental
+framework:
+18
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+Table 13
+Comparison of computational efficiency, model complexity, and inference latency.
+Model complexity & Cost
+
+Model
+SL-AgentNet
+Transformer
+LSTM
+CNN-Transformer
+CNN-LSTM
+
+Runtime performance (CPU, Batch = 1)
+
+Params
+
+Size (KB)
+
+FLOPs (M)∗
+
+Latency (ms)
+
+Std (ms)
+
+Throughput (samples/s)
+
+6,114
+17,569
+99,585
+43,169
+3,041
+
+40.92
+90.53
+392.15
+212.06
+15.58
+
+589.45
+126.14
+1807.94
+1805.76
+115.20
+
+0.7656
+1.0086
+0.6929
+1.1395
+0.7423
+
+0.0907
+0.1370
+0.0967
+0.1391
+0.1001
+
+1306.09
+991.45
+1443.28
+877.58
+1347.18
+
+Note: Bold indicates the proposed SL-AgentNet; Underline indicates the best result in each column.
+Latency is measured on a standard CPU. Input 𝑁 = 4 for SL-AgentNet, 𝑁 = 5 for others.
+∗
+FLOPs represent the cumulative computational cost over a complete battery charging cycle (approx. thousands of steps).
+
+Table 14
+Dataset summary metrics (Mean and 95% Confidence Interval). 90% prediction intervals were generated using conformal
+prediction (𝑞ℎ𝑎𝑡 ).
+Dataset
+
+MAE (95% CI)
+
+RMSE (95% CI)
+
+Mean PICP (95% CI)
+
+MPIW
+
+𝑞ℎ𝑎𝑡
+
+NASA
+CALCE
+
+0.0049 [0.0035, 0.0062]
+0.0190 [0.0172, 0.0210]
+
+0.0085 [0.0062, 0.0108]
+0.0261 [0.0220, 0.0311]
+
+0.9560 [0.9344, 0.9776]
+0.8995 [0.8492, 0.9415]
+
+0.0295
+0.0779
+
+0.0148
+0.0390
+
+Table 15
+Statistical calibration verification using Exact Binomial Test on aggregate samples (𝐻0 ∶ PICP = 0.90).
+Dataset
+
+𝑁𝑡𝑜𝑡𝑎𝑙
+
+Covered (𝑘)
+
+Observed PICP
+
+𝑝-value
+
+Conclusion
+
+NASA
+CALCE
+
+408
+2702
+
+391
+2432
+
+95.83%
+90.01%
+
+2.16 × 10−5
+1.00
+
+Conservative (Safe)
+Precisely Calibrated
+
+Table 16
+Paired t-test results comparing SL-AgentNet against baselines. Positive Mean Diff indicates SL-AgentNet outperforms baseline.
+Significance threshold 𝛼 ′ ≈ 0.003 (Bonferroni corrected).
+Dataset
+
+NASA
+
+CALCE
+
+Baseline
+
+Metric
+
+Mean Diff.
+
+𝑡-statistic
+
+𝑝-value
+
+Cohen’s 𝑑 [95% CI]
+
+LSTM
+Transformer
+
+MAE
+MAE
+
++0.0107
++0.0089
+
+20.97
+16.48
+
+< 0.001***
+< 0.001***
+
+1.04 [0.90, 1.21]
+0.82 [0.75, 0.89]
+
+LSTM
+Transformer
+
+RMSEa
+RMSEa
+
++0.0090
++0.0089
+
+15.27
+4.15
+
+< 0.001***
+0.026 (ns)
+
+7.64 [2.85, 12.4]
+2.07 [0.15, 4.00]
+
+Transformer
+LSTM
+
+MAE
+MAE
+
++0.0136
+−0.0014
+
+30.66
+−5.86
+
+< 0.001***
+< 0.001***
+
+0.59 [0.56, 0.62]
+−0.11 [−0.15, −0.07]
+
+Transformer
+LSTM
+
+RMSEa
+RMSEa
+
++0.0194
+−0.0025
+
+4.66
+−1.15
+
+0.019 (ns)
+0.332 (ns)
+
+2.33 [0.28, 4.38]
+−0.58 [−1.84, 0.68]
+
+(ns) Not significant at adjusted threshold.
+a RMSE analysis based on aggregated cell-level metrics (𝑁 = 4).
+*** Significant at 𝑝 < 0.003 (Bonferroni adjusted).
+
+Stream processing. Additionally, unlike offline batch training, the BMS
+operates on a continuous stream. Our latency benchmarks
+(Section 5.6.2) were specifically conducted with a batch size of 1. The
+verified throughput (1306 samples/s) far exceeds the typical 1–10 Hz
+sampling rate of voltage sensors, ensuring no data backlog risks in
+real-time operation.
+
+vs. Transformer), the 𝑝-value (0.026) did not reach the Bonferroni
+threshold. This suggests that while the improvement magnitude is
+practically significant, statistical power is limited by the small sample
+size (𝑁 = 4 cells).
+CALCE dataset (Engineering equivalence). On the CALCE dataset, SLAgentNet maintains a significant lead over the Transformer in MAE
+(𝑝 < 0.001). Compared to the LSTM baseline, the analysis reveals:
+
+6. Statistical significance and uncertainty quantification
+
+1. RMSE Equivalence: No statistically significant difference was
+observed (𝑝 = 0.332), indicating comparable performance in
+minimizing large squared errors.
+2. MAE Engineering Equivalence: Although LSTM shows a slight
+statistical preference in MAE (𝑝 < 0.001), the mean difference is
+merely −0.0014 (0.14% SOH), which is negligible compared to
+typical sensor noise.
+
+Statistical significance testing and conformal prediction analysis
+were incorporated to assess the reliability of SL-AgentNet beyond standard error metrics.
+6.1. Statistical significance and effect size
+Paired t-tests were performed to verify performance differences,
+with the Bonferroni correction applied to maintain robustness against
+multiple comparisons (𝛼 ′ ≈ 0.003). The results are detailed in Table 16.
+
+Thus, SL-AgentNet demonstrates engineering equivalence to LSTM
+while offering the advantage of valid uncertainty quantification.
+
+NASA dataset (Strong generalization). SL-AgentNet shows strong performance on the NASA dataset. Compared to both LSTM and Transformer
+baselines, our model achieves significant reductions in MAE (𝑝 < 0.001)
+with large effect sizes (Cohen’s 𝑑 > 0.8). Regarding RMSE, while SLAgentNet achieves a lower mean error with a large effect size (𝑑 = 2.07
+
+6.2. Prediction uncertainty and calibration
+90% Prediction Intervals (PIs) were constructed using conformal
+prediction. The comprehensive performance metrics, including error
+19
+
+Engineering Applications of Arti cial Intelligence 181 (2026) 115420
+
+H. Wang et al.
+
+(a) NASA (B0018)
+
+(b) CALCE (CS2_38)
+
+Fig. 13. Prediction Uncertainty Visualization. The red line represents ground truth, and the shaded area is the 90% Prediction Interval (PI). B0018 shows
+strong capacity regeneration, while CS2_38 exhibits rapid non-linear decay. SL-AgentNet effectively brackets these challenging fluctuations.
+
+(a) NASA Reliability
+
+(b) CALCE Reliability
+
+Fig. 14. Reliability Diagrams. Calibration curves across confidence levels (50%, 80%, 90%, 95%). Error bars indicate 95% Wilson score intervals. (a) NASA
+shows consistent conservative calibration (points above diagonal). (b) CALCE shows precise calibration at the 90% operating point (error bar intersects the
+diagonal).
+
+margins and uncertainty quantification results, are summarized in Table 14. The calibration quality was further verified via statistical testing
+(Table 15) and visual analysis (Fig. 14). The assessment relies on the
+probabilistic metrics (PICP, MPIW, and ACE) defined in Section 5.1.
+
+direct measurement and the high computational cost of standard deep
+learning models, a dual-pronged solution comprising systematic feature
+selection and a lightweight network architecture was developed.
+The proposed SL-AgentNet is characterized by its linear computational complexity. By integrating the AFF module with the Fast
+Local–Global Fusion Attention (FLFA) mechanism, the model captures
+long-range degradation dependencies while addressing the quadratic
+computational overhead (𝑂(𝑁 2 )) associated with traditional Transformers. Furthermore, the incorporation of FDFA and PIAF modules
+enhances feature diversity and non-linear representation, facilitating
+high estimation accuracy within a lightweight architecture.
+Experimental results on the Oxford, NASA, and CALCE datasets
+indicate that SL-AgentNet demonstrates enhanced performance compared to baseline models, including the LSTM and CNN-Transformer.
+Specifically, the model achieves significant accuracy gains, with MAE
+reductions reaching 74.78% on the Oxford dataset compared to the
+CNN-Transformer baseline. Crucially, this competitive performance is
+realized with a parameter count of only 6114 and a storage footprint of
+40.92 KB. Hardware-in-the-loop validation on a TI Cortex-M4 MCU has
+further confirmed the model’s engineering feasibility, where LUT optimization ensured real-time responsiveness with a negligible accuracy
+loss of within 0.3%.
+Despite these advancements, limitations remain regarding the reliance on stable constant-current segments for feature extraction. Future work aims to extend the framework to encompass a wider range
+
+Calibration analysis. Using the Exact Binomial Test (𝐻0 ∶ PICP =
+0.90):
+• NASA (Conservative Safety): The aggregate coverage is 95.83%
+(𝑝 < 0.001), indicating a safety-conservative bias that supports
+higher fault tolerance for degradation risks.
+• CALCE (Precise Calibration): The aggregate coverage is 90.01%
+(𝑝 = 1.00), confirming no significant deviation from the nominal
+level and demonstrating precise calibration.
+Reliability diagrams (Fig. 14) further support these findings, with
+CALCE closely following the ideal diagonal (ACE=0.061) and NASA
+showing consistent conservative behavior (ACE=0.129). This framework offers a stable safety margin (constant width intervals, Fig. 13)
+beneficial for robust BMS deployment.
+7. Conclusion
+This study presents a practical, computationally efficient framework
+for battery SOH estimation, designed to address the stringent operational constraints of vehicular BMS. By recognizing the limitations of
+20
+
+

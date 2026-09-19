@@ -1,0 +1,192 @@
+This section systematically evaluates MS-AgentNet on four public battery datasets. The experiments cover HI effectiveness, model performance comparisons, module ablation and complexity analysis, and cross-domain adaptation. The HI experiments examine whether the selected features can represent battery degradation patterns and thus provide suitable model inputs. The model comparisons assess estimation accuracy and stability across cells. Ablation studies further examine the individual and complementary effects of multi-scale local feature extraction and cross-cycle context modeling, and compare different convolutional configurations to assess the complementary roles of DSConv-S and DSConv-L; complexity analysis evaluates computational and storage overhead. Finally, cross-dataset transfer experiments examine the model's transfer performance across different data domains. Together, these experiments provide a comprehensive evaluation of the effectiveness and applicability of MS-AgentNet for battery SOH estimation.
+
+Model training is conducted on a compute instance with 25 vCPUs provided by an Intel Xeon Platinum 8470Q processor, one NVIDIA GeForce RTX 5090 GPU with 32 GB of graphics memory, and 90 GB of RAM. The instance runs Ubuntu 22.04. The prediction models are implemented using PyTorch 2.12.1 and Python 3.12, with CUDA 13.0.
+
+\subsection{Evaluation metrics}
+
+Four commonly used metrics are selected to evaluate SOH estimation performance: mean absolute error (MAE), mean absolute percentage error (MAPE), root mean square error (RMSE), and the coefficient of determination (R²)\cite{ref76}.
+
+MAE is the mean absolute difference between predicted and true SOH over all evaluation samples and reflects the overall error level. It does not assign extra weight to individual large errors and provides a direct measure of overall estimation accuracy.
+
+MAPE normalizes absolute errors by the true SOH, allowing estimation performance to be compared across datasets. When the true SOH approaches zero, MAPE may become much larger and should be considered together with MAE and RMSE.
+
+RMSE is the square root of the mean squared difference between predicted and true SOH. Compared with MAE, it assigns greater weight to large prediction deviations and thus further reflects the model's ability to limit large errors.
+
+R² measures how well the model fits variations in the true SOH. A value closer to 1 indicates a better fit to the overall degradation trend.
+
+The four metrics are defined as follows:
+
+\begin{equation}
+\label{eq:metric_mae}
+\mathrm{MAE}=\frac{1}{n}\sum_{i=1}^{n}\left|y_i-\hat{y}_i\right|
+\end{equation}
+
+\begin{equation}
+\label{eq:metric_mape}
+\mathrm{MAPE}=\frac{1}{n}\sum_{i=1}^{n}\left|\frac{y_i-\hat{y}_i}{y_i}\right|
+\end{equation}
+
+\begin{equation}
+\label{eq:metric_rmse}
+\mathrm{RMSE}=\sqrt{\frac{1}{n}\sum_{i=1}^{n}\left(y_i-\hat{y}_i\right)^2}
+\end{equation}
+
+\begin{equation}
+\label{eq:metric_r2}
+R^2=1-\frac{\sum_{i=1}^{n}\left(y_i-\hat{y}_i\right)^2}{\sum_{i=1}^{n}\left(y_i-\bar{y}\right)^2}
+\end{equation}
+
+where $y_i$ and $\hat{y}_i$ are the true and predicted SOH of the $i$th sample, respectively, $\bar{y}$ is the mean true SOH of the evaluation samples, and $n$ is the total number of evaluation samples.
+
+\subsection{HI selection results and effectiveness analysis}
+
+To evaluate how effectively group-level HI selection identifies inputs that remain stable across cells, this section compares SOH estimation performance with different HIs on the Oxford dataset. Based on the PCC and SCC of candidate HIs on Cell1, the indicator with the highest combined correlation score is selected from each of the IC, DTV, and DTC categories, giving HI4, HI9, and HI11, respectively. All three combined correlation scores exceed 0.94. These HIs and the CCCT indicator HI1, which is obtained through group-level selection, are separately fed into MS-AgentNet. The input combining HI1, HI4, HI9, and HI11 is denoted as Fusion. The validation result on Cell2 and the test results on Cell3--Cell8 with different inputs are given in \cref{tab:4-hi-input}.
+
+The results show that using HI1 consistently yields high estimation accuracy across Cell2--Cell8, with the lowest average MAE, RMSE, and MAPE among the five input schemes. Its average MAPE is 0.00615, or 0.615\%. When all four HIs are used together, Fusion ranks fourth for all three average errors, showing that directly combining multiple types of HIs does not provide further performance gains.
+
+Moreover, the representational ability of the same HI differs across cells. For example, HI9 yields lower estimation errors than HI11 on Cell7, whereas the opposite is observed on Cell8. In contrast, HI1 obtained through group-level selection achieves the lowest MAE, RMSE, and MAPE on all seven cells. These results show that a high correlation on one cell does not guarantee the same representational ability on other cells in the group. The group-selected HI1 provides a more stable input for SOH estimation on this group of Oxford cells.
+\input{tables/table_4_hi_input}
+
+\subsection{Training robustness and hyperparameter analysis}
+
+To further examine the training stability and parameter settings of the lightweight MS-AgentNet model, this study analyzes agent matrix initialization, model convergence, and hyperparameter configuration.
+
+\subsubsection{Agent matrix initialization and convergence analysis}
+
+RAA represents the agents as a static learnable matrix $\mathbf A\in\mathbb R^{n_a\times d}$ that is independent of the input and used for global feature aggregation. The number of agents is fixed at $n_a=2$. The matrix parameters are initialized from a normal distribution with a mean of 0 and a standard deviation of 0.02:
+
+\begin{equation}
+\label{eq:agent_initialization}
+A_{ij}\sim\mathcal N\!\left(0,0.02^2\right)
+\end{equation}
+
+where $A_{ij}$ is the parameter of the $i$th agent in the $j$th feature dimension. This initialization gives different agents small, nonidentical initial parameters, avoiding identical initial states.
+
+\Cref{tab:4-3-initialization} compares the three initialization schemes. Their $R^2$ values range from 0.98527 to 0.98645, RMSE from 0.00774 to 0.00805, and MAE from 0.00485 to 0.00499, indicating similar prediction performance. Truncated normal initialization controls parameter magnitudes by restricting the sampling range, while Xavier uniform initialization adjusts parameter variance according to the input and output dimensions of a layer. In comparison, ordinary normal initialization directly provides small, zero-centered random parameters for the static agent matrix without additional range restrictions or dimension-based scaling. It is therefore used as the default setting.
+
+Model convergence is evaluated through both convergence speed and loss fluctuations in the late training stage. The convergence threshold epoch is defined as the first epoch at which the training loss falls below 10\% of the first-epoch loss. The mean and standard deviation of the loss over the final 20 epochs describe the late-stage convergence state. As shown in \cref{tab:4-3}, every training run reaches the predefined threshold. The median convergence threshold epochs are 26 and 7 on the Oxford and MIT datasets, respectively, and the median standard deviations of the late-stage loss are $2.38\times10^{-4}$ and $4.84\times10^{-6}$. These results show that MS-AgentNet converges stably under the current experimental settings, with small loss fluctuations in the late training stage.
+
+\input{tables/table_4_3_initialization}
+\input{tables/table_4_3}
+\FloatBarrier
+
+\subsubsection{Hyperparameter configuration}
+
+The main hyperparameters of MS-AgentNet are the learning rate, network depth $L$, and embedding dimension $d$. The hyperparameter search space is listed in \cref{tab:4-1}. For each dataset, one cell in the feature-development set is used to learn model parameters, while a second cell is used for validation and comparison to select the best-performing hyperparameter configuration. The training and validation cells are Cell1 and Cell2 for Oxford, CS2\_36 and CS2\_37 for CALCE CS2, CX2\_36 and CX2\_37 for CALCE CX2, and b3c8 and b3c13 for MIT/Severson, respectively.
+
+The layer configurations of the five models are given in \cref{tab:4-4}.
+
+\input{tables/table_4_4}
+
+Once selected, the model configurations remain fixed. In the subsequent SOH estimation comparisons, MS-AgentNet uses a learning rate of 0.001, network depth $L=1$, and embedding dimension $d=16$.
+
+\input{tables/table_4_1}
+
+\subsection{Comparison of SOH estimation accuracy and cross-cell generalization}
+
+Based on the selection results in Section~2.3, the inputs are HI1 for Oxford, HI1 and HI2 for CALCE CS2, HI13 for CALCE CX2, and HI14 and HI15 for MIT/Severson. With these HI inputs, the SOH estimation performance of MS-AgentNet is further compared with that of four baseline models.
+
+
+\subsubsection{Estimation accuracy on the Oxford dataset}
+
+\Cref{fig:4-2} and \cref{tab:4-5} present the validation results on Oxford Cell2 and the test results on Cell3--Cell8 for MS-AgentNet, CNN-Transformer, CNN-LSTM, Transformer, and LSTM.
+
+\input{figures/figure_4_2}
+
+Overall, all models track the capacity fade trends, but their predictions differ in regions with local variations. In particular, the local deviations in Cell4 and the rapid decline in the later stage of Cell6 lead to different degrees of tracking error. The enlarged views show that MS-AgentNet still tracks the true SOH well in these regions. Its predictions also closely follow the true SOH of Cell3 and Cell5, whose degradation trajectories are relatively smooth.
+
+The quantitative results show that MS-AgentNet achieves the best $R^2$, MAE, MAPE, and RMSE on Cell2, Cell3, Cell5, and Cell6, as well as the highest $R^2$ and lowest RMSE on Cell4. Averaged over Cell2--Cell8, its $R^2$ is 0.98379, and its MAE, MAPE, and RMSE are 0.00524, 0.00615, and 0.00638, respectively, ranking first among the five models for all four metrics. Compared with CNN-Transformer, CNN-LSTM, Transformer, and LSTM, its average MAE is reduced by 2.42\%, 8.87\%, 4.20\%, and 12.52\%, its average MAPE by 2.38\%, 8.48\%, 3.76\%, and 12.52\%, and its average RMSE by 5.06\%, 11.39\%, 5.62\%, and 15.83\%, respectively. These results show that MS-AgentNet achieves high SOH estimation accuracy and good prediction robustness on the Oxford dataset.
+
+\input{tables/table_4_5}
+\FloatBarrier
+
+\subsubsection{Cross-cell generalization on the CALCE and MIT datasets}
+
+This section further compares MS-AgentNet with the four baseline models on the CALCE CS2, CALCE CX2, and MIT/Severson datasets. CS2\_37, CX2\_37, and b3c13 are the validation cells, while CS2\_38, CX2\_38, and b3c29 are the test cells. These datasets differ from Oxford in battery chemistries and charge-discharge protocols and show diverse degradation dynamics, including smooth capacity fade, transitions between stages, and accelerated late-life degradation. The SOH estimation results are shown in \cref{fig:4-3}.
+
+Overall, all models track the capacity fade trends of different cells, but their prediction performance differs at local nonlinear transitions and during accelerated late-life degradation. In particular, CX2\_38 undergoes several transitions between stages and shows a clear nonlinear degradation tail. The enlarged views show that prediction deviations gradually increase during accelerated degradation, while MS-AgentNet still tracks the accelerated degradation trajectory well. For CS2\_38 and b3c29, whose degradation trajectories are more continuous, MS-AgentNet also maintains close agreement with the true SOH.
+
+\Cref{tab:4-6} lists the SOH estimation errors of all models on the three validation cells and three test cells. MS-AgentNet achieves the best $R^2$, MAE, MAPE, and RMSE on five of them. Notably, on the test cell CX2\_38, which shows transitions between stages and a nonlinear degradation tail, its MAPE is only 0.037673, a reduction of 59.75\% and 51.80\% compared with CNN-Transformer and Transformer, respectively. This shows that the model maintains low prediction errors during accelerated late-life degradation.
+
+Across the six cells, MS-AgentNet achieves an average $R^2$ of 0.9896 and average MAE, MAPE, and RMSE of 0.00707, 0.013335, and 0.01188, respectively, ranking first among the five models for all four metrics. Compared with CNN-Transformer, CNN-LSTM, Transformer, and LSTM, its average MAE is reduced by 13.50\%, 26.02\%, 9.11\%, and 22.94\%, its average MAPE by 42.19\%, 60.08\%, 34.49\%, and 58.17\%, and its average RMSE by 12.04\%, 26.52\%, 7.97\%, and 23.09\%, respectively. On the three test cells, MS-AgentNet maintains low estimation errors during smooth capacity fade, transitions between stages, and accelerated late-life degradation, showing good prediction robustness and cross-cell generalization capability.
+
+\input{figures/figure_4_3}
+\input{tables/table_4_6}
+\FloatBarrier
+
+\subsection{Cross-dataset transfer experiments}
+
+When the source and target domains come from different datasets, differences in chemistry, operating protocols, and degradation trajectories may cause domain shift\cite{ref52,ref59}. To examine the cross-dataset transfer performance of MS-AgentNet, this study conducts source-only evaluation and few-shot adaptation experiments. In source-only evaluation, the model is trained only on the source-domain reference cell and directly tested on the target-domain cell without updating its parameters using target-domain data. In few-shot adaptation, the feature extraction modules are frozen, and the first 30\% of cycle data from the target-domain reference cell are used to update the readout layer before evaluation on the target-domain test cell\cite{ref52,ref58}.
+
+CALCE CS2, CALCE CX2, and Oxford are treated as three data domains. CS2\_36, CX2\_36, and Oxford Cell1 are used for source-domain training or target-domain adaptation, while CS2\_38, CX2\_38, and Oxford Cell3 are used only for target-domain testing. CALCE CS2 and CALCE CX2 both use LCO chemistry, whereas Oxford uses a blended NCO-LCO chemistry. The experiments therefore cover both same-chemistry and cross-chemistry transfer. To keep the input definitions consistent between the source and target domains, all transfer directions use two HIs: $CCCT(3.8,\allowbreak 4.0)$ and $Q_{\mathrm{dch}}(3.8,\allowbreak 3.4)/C_{\mathrm{rated}}$.
+
+\subsubsection{Performance across transfer directions}
+
+As shown in \cref{tab:4-7}, CS2→CX2 and CX2→CS2 achieve $R^2$ values of 0.8421 and 0.7847 and MAE values of 0.0697 and 0.0388, respectively, indicating that the model still represents degradation trends well when transferred between the two CALCE domains. In contrast, the four transfer directions involving Oxford yield MAE values of 0.1530–0.6346 and $R^2$ values below 0, showing that direct transfer performance varies considerably with the domain pair and transfer direction.
+
+The few-shot adaptation results are presented in \cref{tab:4-8}. After adaptation, MAE, MAPE, and RMSE decrease in all six transfer directions. For MAE, the reductions are 21.91\%–45.91\% between the two CALCE domains, 86.84\%–87.61\% for CALCE→Oxford, and 13.27\%–31.21\% for Oxford→CALCE. After adaptation, $R^2$ reaches 0.9566 for CS2→CX2 and 0.8806 for CX2→CS2 but remains below 0 in all four directions involving Oxford. This indicates that cross-dataset transfer involving Oxford is more challenging than transfer between the two CALCE domains.
+
+\input{tables/table_4_7}
+\input{tables/table_4_8}
+
+\subsubsection{Effect of the target-domain adaptation ratio}
+
+With CS2\_36 and CX2\_36 used as the respective source domains, the readout layer is adapted with early-cycle data from Oxford Cell1 at adaptation ratios of 10\%, 30\%, 50\%, and 70\%. The results are given in \cref{tab:4-9}.
+
+
+As the adaptation ratio increases from 10\% to 70\%, MAE, MAPE, and RMSE decrease continuously for both source-domain settings. With CS2 as the source domain, MAE decreases from 0.0831 to 0.0252, while $R^2$ increases from -1.3934 to 0.7650 and becomes positive at an adaptation ratio of 50\%. With CX2 as the source domain, MAE decreases from 0.1095 to 0.0559, while $R^2$ increases from -3.2217 to -0.1268 at an adaptation ratio of 70\%. At all four adaptation ratios, the CS2 source domain yields higher $R^2$ values than the CX2 source domain.
+
+A comparison of adjacent adaptation ratios shows that increasing the ratio from 30\% to 50\% reduces MAE by 0.0224 and 0.0221 for the CS2 and CX2 source domains, respectively. Increasing it from 50\% to 70\% gives smaller reductions of 0.0114 and 0.0055. These results show that adding target-domain observations continuously improves adaptation performance on Oxford. At the same adaptation ratio, the CS2 source domain consistently yields lower estimation errors and higher $R^2$, further showing the effect of source-domain selection on cross-dataset adaptation performance.
+
+\input{tables/table_4_9}
+\FloatBarrier
+
+
+\subsection{Module ablation and model complexity analysis}
+
+The preceding SOH estimation results show that the batteries exhibit different degradation characteristics, including smooth capacity fade, local variations, stage transitions, and accelerated late-life degradation, and that the full MS-AgentNet generally maintains low estimation errors across these scenarios. However, comparisons of complete models do not distinguish the specific roles of different structures in degradation feature modeling. Module ablation and complexity analyses are therefore conducted. The ablation studies remove and combine multi-scale DSConv and RAA to examine the individual and complementary effects of local degradation information extraction and cross-cycle context modeling, and further analyze the complementary roles of DSConv-S and DSConv-L at different feature-processing stages; complexity analysis quantifies the computational and storage overhead of the resulting architecture.
+
+\subsubsection{Module ablation analysis}
+
+Efficient attention reduces the computational overhead of standard attention by compressing information interactions\cite{ref39,ref40,ref43,ref44}, but this process may weaken the representation of fine-grained local degradation information\cite{ref31}. Directly introducing standard convolutions can enhance local feature modeling but increases the parameter count and computational load\cite{ref71}. To balance local degradation representation and computational efficiency, MS-AgentNet uses multi-scale DSConv to extract fine-grained local degradation information from health indicator sequences and RAA to establish cross-cycle context within the input window. Four variants, M1–M4, are used to examine their individual and combined effects. M1 retains the basic backbone without multi-scale DSConv or RAA, M2 adds multi-scale DSConv to M1, M3 adds RAA, and M4 integrates both multi-scale DSConv and RAA.
+
+
+As shown in \cref{tab:4-10}, multi-scale DSConv and RAA each improve estimation on some datasets when used in isolation, but neither yields consistent gains across all degradation scenarios. Compared with the baseline M1, M2, which adds multi-scale DSConv, reduces the combined average error by approximately 1.20\% and 8.45\% on CX2 and Oxford, respectively. M3, which adds RAA, reduces this error by approximately 3.18\%, 11.60\%, and 15.49\% on CS2, CX2, and Oxford, respectively. However, M2 does not achieve lower errors on CS2 or MIT, nor does M3 on MIT. These results indicate that relying solely on local degradation information extraction or cross-cycle context modeling does not yield consistent performance gains across different battery degradation scenarios.
+
+When multi-scale DSConv and RAA are jointly integrated, the full model M4 achieves the lowest or jointly lowest combined average error at the reported precision on all four datasets, with the complementary effect being most evident on CX2. On this dataset, M2 and M3 reduce the combined average error relative to M1 by only approximately 1.20\% and 11.60\%, respectively, whereas M4 reduces it from 0.0500 to 0.0225, with a reported reduction of 54.94\%. Even compared with M3, which uses RAA alone, M4 further reduces the error by 49.05\%. These results indicate that the marked improvement of the full model reflects the complementary effect of multi-scale local degradation information extraction and cross-cycle context modeling rather than primarily the contribution of either module in isolation.
+
+This result is consistent with the stage transitions and nonlinear degradation observed in the CX2 data, as illustrated by CX2\_38. These trajectories contain both local variations and degradation evolution across cycles. Multi-scale DSConv captures fine-grained local degradation patterns in the health indicator sequences, while RAA establishes cross-cycle context within the input window. Their joint integration allows the model to use both fine-grained local degradation patterns and cross-cycle context, providing a more complete representation of complex degradation trajectories.
+
+The magnitude of this complementary benefit varies across datasets. On Oxford, M4 reduces the combined average error by 16.52\% relative to M1, but the further reduction relative to M3 is only 1.52\%. On CS2, M3 still has a slightly lower MAE than M4, while on MIT, M1 and M4 both have a combined average error of 0.0020 at the reported precision. Thus, the advantage of the full configuration does not lie in every module independently improving every metric on every dataset, but in the more consistent overall performance across degradation scenarios achieved through complementary local degradation information extraction and cross-cycle context modeling.
+
+The preceding comparisons show that the joint configuration of multi-scale DSConv and RAA achieves more consistent overall performance across datasets. To further examine local enhancement before attention and feature refinement after local-global fusion, RAA is retained while the combinations of DSConv-S and DSConv-L are varied. Four variants are considered: S0 retains neither convolutional module, S5 retains DSConv-S, S31 retains DSConv-L, and SFull retains both. S0 and SFull correspond to M3 and M4 in \cref{tab:4-10}, respectively.
+
+\Cref{tab:4-11} further shows that the benefits of retaining either convolutional module alone vary across datasets. Compared with S0, which uses RAA alone, S5 provides a small improvement only on MIT, reducing the combined average error from 0.0026 to 0.0025, or by approximately 3.85\%, while achieving no lower error on CS2, CX2, or Oxford. By contrast, S31 reduces MAE, RMSE, and MAPE on CX2, lowering the combined average error from 0.0442 to 0.0348, or by approximately 21.27\%, but still does not outperform S0 on CS2 or Oxford. Thus, retaining only pre-attention local enhancement or only post-fusion feature refinement does not provide a consistent advantage across all four datasets.
+
+When DSConv-S and DSConv-L are both retained, SFull achieves the lowest combined average error on all four datasets. On CX2, the error further decreases to 0.0225, approximately 35.34\% lower than that of S31; on MIT, it is approximately 20.00\% lower than that of S5, the best single-convolution configuration. This result is consistent with the stage transitions and nonlinear degradation observed in the CX2 data, as illustrated by CX2\_38, and further supports the design of applying convolution at different feature-processing stages. DSConv-S precedes RAA and extracts fine-grained local degradation information from neighboring cycles, so that subsequent cross-cycle context aggregation uses locally enhanced representations. In the full model, DSConv-L follows LGFA and further refines the sequence representation after local-global fusion. The two convolutional modules thus play complementary roles at different feature-processing stages, further enriching the model's degradation representations.
+
+However, the magnitude of the combined benefit remains dataset-dependent. SFull provides only small improvements over S0 on CS2 and Oxford, with larger improvements on CX2 and MIT. Together, the two ablation studies show complementary effects between multi-scale DSConv and RAA and between DSConv-S and DSConv-L. DSConv-S enhances fine-grained local degradation features before cross-cycle interaction, RAA establishes cross-cycle context within the input window, and DSConv-L further refines the feature representation after local-global fusion. Their joint integration provides a more complete degradation representation for SOH estimation. The current results do not establish a one-to-one correspondence between a specific convolutional kernel size and a physical degradation mechanism.
+
+\input{tables/table_4_10}
+\input{tables/table_4_11}
+\FloatBarrier
+
+\subsubsection{Model complexity analysis}
+
+In practical applications, computational efficiency and storage requirements are important evaluation criteria alongside estimation accuracy\cite{ref77}. This study compares the resource consumption of MS-AgentNet, CNN-Transformer, CNN-LSTM, Transformer, and LSTM using four metrics: FLOPs, training time, trainable parameter count, and storage size. Operation counts obtained using the \texttt{profile} function in the THOP library are supplemented with counts for attention operations and then converted to the number of floating-point operations required for a single forward pass. Training time is recorded in seconds using Python's \texttt{time} module and represents the time needed to complete the specified number of training epochs. The total number of trainable parameters is counted using PyTorch. Storage size is measured using Python's \texttt{os.path.getsize} function and converted to KB, representing the space required to save the model weights. All metrics are measured in the same experimental environment.
+
+To ensure a fair comparison, all five models use HI1 and HI2 from CS2\_36 as inputs, with the number of training epochs, learning rate, batch size, and dropout rate set to 1000, 0.01, 128, and 0.1, respectively. For the structural setting $n$, MS-AgentNet, CNN-Transformer, and Transformer use four attention heads, whereas CNN-LSTM and LSTM use four LSTM layers. The embedding and MLP hidden dimensions of the attention-based models are set to 16, and the hidden dimension of the LSTM-based models is also set to 16. The configurations and complexity results are summarized in \cref{tab:4-12}.
+
+As shown in \cref{tab:4-12}, MS-AgentNet requires 0.045760 M FLOPs, has 4,643 trainable parameters, and occupies 27.44 KB of weight storage, the lowest values among the five models. Compared with the standard Transformer, it requires fewer forward-pass operations and less storage, with a similar parameter count. It also uses fewer parameters and less storage than CNN-Transformer and CNN-LSTM. Compared with LSTM, its forward-pass computation is approximately 50.5\% lower.
+
+These results are consistent with the lightweight design described above. Depthwise separable convolution reduces dense cross-channel operations while extracting local degradation features. RAA uses a small number of agents to reduce the cost of cross-cycle interactions within the input window and employs learnable channel scaling to reduce the parameters required for query, key, and value generation.
+
+MS-AgentNet has the longest training time among the five models, at 123.338 s. Its lower forward-pass computation therefore does not translate into faster training under the tested conditions.
+
+To examine storage overhead as model width changes, the representation or hidden dimension of each model is set to 16, 32, 64, and 128, with all other settings unchanged. As shown in \cref{fig:4-4}, storage size increases with model width for all five models, but MS-AgentNet maintains the lowest value at all four tested widths. At a dimension of 128, its storage size is 714.37 KB, 32.2\% lower than that of Transformer, the closest model, at the same dimension. This storage advantage is maintained across the tested model widths and is not limited to the default configuration.
+
+Together with the SOH estimation results, these comparisons indicate a favorable balance between estimation accuracy and resource overhead. Lower forward-pass computation and a smaller weight storage footprint help address the computational and storage constraints of resource-constrained BMS. These results support the potential of MS-AgentNet for lightweight SOH estimation, while online inference latency and runtime memory usage remain to be evaluated on embedded hardware.
+
+\input{tables/table_4_12}
+\input{figures/figure_4_4}
+

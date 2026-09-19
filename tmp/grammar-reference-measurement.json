@@ -1,0 +1,134 @@
+{
+  "Engineering-AI": {
+    "sentence_count": 6,
+    "word_count": 191,
+    "min": 19,
+    "median": 34.5,
+    "max": 42,
+    "sentences": [
+      {
+        "id": 1,
+        "words": 32,
+        "start": "To address the computational bottleneck of"
+      },
+      {
+        "id": 2,
+        "words": 19,
+        "start": "First, a systematic feature selection process"
+      },
+      {
+        "id": 3,
+        "words": 21,
+        "start": "Subsequently, we propose SL-AgentNet (integrating Small-kernel"
+      },
+      {
+        "id": 4,
+        "words": 37,
+        "start": "By integrating the Fast Local–Global Fusion"
+      },
+      {
+        "id": 5,
+        "words": 40,
+        "start": "Experiments on the Oxford, National Aeronautics"
+      },
+      {
+        "id": 6,
+        "words": 42,
+        "start": "With a model size of only"
+      }
+    ]
+  },
+  "BMSFormer": {
+    "sentence_count": 7,
+    "word_count": 147,
+    "min": 15,
+    "median": 24,
+    "max": 25,
+    "sentences": [
+      {
+        "id": 1,
+        "words": 24,
+        "start": "The efficient and accurate state-of-health (SOH)"
+      },
+      {
+        "id": 2,
+        "words": 15,
+        "start": "However, many recent state-of-the-art SOH estimation"
+      },
+      {
+        "id": 3,
+        "words": 15,
+        "start": "In this paper, an efficient deep"
+      },
+      {
+        "id": 4,
+        "words": 24,
+        "start": "BMSFormer mainly integrates a Local-Global Fusion"
+      },
+      {
+        "id": 5,
+        "words": 24,
+        "start": "Additionally, two kinds of depthwise separable"
+      },
+      {
+        "id": 6,
+        "words": 20,
+        "start": "Three widely used battery datasets, each"
+      },
+      {
+        "id": 7,
+        "words": 25,
+        "start": "The experiments results illustrate that the"
+      }
+    ]
+  },
+  "JESSOHRUL": {
+    "sentence_count": 8,
+    "word_count": 241,
+    "min": 16,
+    "median": 29.5,
+    "max": 50,
+    "sentences": [
+      {
+        "id": 1,
+        "words": 28,
+        "start": "Accurate assessment of the State of-Health"
+      },
+      {
+        "id": 2,
+        "words": 19,
+        "start": "Recent studies have emphasized the importance"
+      },
+      {
+        "id": 3,
+        "words": 18,
+        "start": "However, many existing joint SOH-RUL methods"
+      },
+      {
+        "id": 4,
+        "words": 16,
+        "start": "Therefore, this paper proposes a novel"
+      },
+      {
+        "id": 5,
+        "words": 31,
+        "start": "It introduces a feature matrix similarity"
+      },
+      {
+        "id": 6,
+        "words": 41,
+        "start": "Furthermore, to preserve key degradation information"
+      },
+      {
+        "id": 7,
+        "words": 38,
+        "start": "Finally, to comprehensively evaluate the effectiveness,"
+      },
+      {
+        "id": 8,
+        "words": 50,
+        "start": "The experimental results demonstrate that the"
+      }
+    ]
+  }
+}

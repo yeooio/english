@@ -1,0 +1,2213 @@
+Journal of Energy Storage 161 (2026) 121823
+
+D. Li et al.
+
+Crucially, this selection process is confined to the within-group
+design phase. Once the optimal composite HI is determined for a
+given group, it is fixed and directly applied for feature extraction in
+subsequent health estimation tasks—including those involving unseen
+battery groups. No retrospective correlation analysis or re-selection is
+performed using data from the test sets. Therefore, the integrity of the
+evaluation is maintained, as the model training and testing phases
+strictly adhere to the principle of using mutually exclusive data sources.
+
+health indicators also influences the final estimation accuracy.
+Furthermore, Table 7 also reveals that the representational ability of
+the same HI varies significantly across different batteries. For example,
+the DTC feature performs significantly better than the IC feature on
+Cell5, whereas the opposite is observed for Cell3. However, the CVT
+feature, extracted using the proposed strong correlation-based HI se­
+lection method for battery groups, consistently achieves the best per­
+formance across all batteries. Therefore, considering the correlation of
+health indicators across all battery data is essential, as it greatly con­
+tributes to enhancing the model's generalization and robustness.
+
+4. Experimental results analysis
+This study conducts a series of experiments to comprehensively
+evaluate the performance and robustness of the proposed model. Three
+types of experiments are carried out across three distinct datasets: SOH
+estimation, RUL prediction, and ablation and complexity analysis. The
+SOH experiments not only assess the predictive accuracy of the proposed
+model but also serve to validate the effectiveness of the selected health
+indicators, demonstrating their capability to capture critical degrada­
+tion patterns. The RUL experiments further examine the model's ability
+to generalize across different battery types and operating conditions,
+providing a rigorous assessment of its prognostic reliability. Finally,
+ablation studies and computational complexity analyses are conducted
+to quantify the contributions of each module within the proposed ar­
+chitecture and to evaluate its efficiency in terms of model size and
+inference cost. Collectively, these experiments provide a thorough
+validation of both the accuracy and practical applicability of the pro­
+posed approach for lithium-ion battery health monitoring and remain­
+ing useful life prediction.
+
+4.2. Experiments II: Comparative study on SOH
+This subsection first presents the SOH estimation performance using
+individual features versus fused features within the same model, aiming
+to validate the effectiveness of the optimized health indicator selection
+methods. Subsequently, the selected health indicators are employed to
+conduct model comparisons and evaluations across three battery data­
+sets with different materials and operating conditions, fully demon­
+strating the superiority, effectiveness, and generalization capability of
+the proposed model.
+In the SOH prediction experiments, the input health indicators are
+selected and constructed according to the characteristics of the corre­
+sponding battery datasets.
+For the CALCE and NASA datasets, the SOH prediction experiments
+adopt HI3 as the sole input feature, following the feature selection al­
+gorithm described in Section 3.5. Compared with the Oxford dataset,
+these two datasets exhibit more pronounced short-term local fluctua­
+tions and larger sampling intervals, which limits the number of health
+indicators that simultaneously satisfy the strict selection criteria defined
+in Section 3.5. Under these conditions, HI3 remains the most stable and
+informative indicator, effectively characterizing the long-term capacity
+degradation trajectory and demonstrating strong correlation and
+robustness across multiple cells. Moreover, in order to ensure the use of
+a common health indicator across different datasets and enhance the
+generalizability of the proposed method, HI3 is consistently selected for
+the CALCE and NASA datasets.
+For the Oxford dataset, a multidimensional health indicator set
+consisting of HI3, HI4, and HI6 is employed as the model input. These
+pre-selected HIs, identified using the same selection strategy, jointly
+provide richer feature representations, which are beneficial for
+capturing the more complex and smoother degradation behaviors
+observed in the Oxford dataset.
+
+4.1. Experiments I: Comparative study on different HIs
+To validate the effectiveness of the proposed method for selecting
+strongly correlated HIs applicable to all cells in a group, The first 30%
+data of Cell1 is chosen as the training data. Only the strongly correlated
+indicators of Cell1 (with absolute PCC and SCC values greater than 0.94)
+are considered, without considering the correlation strength of health
+indicators from other test batteries. To avoid redundancy, only one
+feature is selected from each type of curve. The final selected health
+indicators are HI1, HI4, HI6, and HI10, which are respectively abbre­
+viated as the ‘IC’ feature, ‘CVT’ feature, ‘DTV’ feature, and ‘DTC’
+feature. Additionally, all four HIs are fed into the model together for a
+comprehensive performance evaluation, referred as ‘Fusion’. The SOH
+estimation results of each selected HI using the proposed model are
+shown in the Fig. 7.
+Table 7 shows the MAE, RMSE, and MAPE metrics of different HIs for
+this group of batteries using the proposed model, as well as the average
+MAE and RMSE for multiple batteries on a single feature. The results
+indicate that using the CVT feature consistently achieves high estimation
+accuracy, with all experimental MAPE values below 1%, while the other
+three individual features yield relatively average performance. Notably,
+when all four HIs (Fusion) are used together as input, the final estima­
+tion accuracy ranks second in terms of average RMSE and third in terms
+of average MAE and MAPE, demonstrating that the overall correlation of
+
+4.2.1. SOH estimation results on CS2 batteries
+To verify the effectiveness of the proposed model across different
+electrode materials and charge–discharge rates, additional experiments
+were conducted on the CS2 batteries. In particular, the CS2–35 cell was
+employed for model training and validation, where the first 30% of the
+cycle data were used for training and the remaining 70% for validation.
+This setup ensures that the model is evaluated on unseen data from the
+same cell. Furthermore, to assess the generalization capability and
+robustness of the model, the trained network was tested on three addi­
+tional cells under identical operating conditions. This experimental
+design enables comprehensive verification of both within-cell prediction
+accuracy and cross-cell generalization performance.
+As illustrated in Fig. 8, the proposed model achieves the closest fit to
+the actual SOH values across the four CS2-series cells, which is of
+considerable importance for practical applications. Moreover, the box­
+plots in the upper-right corner reveal that the error distribution of the
+proposed model lies closest to the zero axis, indicating its superior
+predictive performance during the experiments. The detailed subfigures
+further demonstrate the model's ability to effectively capture short-term
+capacity fluctuations. These results highlight the strong predictive ac­
+curacy and generalization capability of the proposed model.
+Table 8 further summarizes the predictive performance of the
+
+Table 6
+Selected HIs with PCC and SCC of all cells.
+HI3
+
+HI4
+
+HI6
+
+Battery
+
+γ
+
+ρ
+
+γ
+
+ρ
+
+γ
+
+ρ
+
+Cell1
+Cell2
+Cell3
+Cell4
+Cell5
+Cell6
+Cell7
+Cell8
+
+0.9999
+0.9999
+0.9999
+0.9997
+0.9998
+0.9999
+0.9999
+0.9999
+
+0.9999
+0.9998
+0.9999
+1.0000
+1.0000
+1.0000
+0.9999
+0.9999
+
+0.9999
+0.9999
+0.9999
+0.9999
+0.9998
+0.9999
+0.9999
+0.9999
+
+0.9998
+0.9999
+0.9999
+0.9994
+0.9999
+1.0000
+0.9999
+0.9999
+
+− 0.9783
+− 0.9731
+− 0.9556
+− 0.9699
+− 0.9739
+− 0.9686
+− 0.9753
+− 0.9785
+
+− 0.9779
+− 0.9785
+− 0.9593
+− 0.9843
+− 0.9788
+− 0.9758
+− 0.9880
+− 0.9883
+
+15
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+Fig. 7. SOH estimation results and error with different HIs on the Oxford dataset across (a) Cell 1 to (h) Cell 8.
+
+proposed model and baseline methods across the four CS2-series cells.
+Overall, the proposed model achieves the lowest errors on all metrics,
+with average reductions of approximately 16.8% in MAE and 12.9% in
+RMSE compared with the best-performing baseline. For example, on
+CS2–35, the proposed method attains an MAE of 0.0141 and an RMSE of
+0.0208, outperforming the CNN-Transformer with an MAE of 0.0147
+and an RMSE of 0.0233, and substantially surpassing the conventional
+Transformer with an MAE of 0.0233 and an RMSE of 0.0294 as well as
+the MLP with an MAE of 0.0265 and an RMSE of 0.0416. A similar trend
+is observed across CS2–36, CS2–37, and CS2–38, further confirming the
+
+robustness and stability of the proposed architecture. In addition,
+although the CNN-Transformer exhibits relatively competitive perfor­
+mance on CS2–35 and CS2–36, its prediction accuracy degrades signif­
+icantly on CS2–38, yielding a MAPE of 0.0528 compared to 0.0301 of
+the proposed model. This suggests that the CNN-Transformer is more
+sensitive to variations in cell characteristics, whereas the proposed
+model maintains stronger generalization ability. Finally, conventional
+deep learning models such as MLP, CNN, and LSTM show considerably
+higher prediction errors than attention-based approaches. In particular,
+CNN produces the largest errors across all cells, with an RMSE of 0.0643
+16
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+Table 7
+Three performance metrics for evaluating different HIs on the Oxford dataset.
+Cell
+Cell1
+Cell2
+Cell3
+Cell4
+Cell5
+Cell6
+Cell7
+Cell8
+Ave
+
+MAE
+
+RMSE
+
+MAPE
+
+IC
+
+CVT
+
+DTV
+
+DTC
+
+Fusion
+
+IC
+
+CVT
+
+DTV
+
+DTC
+
+Fusion
+
+IC
+
+CVT
+
+DTV
+
+DTC
+
+Fusion
+
+1.04%
+3.23%
+0.87%
+0.83%
+1.16%
+0.70%
+0.82%
+0.99%
+1.21%
+
+0.19%
+0.65%
+0.19%
+0.24%
+0.48%
+0.40%
+0.15%
+0.23%
+0.32%
+
+0.47%
+2.72%
+1.35%
+1.03%
+0.39%
+0.42%
+0.61%
+0.59%
+0.95%
+
+1.27%
+3.75%
+1.65%
+1.13%
+0.56%
+1.82%
+2.80%
+2.95%
+1.99%
+
+0.50%
+3.29%
+1.03%
+0.83%
+0.37%
+0.44%
+0.51%
+0.71%
+0.96%
+
+1.26%
+3.59%
+1.09%
+1.01%
+1.30%
+1.14%
+1.03%
+1.25%
+1.46%
+
+0.24%
+1.19%
+0.25%
+0.33%
+0.52%
+0.54%
+0.20%
+0.28%
+0.44%
+
+0.63%
+3.08%
+1.57%
+1.21%
+0.52%
+0.62%
+0.79%
+0.76%
+1.15%
+
+1.52%
+3.99%
+2.00%
+1.32%
+0.68%
+2.05%
+3.32%
+3.43%
+2.29%
+
+0.60%
+3.46%
+1.23%
+1.01%
+0.53%
+0.58%
+0.61%
+0.85%
+1.11%
+
+1.37%
+4.02%
+1.10%
+1.02%
+1.37%
+0.85%
+1.01%
+1.25%
+1.50%
+
+0.24%
+0.87%
+0.24%
+0.28%
+0.57%
+0.49%
+0.18%
+0.28%
+0.67%
+
+0.62%
+3.49%
+1.70%
+1.25%
+0.45%
+0.51%
+0.75%
+0.74%
+1.19%
+
+1.64%
+4.78%
+2.08%
+1.36%
+0.65%
+2.16%
+3.35%
+3.57%
+2.45%
+
+0.65%
+4.19%
+1.30%
+1.02%
+0.43%
+0.53%
+0.61%
+0.85%
+1.20%
+
+0.2
+
+0.2
+0.0
+
+1.0
+0.9
+
+0.9
+
+−0.2
+
+0.8
+
+0.6
+
+SOH
+
+SOH
+
+M1 M2 M3 M4 M5 M6
+
+0.7
+
+0.7
+0.6
+
+0.5
+
+0.5
+
+0.4
+
+0.4
+
+0.3
+
+0.3
+
+0.2
+0.1
+
+0.2
+0.1
+
+−0.2
+
+0.8
+
+M1 M2 M3 M4 M5 M6
+
+Train
+
+0.0
+
+1.0
+
+SOH
+CNN(M5)
+
+0
+
+CNN-Transformer(M2)
+LSTM(M6)
+
+200
+
+Transformer(M3)
+Proposed(M1)
+
+400
+
+600
+
+MLP(M4)
+
+SOH
+CNN(M5)
+
+0.0
+
+800
+
+0
+
+200
+
+Cycle Number
+
+CNN-Transformer(M2)
+LSTM(M6)
+
+400
+
+−0.2
+
+1.0
+
+0.0
+
+0.9
+
+−0.2
+
+0.8
+
+M1 M2 M3 M4 M5 M6
+
+0.7
+
+M1 M2 M3 M4 M5 M6
+
+0.7
+
+SOH
+
+SOH
+
+800
+
+0.2
+
+1.0
+0.8
+
+600
+
+MLP(M4)
+
+Cycle Number
+
+0.0
+
+0.9
+
+Transformer(M3)
+Proposed(M1)
+
+0.6
+
+0.6
+
+0.5
+
+0.5
+
+0.4
+
+0.4
+
+0.3
+
+0.3
+
+0.2
+SOH
+CNN(M5)
+
+0.1
+0
+
+200
+
+CNN-Transformer(M2)
+LSTM(M6)
+
+400
+
+Transformer(M3)
+Proposed(M1)
+
+600
+
+800
+
+0.2
+
+MLP(M4)
+
+0.1
+
+1000
+
+Cycle Number
+
+SOH
+CNN(M5)
+
+0
+
+200
+
+CNN-Transformer(M2)
+LSTM(M6)
+
+400
+
+Transformer(M3)
+Proposed(M1)
+
+600
+
+800
+
+MLP(M4)
+
+1000
+
+Cycle Number
+
+Fig. 8. The comparison of SOH estimation results on (a) CS2–35, (b) CS2–36, (c) CS2–37, and (d) CS2–38.
+
+on CS2–38, underscoring its limited capability in capturing long-term
+dependencies. LSTM performs better than CNN and MLP but still lags
+behind Transformer-based architectures.
+
+including B0005, B0006, B0007, and B0018. As shown in Table 9, for
+instance, on the B0005 dataset, the proposed method achieves an MAE
+of 0.0046, significantly lower than CNN-Transformer at 0.0061, Trans­
+former at 0.0094, and CNN-LSTM at 0.0104. The LSTM model performs
+the worst with an MAE of 0.0165. Compared to traditional machine
+learning approaches such as Back Propagation (BP) neural networks and
+Extreme Learning Machine (ELM) [63], which report MAEs of 0.0269
+and 0.0274 respectively, the proposed method reduces the error by an
+order of magnitude, highlighting its enhanced accuracy in battery SOH
+estimation.
+
+4.2.2. SOH estimation results on NASA batteries
+To evaluate the model's generalization capability and performance
+across different operational conditions of battery data, we conducted
+comparative experiments on the NASA dataset.
+As shown in Fig. 9, the proposed method achieves superior perfor­
+mance across all five experimental trials and multiple battery datasets,
+17
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+Table. 8
+SOH estimation results of different models on CS2 batteries.
+Battery
+MAE
+
+RMSE
+
+MAPE
+
+Proposed
+CNN-Transformer
+Transformer
+MLP
+CNN
+LSTM
+Proposed
+CNN-Transformer
+Transformer
+MLP
+CNN
+LSTM
+Proposed
+CNN-Transformer
+Transformer
+MLP
+CNN
+LSTM
+
+Table. 9
+SOH estimation results of different models on NASA batteries.
+
+CS2–35
+
+CS2–36
+
+CS2–37
+
+CS2–38
+
+Battery
+
+0.0141
+0.0147
+0.0233
+0.0265
+0.0349
+0.0238
+0.0208
+0.0233
+0.0294
+0.0416
+0.0559
+0.0370
+0.0273
+0.0300
+0.0439
+0.0667
+0.0897
+0.0594
+
+0.0174
+0.0177
+0.0218
+0.0286
+0.0326
+0.0276
+0.0212
+0.0220
+0.0281
+0.0436
+0.0580
+0.0399
+0.0319
+0.0359
+0.0443
+0.0889
+0.1161
+0.0819
+
+0.0155
+0.0158
+0.0234
+0.0235
+0.0287
+0.0219
+0.0209
+0.0218
+0.0310
+0.0389
+0.0482
+0.0350
+0.0299
+0.0308
+0.0453
+0.0585
+0.0728
+0.0531
+
+0.0182
+0.0302
+0.0415
+0.0393
+0.0463
+0.0350
+0.0266
+0.0356
+0.0501
+0.0558
+0.0643
+0.0511
+0.0301
+0.0528
+0.0767
+0.0841
+0.0989
+0.0758
+
+MAE
+
+RMSE
+
+MAPE
+
+The RMSE results further confirm the robustness of the proposed
+method. On the B0006 dataset, it records an RMSE of 0.0130, while
+CNN-Transformer and Transformer yield higher errors of 0.0177 and
+0.0269. In contrast, the Gaussian Process Regression (GPR) model [64]
+exhibits a substantially higher RMSE of 0.4129 on the same dataset,
+indicating that the proposed method provides more stable and precise
+predictions.
+Regarding MAPE, the proposed method maintains errors below 1.1%
+across all datasets, with the lowest being 0.63% on B0005. In
+
+Proposed
+CNN-Transformer
+Transformer
+CNN-LSTM
+LSTM
+BP [63]
+ELM [63]
+GPR [64]
+Proposed
+CNN-Transformer
+Transformer
+CNN-LSTM
+LSTM
+BP [63]
+ELM [63]
+GPR [64]
+SVR [65]
+Proposed
+CNN-Transformer
+Transformer
+CNN-LSTM
+LSTM
+BP [63]
+ELM [63]
+GPR [64]
+
+B0005
+
+B0006
+
+B0007
+
+B0018
+
+0.0046
+0.0061
+0.0094
+0.0104
+0.0165
+0.0269
+0.0274
+0.1896
+0.0067
+0.0078
+0.0110
+0.0121
+0.0181
+0.0203
+0.0337
+0.2148
+0.0075
+0.0063
+0.0083
+0.0126
+0.0128
+0.0233
+0.0227
+0.0221
+0.0239
+
+0.0072
+0.0106
+0.0240
+0.0158
+0.0159
+0.0559
+0.1045
+0.2969
+0.0130
+0.0177
+0.0269
+0.0198
+0.0203
+0.0412
+0.0632
+0.4129
+0.0166
+0.0090
+0.0125
+0.0328
+0.0192
+0.0212
+0.0258
+0.0374
+0.0481
+
+0.0076
+0.0079
+0.0100
+0.0086
+0.0138
+0.0498
+0.0532
+0.3992
+0.0102
+0.0093
+0.0120
+0.0106
+0.0155
+0.0230
+0.0349
+0.7400
+0.0097
+0.0093
+0.0093
+0.0123
+0.0103
+0.0176
+0.0126
+0.0187
+0.0491
+
+0.0082
+0.0106
+0.0126
+0.0122
+0.0181
+0.0460
+0.0404
+0.4403
+0.0121
+0.0140
+0.0163
+0.0147
+0.0198
+0.0343
+0.0314
+0.4761
+–
+0.0099
+0.0136
+0.0159
+0.0151
+0.024
+0.0196
+0.0196
+0.0580
+
+comparison, Transformer reaches 3.28% on B0006, and LSTM reaches
+2.40% on B0018. The BP and ELM models report MAPEs of 2.58% and
+3.74% on B0006, while the GPR model from reference 40 shows an even
+higher error of 5.80% on B0018. These results underscore the proposed
+
+Fig. 9. The comparison of SOH estimation results on NASA batteries.
+18
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+method's exceptional predictive capability.
+In summary, the proposed method demonstrates strong robustness
+and generalization in battery state-of-health prediction, consistently
+outperforming both deep learning models and traditional machine
+learning techniques. Its low error rates and high reliability make it a
+valuable tool for optimizing battery management systems.
+
+Transformer model, which incorporates convolutional layers, were
+selected as benchmark models for comparison. The SOH estimation re­
+sults of the five models are presented in Fig. 10. Overall, the proposed
+model achieves the closest match to the actual SOH values across all
+cells, demonstrating superior validation and test performance. Even for
+Cell2, where the degradation trend is highly unstable, the proposed
+model exhibits the best fit, with the absolute error remaining closest to
+the zero axis.
+In contrast, although the Transformer model performs well on Cell1,
+achieving results comparable to the proposed model, its estimation
+
+4.2.3. SOH estimation results on Oxford batteries
+To validate the effectiveness and stability of the proposed model, the
+widely used LSTM model, the Transformer model, and the CNN-
+
+Fig. 10. SOH estimation results comparison with different models on the Oxford dataset across (a) Cell 1 to (h) Cell8.
+19
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+accuracy deteriorates significantly on other cells, indicating overfitting.
+This issue arises due to the Transformer's weak ability to extract local
+features, making it less effective in distinguishing different battery
+degradation patterns. While the CNN-Transformer model improves upon
+this aspect, its overall accuracy remains far below that of the proposed
+model. Similarly, the estimation results reveal the limited ability of
+LSTM model to capture local features. Its estimated SOH curves appear
+overly smooth, allowing only a rough approximation of the true SOH
+values without accurately identifying short-term capacity growth phe­
+nomena in batteries.
+Table 10 displays the estimation inaccuracies of eight cells for five
+models. In general, the proposed model shows higher estimation accu­
+racy and achieves the smallest average estimation error. Specifically, the
+maximum estimation error of the proposed model remains within 1%,
+with a maximum MAE of 0.65% and a maximum RMSE of 0.87%, while
+the average MAE and RMSE are 0.32% and 0.40%, respectively. These
+outcomes suggest a more consistent performance in comparison to the
+other models, which is essential for maintaining the safe and reliable
+operation of batteries when handling substantial amounts of unseen
+data.
+Furthermore, Table 10 also reveals that although the Transformer
+model performs not too bad on the training data, with results only
+slightly inferior to the proposed model, it suffers from overfitting. This is
+evidenced by its significantly poorer performance on the other test data,
+whereas the proposed model effectively mitigates this issue, leading to
+better overall results. This suggests that our model learns genuinely
+useful information from health indicators rather than merely fitting the
+degradation trend of the current battery. In contrast, while the LSTM
+model exhibits better generalization than the Transformer model, its
+learning capability on training data is noticeably weaker. Across various
+battery datasets, the proposed model outperforms it consistently.
+
+4.3.1. RUL prediction results on CS2 batteries
+As shown in Fig. 11 and Table 11, the proposed model demonstrates
+stable and accurate RUL prediction performance on the CS2 series bat­
+teries (CS2–35 to CS2–38). Across all samples and training ratios, the
+prediction trends closely follow the actual capacity degradation curves,
+while the overall magnitude of errors remains comparatively small. This
+suggests that the model maintains good adaptability to different
+degradation trajectories under varying data availability.
+In Fig. 11(a–f), the predicted capacity curves obtained by the pro­
+posed model are well aligned with the noise-reduced experimental data,
+particularly near the End-of-Performance (EoP) threshold (0.88 Ah)
+where degradation accelerates. In contrast, other baseline models such
+as CNN and LSTM exhibit noticeable deviations, either overestimating
+or underestimating capacity during the later cycles. The Transformerbased models (Transformer and CNN-Transformer) generally achieve
+more stable predictions than CNN and MLP, but still show minor de­
+viations near EoP. The proposed model presents a smoother and more
+consistent trajectory, indicating its ability to capture both local and
+long-term degradation dynamics.
+Quantitatively, Table 11 reports the absolute error (AE) and relative
+error (RE) for each cell under 10% and 30% training data. The proposed
+model achieves AE values generally within ±10 cycles across all cases,
+while the RE remains below 0.07, and often under 0.02.
+To further investigate cases with relatively high prediction errors, we
+analyzed the influence of model structure on performance. Simpler
+models, such as CNN and MLP, generally exhibit higher errors due to
+their limited learning capacity and weaker ability to capture complex
+degradation patterns. For example, in CS2–35, the RE values are 0.0035
+(10%) and 0.0698 (30%), notably lower than those of CNN-Transformer
+(0.0227, 0.0209) and Transformer (0.0925, 0.0419). Similarly, for
+CS2–38, the proposed model attains an RE of 0.0215 and 0.0017,
+whereas CNN and MLP exceed 0.26. These results indicate that the
+proposed model effectively captures degradation trends even when
+trained on limited data, maintaining reliable performance across
+different cells.
+Overall, this comparison highlights that the observed differences in
+prediction errors are closely related to the structural complexity and
+learning capacity of the models, emphasizing the advantage of the
+proposed architecture in handling both SOH and RUL estimation tasks.
+
+4.3. Experiments III: Comparative study on RUL
+This section presents a comparative study of the proposed model and
+several benchmark methods on the Remaining Useful Life (RUL) pre­
+diction task. Two representative datasets are employed to comprehen­
+sively evaluate the generalization and robustness of each model under
+different data availability conditions. Specifically, experiments are
+conducted with 10% and 30% of the total data used for training, aiming
+to assess the models' capability to perform accurate RUL estimation in
+both data-limited and data-sufficient scenarios.
+The prediction results are analyzed from both numerical and visual
+perspectives. Quantitative metrics, including Absolute Error (AE) and
+Relative Error (RE), are used to evaluate prediction accuracy, while
+graphical comparisons between predicted and actual degradation tra­
+jectories illustrate each model's ability to capture capacity fading
+patterns.
+The following subsections detail the RUL prediction performance on
+the CALCE dataset (Section 4.2.1) and NASA dataset (Section 4.2.2),
+highlighting the advantages and limitations of different approaches.
+
+4.3.2. RUL prediction results on NASA batteries
+Fig. 12 illustrates the comparison of the predicted and reference
+capacity degradation trajectories for four batteries (B0005, B0006,
+B0007, and B0018) from the NASA dataset. The proposed model exhibits
+a strong consistency with the reference capacity curves across all cases,
+accurately capturing both the early-stage nonlinear decay and the latestage degradation trends. The predicted EoP points are closely aligned
+with the actual threshold (1.6 Ah), indicating that the model effectively
+predicts the RUL without significant delay or premature estimation.
+Quantitative comparisons are summarized in Table 12, where the AE
+and RE are evaluated under different training data ratios (10% and
+
+Table 10
+Estimation errors of SOH for different models on the Oxford dataset.
+Cell
+
+Cell1
+Cell2
+Cell3
+Cell4
+Cell5
+Cell6
+Cell7
+Cell8
+Average
+
+MAE
+
+RMSE
+
+MAPE
+
+Ours
+
+CNNTransformer
+
+Transformer
+
+LSTM
+
+Ours
+
+CNNTransformer
+
+Transformer
+
+LSTM
+
+Ours
+
+CNNTransformer
+
+Transformer
+
+LSTM
+
+0.19%
+0.65%
+0.19%
+0.24%
+0.48%
+0.40%
+0.15%
+0.23%
+0.32%
+
+0.83%
+1.77%
+0.78%
+0.49%
+0.31%
+0.48%
+0.82%
+0.91%
+0.80%
+
+0.26%
+2.14%
+1.11%
+0.94%
+0.52%
+0.78%
+0.98%
+1.11%
+0.98%
+
+0.97%
+0.72%
+0.70%
+0.63%
+0.72%
+0.53%
+0.61%
+0.69%
+0.70%
+
+0.24%
+0.87%
+0.25%
+0.33%
+0.52%
+0.54%
+0.20%
+0.28%
+0.40%
+
+0.97%
+2.24%
+0.89%
+0.55%
+0.35%
+0.62%
+0.91%
+1.11%
+0.96%
+
+0.30%
+2.31%
+1.41%
+1.29%
+0.86%
+0.90%
+1.21%
+1.37%
+1.21%
+
+1.23%
+1.17%
+0.99%
+0.85%
+0.87%
+0.86%
+0.83%
+0.94%
+0.97%
+
+0.24%
+0.87%
+0.24%
+0.28%
+0.57%
+0.49%
+0.18%
+0.28%
+0.39%
+
+1.06%
+2.24%
+0.93%
+0.58%
+0.36%
+0.58%
+0.97%
+1.09%
+0.98%
+
+0.34%
+2.67%
+1.30%
+1.09%
+0.59%
+0.90%
+1.15%
+1.32%
+1.17%
+
+1.34%
+0.95%
+0.91%
+0.79%
+0.86%
+0.66%
+0.78%
+0.90%
+0.90%
+
+20
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+Fig. 11. RUL prediction results at early (10%) and mid-life (30%) stages for CS2–35 (a–b), CS2–36 (c–d), and CS2–37 (e–f).
+Table. 11
+RUL prediction results of different models on CALCE batteries.
+Performance
+AE
+
+RE
+
+Model
+CNN-Transformer
+Transformer
+LSTM
+MLP
+CNN
+Proposed
+CNN-Transformer
+Transformer
+LSTM
+MLP
+CNN
+Proposed
+
+CS2–35
+
+CS2–36
+
+CS2–37
+
+CS2–38
+
+10%
+
+30%
+
+10%
+
+30%
+
+10%
+
+30%
+
+10%
+
+30%
+
+− 13
+53
+− 89
+81
+285
+2
+0.0227
+0.0925
+0.1553
+0.1414
+0.4974
+0.0035
+
+− 12
+24
+− 61
+51
+− 148
+− 4
+0.0209
+0.0419
+0.1065
+0.0890
+0.2583
+0.0698
+
+− 19
+− 44
+− 58
+− 142
+− 175
+4
+0.0341
+0.0791
+0.1043
+0.2554
+0.3147
+0.0072
+
+− 10
+− 27
+− 36
+− 115
+− 163
+− 2
+0.0180
+0.0486
+0.0647
+0.2068
+0.2932
+0.0036
+
+− 31
+− 73
+− 95
+− 130
+− 364
+11
+0.0508
+0.1197
+0.1557
+0.2131
+0.5967
+0.0180
+
+4
+− 12
+− 97
+− 30
+− 138
+− 1
+0.0066
+0.0197
+0.1590
+0.0492
+0.2262
+0.0016
+
+− 14
+− 65
+− 110
+− 147
+− 170
+− 13
+0.0231
+0.1072
+0.1815
+0.2426
+0.2805
+0.0215
+
+− 3
+− 15
+− 43
+− 157
+− 161
+− 1
+0.0049
+0.0248
+0.0710
+0.2591
+0.2657
+0.0017
+
+30%). Across all battery samples, the proposed model achieves the
+lowest AE and RE values, demonstrating its better accuracy and gener­
+alization capability. Specifically, the average AE of the proposed method
+remains within ±5 cycles, significantly outperforming the CNN, LSTM,
+and
+Transformer-based
+models,
+which
+exhibit
+higher
+
+deviations—particularly for CNN and LSTM models that show substan­
+tial overestimation and underestimation in certain cases. Moreover, the
+proposed model consistently maintains RE values below 0.08, whereas
+other models frequently exceed 0.1 under the same conditions.
+These results confirm that the proposed method can effectively
+21
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+Fig. 12. RUL prediction results at early (10%) and mid-life (30%) stages for B0005 (a–b), B0006 (c–d), and B0007 (e–f).
+
+capture the degradation patterns and nonlinear dynamics of lithium-ion
+batteries, ensuring precise RUL estimation even when limited historical
+data (e.g., 10% of life cycles) are available. This robustness highlights
+the model's potential for practical deployment in battery management
+systems (BMS) requiring real-time health monitoring and long-term
+prediction accuracy.
+
+each component. In parallel, the complexity analysis provides a quan­
+titative evaluation of the model's computational cost, ensuring that the
+performance gains are achieved without excessive overhead. Together,
+these experiments offer a comprehensive assessment of both predictive
+accuracy and practical feasibility.
+4.4.1. Ablation study
+Linear attention mechanisms significantly reduce the computational
+and memory complexity of standard attention by employing techniques
+such as low-rank decomposition [66,67], kernel approximation [68],
+sparsification [69], and local attention strategies [70,71]. While these
+approaches improve efficiency, they often compromise representation
+capacity and feature extraction ability to varying degrees. Conventional
+convolution operations can partially alleviate this limitation; however,
+
+4.4. Experiments IV: Ablation studies and complexity analysis
+To further validate the effectiveness and efficiency of the proposed
+model, additional experiments are conducted focusing on ablation
+studies and complexity analysis. The ablation study aims to clarify the
+individual contributions of key modules by systematically removing
+them and comparing the results, thereby highlighting the necessity of
+22
+
+Journal of Energy Storage 161 (2026) 121823
+
+D. Li et al.
+
+Table. 12
+RUL prediction results of different models on NASA batteries.
+Performance
+
+Model
+
+AE
+
+CNN-Transformer
+Transformer
+LSTM
+MLP
+CNN
+Proposed
+CNN-Transformer
+Transformer
+LSTM
+MLP
+CNN
+Proposed
+
+RE
+
+B0005
+
+B0006
+
+B0007
+
+B0018
+
+10%
+
+30%
+
+10%
+
+30%
+
+10%
+
+30%
+
+10%
+
+30%
+
+− 1
+− 6
+− 9
+17
+− 27
+0
+0.0128
+0.0769
+0.1154
+0.2179
+0.3462
+0
+
+− 7
+− 11
+− 13
+7
+− 18
+− 5
+0.0843
+0.1294
+0.1461
+0.0769
+0.2535
+0.0641
+
+− 7
+− 11
+− 20
+− 27
+− 22
+2
+0.1077
+0.1486
+0.2564
+0.3103
+0.2340
+0.0299
+
+5
+− 3
+− 18
+− 4
+− 33
+− 1
+0.0735
+0.0048
+0.2571
+0.0471
+0.4648
+0.0149
+
+− 5
+− 6
+− 63
+10
+− 75
+0
+0.0532
+0.0064
+0.6702
+0.1064
+0.7979
+0
+
+11
+− 14
+21
+− 27
+− 75
+− 1
+0.1170
+0.1489
+0.2234
+0.2872
+0.7979
+0.0106
+
+− 9
+− 15
+− 16
+− 18
+− 77
+2
+0.1607
+0.2679
+0.2857
+0.3214
+1.3750
+0.0357
+
+− 7
+− 8
+− 9
+− 9
+− 17
+− 4
+0.1250
+0.1429
+0.1607
+0.1607
+0.3036
+0.0714
+
+they usually introduce a substantial number of additional parameters,
+resulting in an unfavorable trade-off between accuracy and efficiency.
+To address this issue, the proposed model incorporates DSConv as a
+lightweight convolutional prior to enhance feature diversity while
+avoiding excessive parameter growth, thereby achieving a balanced
+improvement in both performance and computational efficiency.
+Ablation experiments are conducted to further provide quantitative
+and qualitative comparisons between the proposed DSCA mechanism,
+the linear-attention-based backbone, and the DSConv module. As shown
+in Table 13, the backbone model with linear attention only (M1) exhibits
+the largest prediction errors across all datasets, which can be attributed
+to its limited sensitivity to battery-specific local capacity fluctuations. By
+enhancing the input representations to the backbone with the DSConv
+module (M2), the prediction error is significantly reduced, indicating
+that DSConv effectively captures fine-grained local degradation
+patterns.
+Furthermore, introducing the DSCA mechanism on the backbone
+while removing DSConv (M3) leads to noticeable performance im­
+provements over both M1 and M2. This result confirms the effectiveness
+of DSCA in modeling long-term dependencies and capturing global
+degradation trends. Nevertheless, the absence of DSConv weakens the
+
+local learning conditions, thereby limiting the overall performance
+gains. When DSConv and DSCA are jointly integrated in the proposed
+model, the highest and most consistent prediction accuracy is achieved
+across the selected battery datasets.
+For example, on the NASA B0005 dataset, the average error is
+reduced to 0.0058, corresponding to reductions of 50.14%, 19.44%, and
+7.94% compared with M1, M2, and M3, respectively. Similar trends are
+observed on the CALCE dataset: for battery CS2–35, the proposed
+method reduces the average error from 0.0322 (M1) to 0.0207,
+achieving a relative reduction of 38.35%. On CS2–36 and CS2–37, the
+proposed model further decreases the error by 30.34% and 47.04%,
+respectively, compared to the linear-attention-based backbone.
+These results clearly show that the complementary effects of DSConv
+and DSCA. DSConv reinforces local feature extraction by capturing finegrained degradation dynamics, while DSCA enriches feature diversity
+and representation capacity based on linear attention, enabling effective
+modeling of both long-term degradation trends and short-term capacity
+fluctuations. Their synergistic integration allows the proposed model to
+achieve superior accuracy and generalization performance across het­
+erogeneous battery datasets.
+
+Table. 13
+Ablation results on NASA and CALCE batteries.
+Battery
+NASA
+B0005
+
+B0006
+
+B0007
+
+CALCE
+CS2–35
+
+CS2–36
+
+CS2–37
+
+Model
+
+backbone
+
+M1
+M2
+M3
+Proposed
+M1
+M2
+M3
+Proposed
+M1
+M2
+M3
+Proposed
+
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+
+M1
+M2
+M3
+proposed
+M1
+M2
+M3
+proposed
+M1
+M2
+M3
+proposed
+
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+✓
+
+DSConv
+
+DSCA
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+23
+
+MAE
+
+RMSE
+
+MAPE
+
+Average
+
+Reduction
+
+0.0104
+0.0055
+0.0049
+0.0045
+0.0251
+0.0125
+0.0086
+0.0072
+0.0120
+0.0095
+0.0087
+0.0076
+
+0.0115
+0.0089
+0.0072
+0.0067
+0.0283
+0.0167
+0.0146
+0.0130
+0.0152
+0.0116
+0.0112
+0.0102
+
+0.0130
+0.0072
+0.0069
+0.0063
+0.0335
+0.0156
+0.0101
+0.0090
+0.0143
+0.0109
+0.0098
+0.0093
+
+0.0116
+0.0072
+0.0063
+0.0058
+0.0289
+0.0149
+0.0111
+0.0097
+0.0138
+0.0107
+0.0099
+0.0090
+
+50.14%
+19.44%
+7.94%
+–
+66.44%
+34.90%
+12.61%
+–
+34.78%
+15.89%
+9.09%
+–
+
+0.0245
+0.0202
+0.0164
+0.0141
+0.0253
+0.0198
+0.0188
+0.0174
+0.0266
+0.0221
+0.0198
+0.0155
+
+0.0306
+0.0240
+0.0216
+0.0208
+0.0298
+0.0241
+0.0236
+0.0212
+0.0521
+0.0395
+0.0256
+0.0209
+
+0.0458
+0.0365
+0.0289
+0.0273
+0.0461
+0.0401
+0.0365
+0.0319
+0.0465
+0.0420
+0.0362
+0.0299
+
+0.0322
+0.0269
+0.0233
+0.0207
+0.0314
+0.0280
+0.0263
+0.0235
+0.0366
+0.0345
+0.0272
+0.0221
+
+38.35%
+22.92%
+7.03%
+–
+30.34%
+16.07%
+10.65%
+–
+47.04%
+36.00%
+18.75%
+–
+
+D. Li et al.
+
+Journal of Energy Storage 161 (2026) 121823
+
+4.4.2. Complexity analysis
+In practical applications, it is crucial to evaluate models not only
+based on accuracy but also by considering computational efficiency and
+hardware constraints. Key metrics for this evaluation include training
+cost (FLOPs, training time, and parameter count) and hardware cost
+(storage size). The comparative results are shown in Table 14.
+To ensure a fair comparison, all models are evaluated under identical
+training and architectural hyperparameters. Specifically, FLOPs,
+measured using the THOP library's profile function, quantify the
+floating-point operations required for a single forward pass. Training
+time, recorded in seconds via Python's time module, reflects the duration
+needed to train a model on the dataset. The total number of trainable
+parameters, typically in millions, is determined using the torchsummary
+library's summary function. Finally, storage size, measured in kilobytes
+using Python's os.path.getsize function, indicates the space required to
+store model parameters on a device.
+For consistency and comprehensive comparison, all models are
+trained under two distinct configurations: (1) 1000 epochs with a
+learning rate of 0.01, and (2) 200 epochs with a learning rate of 0.001.
+Both settings use a batch size of 128 and a dropout rate of 0.1. To
+standardize model complexity, Transformer-based architectures employ
+an embedding dimension of 16, a dense (MLP) dimension of 16, four
+attention heads, and single-layer encoders and decoders. LSTM-based
+models use four layers with a hidden dimension of 32. At the same
+time, all data uses the first 30% of the B0005 battery dataset, with a
+window size of 5. This dual-setting design allows for a more robust
+evaluation of model performance under both extensive and limited
+training conditions.
+In CNN-Transformer models, the CNN module consists of a depth­
+wise separable convolutional layer positioned after the multi-head selfattention module. The convolutional layers are configured with kernel
+sizes of 3, 2, and 3, and strides of 1, 2, and 1, respectively, followed by
+ReLU activation. This setup ensures a balanced comparison of compu­
+tational demands across different architectures.
+Under the high-resource setting (1000 epochs), the proposed model
+achieves a training time of only 11.15 s with 6.45 million parameters,
+requiring just 0.25 million FLOPs and 30.05 KB of storage. Compared to
+the CNN-Transformer, which takes 18.48 s and consumes 0.40 million
+FLOPs with a slightly smaller parameter count (5.54 million), the pro­
+posed model achieves a 39.7% reduction in training time and a 37.5%
+reduction in FLOPs. Against the standard Transformer, the proposed
+model shows a 31.6% decrease in training time and a 77.3% reduction in
+FLOPs, while still requiring fewer parameters and less storage. Notably,
+even compared to LSTM, which has more parameters (8.75 million) and
+longer training time (8.60 s), the proposed model maintains a more
+compact architecture and lower computational demand.
+Under the low-resource configuration (200 epochs), the efficiency
+advantages of the proposed model become even more pronounced. It
+
+completes training in only 2.60 s, compared to 3.96 s for CNNTransformer (34.3% faster) and 4.10 s for Transformer (36.6% faster),
+while maintaining the lowest FLOPs (0.05 M). Furthermore, compared
+to LSTM, the proposed model reduces FLOPs by 66.7% and cuts training
+time by over 1.3 s, despite using significantly fewer parameters and
+storage.
+These results clearly show that the proposed model offers a favorable
+balance between computational efficiency and model capacity, making
+it especially suitable for deployment in resource-constrained environ­
+ments where both speed and compactness are critical.
+5. Conclusion
+This study proposes an innovative deep learning framework for the
+joint estimation of lithium-ion battery State of Health (SOH) and
+Remaining Useful Life (RUL). The framework integrates a Deep
+Spatiotemporal Convolutional Attention (DSCA) mechanism with multiscale Depthwise Separable Convolutions (DSConv), achieving a balance
+between computational efficiency and prediction accuracy in feature
+extraction and time-series modeling. By reformulating the traditional
+attention computation, the proposed DSCA reduces the computational
+(
+)
+(
+)
+complexity from O N2 d to O Nd2 , significantly lowering the
+computational cost in large-scale sequence tasks. Meanwhile, the multiscale DSConv modules effectively capture both long-term degradation
+trends and short-term capacity recovery behaviors, enhancing the
+model's capability to represent complex temporal variations during
+battery aging.
+Furthermore, a novel health indicator (HI) selection algorithm based
+on Pearson and Spearman correlation coefficients (PCC and SCC) is
+introduced to evaluate and select the most representative indicators,
+enabling standardized feature selection across different datasets. This
+approach enhances the model's robustness and generalization in multisource SOH estimation. To mitigate the effects of short-term capacity
+regeneration and noise interference, the CEEMDAN decomposition
+method is employed to extract a smooth and quasi-monotonic capacity
+degradation trend, providing more stable input data for prediction.
+Comprehensive validation on three public datasets demonstrates
+that the proposed model outperforms existing state-of-the-art methods
+in terms of prediction accuracy, generalization capability, and compu­
+tational efficiency. By ensuring high-precision prediction with reduced
+computational requirements, the proposed framework shows strong
+potential for real-world deployment in Battery Management Systems
+(BMS). Specifically, the lightweight model architecture and stable joint
+SOH–RUL estimation capability enable its implementation in online and
+embedded BMS environments, where computational resources are
+limited and prediction robustness is critical. The enhanced degradation
+trend stability and reduced prediction fluctuations further support its
+
+Table. 14
+Efficiency comparison results on B0005.
+Models
+Proposed
+CNN-Transformer
+Transformer
+LSTM
+BMSFormer [2]
+Proposed
+CNN-Transformer
+Transformer
+LSTM
+CNN-Transformer [37]
+RB-FA-FF [30]
+AMN-UKF [72]
+MEWOA-VMD-LSTM [73]
+SGRU [74]
+
+Training hyperparameters
+
+Model hyperparameters
+
+Performance indicator
+
+e
+
+lr
+
+b
+
+de
+
+dd
+
+n
+
+GFLOPs
+
+Training time (s)
+
+Parameters
+
+Storage size(KB)
+
+1000
+1000
+1000
+1000
+1000
+200
+200
+200
+200
+–
+–
+–
+–
+–
+
+0.01
+0.01
+0.01
+0.01
+0.01
+0.001
+0.001
+0.001
+0.001
+0.00055
+0.0001
+–
+–
+–
+
+128
+128
+128
+128
+128
+128
+128
+128
+128
+–
+32
+–
+–
+–
+
+16
+16
+16
+–
+16
+16
+16
+16
+–
+–
+–
+–
+–
+–
+
+16
+16
+16
+16
+16
+16
+16
+16
+16
+–
+–
+–
+–
+–
+
+4
+4
+4
+4
+4
+4
+4
+4
+4
+–
+–
+–
+–
+–
+
+0.25
+0.40
+1.10
+0.74
+0.46
+0.05
+0.81
+0.20
+0.15
+1.01
+0.74
+2.14
+5.46
+2.01
+
+11.15
+18.48
+16.29
+8.60
+19.83
+2.60
+3.96
+4.10
+1.76
+806.4
+–
+–
+–
+–
+
+6450
+5538
+4625
+8753
+5330
+6450
+5538
+4625
+8753
+26,100
+6,050,000
+231,440
+269,057
+323,000
+
+30.05
+39.99
+37.33
+41.12
+36.37
+30.05
+39.99
+37.33
+41.12
+2235
+–
+–
+–
+–
+
+24
+
+
