@@ -1,0 +1,136 @@
+main.tex:9:\section*{Abstract}
+main.tex:11:\section{Introduction}
+main.tex:15:\section{Methodological framework and data preparation}
+main.tex:18:\section{The proposed MS-AgentNet model}
+main.tex:21:\section{Experimental results and analysis}
+main.tex:24:\section{Conclusion}
+chapters\chapter02.tex:1:\subsection{Overview of the SOH estimation framework}
+chapters\chapter02.tex:21:\subsection{Typical battery datasets}
+chapters\chapter02.tex:27:\subsubsection*{(1) Oxford dataset}
+chapters\chapter02.tex:31:\subsubsection*{(2) CALCE dataset}
+chapters\chapter02.tex:35:\subsubsection*{(3) MIT/Severson dataset}
+chapters\chapter02.tex:42:\subsection{Feature engineering}
+chapters\chapter02.tex:44:This section presents the multi-source health indicator extraction and optimization algorithm for constructing the inputs to the SOH estimation model. The algorithm first builds a pool of multi-source candidate HIs from charging and discharging data, then optimizes the model inputs through group-level calibration and selection. Specifically, MS-CCCT calibrates the CCCT voltage window, and PCC/SCC results on the feature-development cell set are used for dual-threshold admission and redundancy removal to determine the inputs for each dataset.
+chapters\chapter02.tex:46:\subsubsection{Health indicator extraction}
+chapters\chapter02.tex:103:\subsubsection{Group-level dual-correlation MS-CCCT}
+chapters\chapter02.tex:143:\subsubsection{Health indicator selection}
+chapters\chapter01.tex:5:\subsection{Literature review}
+chapters\chapter01.tex:32:\subsection{Challenges and contributions}
+chapters\chapter04.tex:1:This section systematically evaluates MS-AgentNet on four public battery datasets. The experiments cover HI effectiveness, model performance comparisons, module ablation and complexity analysis, and cross-domain adaptation. The HI experiments examine whether the selected features can represent battery degradation patterns and thus provide suitable model inputs. The model comparisons assess estimation accuracy and stability across cells. Ablation studies further examine the individual and complementary effects of multi-scale local feature extraction and cross-cycle context modeling, and compare different convolutional configurations to assess the complementary roles of DSConv-S and DSConv-L; complexity analysis evaluates computational and storage overhead. Finally, cross-dataset transfer experiments examine the model's transfer performance across different data domains. Together, these experiments provide a comprehensive evaluation of the effectiveness and applicability of MS-AgentNet for battery SOH estimation.
+chapters\chapter04.tex:5:\subsection{Evaluation metrics}
+chapters\chapter04.tex:20:\label{eq:metric_mae}
+chapters\chapter04.tex:25:\label{eq:metric_mape}
+chapters\chapter04.tex:30:\label{eq:metric_rmse}
+chapters\chapter04.tex:35:\label{eq:metric_r2}
+chapters\chapter04.tex:41:\subsection{HI selection results and effectiveness analysis}
+chapters\chapter04.tex:43:To evaluate how effectively group-level HI selection identifies inputs that remain stable across cells, this section compares SOH estimation performance with different HIs on the Oxford dataset. Based on the PCC and SCC of candidate HIs on Cell1, the indicator with the highest combined correlation score is selected from each of the IC, DTV, and DTC categories, giving HI4, HI9, and HI11, respectively. All three combined correlation scores exceed 0.94. These HIs and the CCCT indicator HI1, which is obtained through group-level selection, are separately fed into MS-AgentNet. The input combining HI1, HI4, HI9, and HI11 is denoted as Fusion. The validation result on Cell2 and the test results on Cell3--Cell8 with different inputs are given in \cref{tab:4-hi-input}.
+chapters\chapter04.tex:50:\subsection{Training robustness and hyperparameter analysis}
+chapters\chapter04.tex:54:\subsubsection{Agent matrix initialization and convergence analysis}
+chapters\chapter04.tex:59:\label{eq:agent_initialization}
+chapters\chapter04.tex:73:\subsubsection{Hyperparameter configuration}
+chapters\chapter04.tex:85:\subsection{Comparison of SOH estimation accuracy and cross-cell generalization}
+chapters\chapter04.tex:90:\subsubsection{Estimation accuracy on the Oxford dataset}
+chapters\chapter04.tex:103:\subsubsection{Cross-cell generalization on the CALCE and MIT datasets}
+chapters\chapter04.tex:105:This section further compares MS-AgentNet with the four baseline models on the CALCE CS2, CALCE CX2, and MIT/Severson datasets. CS2\_37, CX2\_37, and b3c13 are the validation cells, while CS2\_38, CX2\_38, and b3c29 are the test cells. These datasets differ from Oxford in battery chemistries and charge-discharge protocols and show diverse degradation dynamics, including smooth capacity fade, transitions between stages, and accelerated late-life degradation. The SOH estimation results are shown in \cref{fig:4-3}.
+chapters\chapter04.tex:117:\subsection{Cross-dataset transfer experiments}
+chapters\chapter04.tex:123:\subsubsection{Performance across transfer directions}
+chapters\chapter04.tex:132:\subsubsection{Effect of the target-domain adaptation ratio}
+chapters\chapter04.tex:145:\subsection{Module ablation and model complexity analysis}
+chapters\chapter04.tex:149:\subsubsection{Module ablation analysis}
+chapters\chapter04.tex:174:\subsubsection{Model complexity analysis}
+chapters\chapter03.tex:1:A lightweight Multi-Scale Agent Network (MS-AgentNet) is proposed to represent both local variations and long-term trends in battery degradation while reducing the computational overhead of sequence modeling. The name MS refers to the multi-scale convolutional design comprising small-kernel DSConv-S and large-kernel DSConv-L, which extracts degradation features at different scales with low parameter overhead. Local-Global Fusion Attention (LGFA) combines local convolutional enhancement with efficient attention to connect local degradation information with context across cycles. The following subsections introduce the overall architecture and workflow of MS-AgentNet, describe the designed multi-scale depthwise separable convolution modules, and detail the LGFA module.
+chapters\chapter03.tex:3:\subsection{Architecture overview of MS-AgentNet}
+chapters\chapter03.tex:15:\label{eq:block_slfa}
+chapters\chapter03.tex:30:\label{eq:block_dsconv_l}
+chapters\chapter03.tex:43:\label{eq:block_ffn}
+chapters\chapter03.tex:50:\subsection{The designed multi-scale depthwise separable convolution modules}
+chapters\chapter03.tex:52:To balance feature extraction capability and computational efficiency, small- and large-kernel depthwise separable convolutions are used to capture multi-scale local dependencies, enhancing feature diversity while limiting parameter overhead. This section first introduces the computational characteristics of standard and depthwise separable convolutions, followed by the configurations and roles of DSConv-S and DSConv-L.
+chapters\chapter03.tex:55:\subsubsection{Basic DSConv structure and computational cost comparison}
+chapters\chapter03.tex:63:\label{eq:conv_cost}
+chapters\chapter03.tex:76:\label{eq:dsconv_cost}
+chapters\chapter03.tex:97:\label{eq:dsconv_cost_ratio}
+chapters\chapter03.tex:102:\subsubsection{DSConv-S: Dual-role local enhancement}
+chapters\chapter03.tex:156:\label{eq:dsconv_s}
+chapters\chapter03.tex:167:\label{eq:dsconv_s_expanded_cost}
+chapters\chapter03.tex:172:\subsubsection{DSConv-L: Feature refinement over longer time scales}
+chapters\chapter03.tex:182:\label{eq:dsconv_l_expanded_cost}
+chapters\chapter03.tex:189:\subsection{The proposed Local-Global Fusion Attention module}
+chapters\chapter03.tex:191:This section presents the general form of multi-head self-attention, briefly compares Softmax attention and linear attention, and introduces LGFA, which combines local feature extraction with global interactions that scale linearly with sequence length.
+chapters\chapter03.tex:194:\subsubsection{General form of multi-head self-attention}
+chapters\chapter03.tex:202:\label{eq:qkv_projection}
+chapters\chapter03.tex:220:\label{eq:general_attention}
+chapters\chapter03.tex:227:\subsubsection{Softmax attention and linear attention}
+chapters\chapter03.tex:239:\label{eq:softmax_attention}
+chapters\chapter03.tex:260:\label{eq:linear_attention}
+chapters\chapter03.tex:269:\subsubsection{The proposed LGFA module}
+chapters\chapter03.tex:283:\label{eq:raa_qkv_scaling}
+chapters\chapter03.tex:308:\label{eq:relu2_normalization}
+chapters\chapter03.tex:326:\label{eq:agent_aggregation}
+chapters\chapter03.tex:344:\label{eq:agent_broadcast}
+chapters\chapter03.tex:358:\label{eq:raa_output}
+chapters\chapter03.tex:379:\label{eq:slfa_fusion}
+tables\table_2_3.tex:3:\caption{MS-CCCT window calibration results on four datasets.}
+tables\table_2_3.tex:4:\label{tab:4-hi-window-calibration}
+tables\table_1_comparison.tex:3:\caption{Comparison of existing SOH estimation methods.}
+tables\table_1_comparison.tex:4:\label{tab:soh-method-comparison}
+tables\table_2_2.tex:3:\caption{Definitions of the candidate HIs.}
+tables\table_2_2.tex:4:\label{tab:2-2}
+tables\table_2_4.tex:3:\caption{Selected HIs and their correlations on four datasets.}
+tables\table_2_4.tex:4:\label{tab:4-hi-selected}
+tables\table_2_1.tex:3:\caption{Description of the four battery datasets.}
+tables\table_2_1.tex:4:\label{tab:2-1}
+tables\table_2_6.tex:3:\caption[Absolute PCC comparison of different HIs on the Oxford dataset]{Absolute PCC comparison of different HIs on the Oxford dataset.}
+tables\table_2_6.tex:4:\label{tab:2-hi-literature}
+tables\table_2_5.tex:3:\caption{Correlations of selected HIs on other cells.}
+tables\table_2_5.tex:4:\label{tab:4-hi-correlation}
+tables\table_2_hi_screening_steps.tex:3:\caption{Group-level health indicator selection steps.}
+tables\table_2_hi_screening_steps.tex:4:\label{tab:2-hi-screening-steps}
+tables\table_4_1.tex:3:\caption{Hyperparameter search space of MS-AgentNet.}
+tables\table_4_1.tex:4:\label{tab:4-1}
+tables\table_4_10.tex:3:\caption{Ablation results on different datasets.}
+tables\table_4_10.tex:4:\label{tab:4-10}
+tables\table_4_11.tex:3:\caption{Effects of DSConv-S and DSConv-L configurations.}
+tables\table_4_11.tex:4:\label{tab:4-11}
+tables\table_4_12.tex:3:\caption{Model complexity comparison under standardized settings.}
+tables\table_4_12.tex:4:\label{tab:4-12}
+tables\table_4_2.tex:3:\caption{Final configurations of MS-AgentNet.}
+tables\table_4_2.tex:4:\label{tab:4-2}
+tables\table_4_3.tex:3:\caption{Convergence characteristics of MS-AgentNet on the Oxford and MIT datasets.}
+tables\table_4_3.tex:4:\label{tab:4-3}
+tables\table_4_3_initialization.tex:3:\caption{Initialization strategy comparison on the Oxford validation cell (Cell2).}
+tables\table_4_3_initialization.tex:4:\label{tab:4-3-initialization}
+tables\table_4_4.tex:3:\caption{Layer configurations of different deep learning models.}
+tables\table_4_4.tex:4:\label{tab:4-4}
+tables\table_4_5.tex:7:\caption{SOH estimation errors of different models on the Oxford dataset.}\label{tab:4-5}\\
+tables\table_4_6.tex:3:\caption{SOH estimation errors of different models on the CALCE and MIT/Severson datasets.}
+tables\table_4_6.tex:4:\label{tab:4-6}
+tables\table_4_7.tex:3:\caption{Results of source-only evaluation across datasets.}
+tables\table_4_7.tex:4:\label{tab:4-7}
+tables\table_4_8.tex:3:\caption{Transfer results after 30\% target-domain adaptation.}
+tables\table_4_8.tex:4:\label{tab:4-8}
+tables\table_4_9.tex:3:\caption{Transfer results with different amounts of target-domain data.}
+tables\table_4_9.tex:4:\label{tab:4-9}
+tables\table_4_hi_input.tex:6:\caption{SOH estimation errors of different health-indicator inputs on the Oxford dataset.}
+tables\table_4_hi_input.tex:7:\label{tab:4-hi-input}
+figures\figure_2_1.tex:6:\caption{Flowchart of the developed SOH estimation approach.}
+figures\figure_2_1.tex:7:\label{fig:2-1}
+figures\figure_2_2.tex:6:\caption{Four battery datasets: (a)--(d) capacity degradation curves of Oxford, CALCE CS2, CALCE CX2, and MIT/Severson cells, respectively; (e)--(h) charging voltage curves of the four datasets in the same order.}
+figures\figure_2_2.tex:7:\label{fig:2-2}
+figures\figure_2_3.tex:6:\caption{Charge-side characteristic curves used for HI construction.}
+figures\figure_2_3.tex:7:\label{fig:2-3}
+figures\figure_2_4.tex:13:\caption{Correlation matrices of candidate HIs and SOH on the Oxford dataset: (a) Cell1, PCC; (b) Cell1, SCC; (c) Cell2, PCC; (d) Cell2, SCC.}
+figures\figure_2_4.tex:14:\label{fig:2-4}
+figures\figure_3_1.tex:4:\caption{Framework of MS-AgentNet. (a) Overall architecture; (b) core structure; (c) DSConv-L module.}
+figures\figure_3_1.tex:5:\label{fig:3-1}
+figures\figure_3_2.tex:6:\caption{The fundamental structures of convolutional modules: (a) standard convolution; (b) standard depthwise separable convolution; (c) DSConv-S module; and (d) DSConv-L module.}
+figures\figure_3_2.tex:7:\label{fig:3-2}
+figures\figure_3_3.tex:6:\caption{Comparison of (a) Softmax attention, (b) linear attention, (c) Agent Attention, and (d) the proposed LGFA module.}
+figures\figure_3_3.tex:7:\label{fig:3-3}
+figures\figure_4_1.tex:4:\caption{Mean validation RMSE of MS-AgentNet with different numbers of agents.}
+figures\figure_4_1.tex:5:\label{fig:4-1}
+figures\figure_4_3.tex:21:\caption{SOH estimation results of different models on the CALCE and MIT/Severson datasets.}
+figures\figure_4_3.tex:22:\label{fig:4-3}
+figures\figure_4_2.tex:23:\caption{SOH estimation results of different models on the Oxford dataset.}
+figures\figure_4_2.tex:24:\label{fig:4-2}
+figures\figure_4_4.tex:4:\caption{Storage sizes of five models at different model widths: (a) storage size at each width; (b) overall distribution across the tested widths.}
+figures\figure_4_4.tex:5:\label{fig:4-4}

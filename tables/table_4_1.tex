@@ -1,14 +1,17 @@
 \begin{table}
 \TableStyle
-\caption{Hyperparameter search space of MS-AgentNet.}
+\caption{Hyperparameter grid search space.}
 \label{tab:4-1}
 \begin{tabularx}{\linewidth}{@{\extracolsep{\fill}}L{0.90}L{1.10}@{}}
 \toprule
 Hyperparameter & Search space/Values \\
 \midrule
-Learning rate & 0.001, 0.01 \\
-Network depth $L$ & 1, 2, 4, 8 \\
-Embedding dimension $d$ & 16, 32, 64, 128 \\
+Learning rate & [0.001, 0.01] \\
+Training epochs & [100, 1000] \\
+Network depth $L$ & [1, 2, 4, 8] \\
+Embedding/hidden dimension $d$ & [16, 32, 64, 128] \\
+FFN hidden dimension & [16, 32, 64, 128] \\
+Number of attention heads & [1, 2, 4] \\
 \bottomrule
 \end{tabularx}
 \end{table}

@@ -1,0 +1,2077 @@
+     A linear-complexity deep learning network with local-global
+    attention for efficient state-of-health estimation of lithium-ion
+
+        batteries using optimized multi-source health indicators
+
+Abstract
+
+      Efficient and accurate estimation of lithium-ion battery state of health (SOH) is crucial for ensuring safe battery
+operation and supporting online applications in resource-constrained battery management systems (BMS). However,
+many existing approaches rely on health indicators with limited cross-cell stability or on computationally demand-
+ing model structures. Therefore, this paper proposes a lightweight SOH estimation framework. First, a multi-source
+health indicator extraction and optimization algorithm is proposed to select HIs that are robust across cells and re-
+duce feature redundancy. Subsequently, a lightweight prediction network, MS-AgentNet, is constructed. The network
+mainly incorporates a Local-Global Fusion Attention (LGFA) module. LGFA combines small-kernel depthwise sepa-
+rable convolutions with ReLU² agent attention to capture local degradation features and long-term dependencies. With
+a fixed number of agents, its attention cost grows linearly with sequence length, in contrast to the quadratic cost of
+standard self-attention. Additionally, large-kernel depthwise separable convolutions capture degradation features over
+longer time scales, and their outputs are fused with small-kernel features at low parameter cost to enrich multi-scale,
+multi-channel representations. We compared the proposed model with various mainstream deep learning models on
+four public battery datasets with different chemistries and operating conditions. The experimental results show that
+MS-AgentNet achieves better overall performance while maintaining low computational and storage overhead, further
+highlighting the advantages of its lightweight design for resource-constrained BMS.
+
+      Keywords: lithium-ion batteries state-of-health estimation linear complexity deep feature fusion lightweight
+deep learning
+
+1. Introduction
+
+      With high energy density, a long cycle life, and a low self-discharge rate, lithium-ion batteries have become one
+of the most important electrochemical energy storage technologies, widely used across consumer electronics, electric
+vehicles, stationary energy storage, and other domains [1­4]. Nevertheless, lithium-ion batteries can still pose con-
+siderable safety risks during long-term operation. Charge-discharge cycling and complex operating conditions induce
+aging processes such as thickening of the solid electrolyte interphase (SEI) layer, loss of active lithium, and structural
+degradation of the electrodes [5,6]. These processes, in turn, lead to capacity fade and performance degradation and, in
+severe cases, trigger failures such as short circuits and thermal runaway [7,8]. Therefore, precise estimation of lithium-
+ion battery state of health (SOH) is essential for ensuring battery safety, reliability, and operational performance.
+
+      Capacity fade is the most direct sign of battery aging, and state of health (SOH) is commonly defined in terms of
+capacity retention [9]. However, accurately measuring a battery's maximum available capacity requires full or nearly
+full charge-discharge cycles, which are impractical for online monitoring [10]. Consequently, indirectly inferring SOH
+from observable operating signals has become a key approach to online battery health monitoring. Nevertheless, com-
+plex operating conditions make it harder to consistently extract degradation information, while the limited computing
+power and storage space of battery management systems (BMS) constrain model complexity. Together, these factors
+pose a dual challenge for online SOH estimation: degradation information extraction and the computational efficiency
+of estimation models.
+
+                                                                 1
+1.1 Literature review
+
+      Recent approaches to SOH estimation can generally be classified as model-based or data-driven [11]. The former
+include electrochemical models and equivalent circuit models, while the latter include traditional machine learning and
+deep learning methods.
+
+      Model-based approaches simulate the internal electrochemical mechanisms of batteries using mathematical equa-
+tions or equivalent circuits [12]. Electrochemical models use differential equations to represent electrochemical re-
+actions and degradation processes in batteries. For instance, Li et al. [13] developed an SOH estimation framework
+based on a single-particle model (SPM), incorporating both chemical degradation and mechanical damage. Although
+these models are physically interpretable and can achieve high estimation accuracy, solving their complex equations re-
+quires extensive computational resources. In addition, parameters such as particle radius and diffusion coefficients are
+difficult to obtain. These limitations hinder the online application of electrochemical models in resource-constrained
+BMS [14­16]. In contrast, equivalent circuit models (ECMs) simplify complex electrochemical processes into circuits
+composed of resistors, capacitors, and other components to simulate battery charge-discharge dynamics. For example,
+Chen et al. [17] used recursive least squares to identify the parameters of a Thevenin model and estimated SOH based
+on the relationship between ohmic internal resistance and capacity fade. This simplification reduces computational
+cost, but it also limits the ability of ECMs to fully capture changes in the internal state of the battery. Compared with
+electrochemical models, ECMs may achieve lower estimation accuracy. Their accuracy depends on the selected circuit
+structure and model parameters. Furthermore, ECM parameters are highly sensitive to operating conditions, includ-
+ing temperature and charge-discharge rate, making it difficult for ECMs to maintain robust estimation performance
+throughout the battery aging process.
+
+      Data-driven approaches do not require a detailed electrochemical model or an extensive analysis of internal re-
+actions and aging mechanisms [18]. They train models on historical operating data to map extracted health indicators
+(HIs) to SOH estimates. Earlier studies primarily employed traditional machine learning models to estimate battery
+states and predict battery lifetime [19]. For instance, Fei et al. [20] crafted 42 features from charge-discharge data
+collected over the first 100 cycles. After feature selection, the retained features were fed into six models: elastic net,
+Gaussian process regression (GPR), support vector machine (SVM), random forest (RF), gradient boosting regression
+tree (GBRT), and neural network (NN). Their performance in the early prediction of battery lifetime was then com-
+pared. Li et al. [21] used a random forest to estimate battery capacity online from partial charging voltage­capacity data.
+On strongly nonlinear, noisy cycling data from online monitoring and historical cycles, traditional machine-learning
+models often provide limited predictive performance because of their structural limitations.
+
+      With the rapid development of deep learning, researchers have increasingly adopted multilayer neural networks.
+These networks have strong nonlinear representational capacity and can therefore capture complex battery degradation
+patterns and improve estimation accuracy [22]. Common deep learning models include convolutional neural networks
+(CNNs), recurrent neural networks (RNNs), and Transformers. CNNs extract local features using convolutional kernels
+and reduce feature dimensionality through pooling operations. For example, Qian et al. [23] fed randomly selected
+charging-curve segments into a one-dimensional CNN for battery capacity estimation. The results showed that the
+method achieved low capacity estimation errors with randomly selected segments as inputs. Lee et al. [24] transformed
+capacity fade sequences across cycles into two-dimensional images and employed a two-dimensional CNN for SOH
+estimation.
+
+      However, a single convolutional layer in a traditional CNN has a limited local receptive field, and fusing distant
+features generally requires multiple convolutional layers [25]. RNNs establish these long-range connections by passing
+historical information to subsequent time steps through hidden states. RNN variants, including long short-term memory
+(LSTM) and gated recurrent unit (GRU) networks, further employ gating mechanisms to selectively retain and update
+historical information to capture long-term dependencies. Researchers have also combined CNNs with recurrent net-
+works to capture local features while retaining historical information. For example, Xu et al. [26] fed CNN-extracted
+features into an LSTM and used its temporal memory to estimate SOH. Tian et al. [27] further incorporated an attention
+mechanism into a CNN-BiLSTM architecture to develop the CNN-BiLSTM-AM prediction model. Zheng et al. [28]
+
+                                                                 2
+employed a CNN-GRU to estimate SOH using segments of voltage, current, and temperature curves obtained during
+random charging. Nevertheless, the hidden states in these models still require sequential updates across time steps,
+limiting parallel computation during training and inference.
+
+      To address this limitation, Vaswani et al. [29] proposed the Transformer, which avoids recurrence and uses self-
+attention to directly connect different sequence positions, capturing long-range dependencies while supporting parallel
+computation. For example, Park and Kim [30] used a Transformer guided by physical priors to estimate long-term
+battery SOH, while Chen et al. [31] added structures such as dimension-transformation layers to a vision Transformer
+to adapt it to battery SOH estimation. Researchers have also combined Transformers with convolutional or recurrent
+networks to enhance prediction accuracy. Gu et al. [32] used a CNN to extract local features and a Transformer to
+capture long-range dependencies. Jia et al. [33] combined a BiGRU with a Transformer, and their experiments showed
+good prediction accuracy, robustness, and generalization on the battery data used. Bai and Wang [34] proposed a con-
+volutional Transformer framework that extracts local details from voltage and current signals and uses self-attention
+to establish global connections among local features. However, many existing methods improve Transformer predic-
+tion accuracy by integrating other modules or models, often at the cost of more parameters and higher computational
+overhead. Meanwhile, the computational bottleneck of standard self-attention remains: it computes pairwise relation-
+ships among all sequence positions, with time and memory complexity growing quadratically with sequence length N ,
+namely O(N 2) [35, 36]. These computational and storage demands make it challenging to use such models online in
+resource-constrained BMS [25].
+
+      In addition to the prediction model, health indicator extraction and selection are crucial for accurate SOH esti-
+mation. These indicators are mainly extracted from voltage, current, temperature, time, and internal resistance data
+recorded during battery cycling, as well as curves derived from these data [37, 38]. Some internal-resistance indica-
+tors require impedance spectrum measurements, which are time-consuming and require specialized instruments. Al-
+though temperature indicators contain battery degradation information, they are also affected by ambient temperature
+and charge-discharge rate, limiting their stability across operating conditions [39]. Incremental capacity curves reflect
+changes in voltage plateaus caused by battery aging, but their calculation requires differentiation, which can amplify
+sampling noise. Smoothing is therefore usually needed to obtain reliable curve features. For example, Wen et al. [40]
+extracted candidate features such as peak values, peak positions, and peak-shape slopes from smoothed incremental
+capacity curves and used correlation analysis to select the peak value as the input to a backpropagation (BP) neural
+network.
+
+      In contrast, time-based health indicators do not require differentiation and are simpler to extract. Constant cur-
+rent charge time (CCCT) can be obtained from the difference between the times corresponding to the two endpoints
+of a selected voltage interval. Richardson et al. [41] used charging-time features from different voltage intervals of
+constant-current charging curves to estimate battery capacity, while Lin et al. [42] used CCCT as the input to a random
+forest to estimate battery SOH. Because the correlation between charging-time features and capacity depends on the
+selected voltage interval, researchers generally need to identify a suitable interval for feature extraction. Tian et al. [43]
+optimized the charging voltage interval, strengthening the correlation between the extracted health indicator and ca-
+pacity. In selecting intervals for charging-time features, Li et al. [25] progressively narrowed the voltage window and
+evaluated candidates using Pearson correlation coefficient (PCC) values from multiple cells in the same group, aiming
+to extract charging-time features highly correlated with SOH from shorter charging segments.
+
+      Different types of operating data and the curves derived from them reflect different aspects of battery degradation.
+To use this information more fully, some studies construct candidate health indicators from multiple operating signals
+and further optimize model inputs. For example, Dai et al. [44] extracted health indicators from voltage, current, tem-
+perature, incremental capacity, and differential thermal voltammetry curves and calculated statistical features such as
+the per-cycle means and medians of these indicators. They then compared estimation errors for different combinations
+of statistical features to determine the inputs for SOH estimation. Lin et al. [45] constructed multiple features from
+electrical, thermodynamic, and electrochemical perspectives, used principal component analysis to reduce dimension-
+ality, and optimized the number of retained dimensions with simulated annealing, thereby reducing redundancy and
+
+                                                                 3
+improving SOH estimation performance.
+      A single health indicator contains relatively limited degradation information, whereas multi-source features can
+
+describe complementary aspects of battery degradation. However, adding more candidate indicators does not necessar-
+ily improve estimation accuracy. Indicators with weak representational ability, inconsistent performance across cells,
+or redundant information may limit the effective use of multi-source information and increase the model's learning
+burden. Therefore, a health indicator selection algorithm should be developed to jointly evaluate candidates' correla-
+tions with SOH, performance across cells, and redundancy among indicators. It should retain indicators with stable
+representational ability and reduce inputs weakly correlated with SOH or containing redundant information, helping
+the model learn battery degradation patterns more effectively.
+
+      A comparison of existing SOH estimation methods is summarized in Table 1. The table compares the source sig-
+nals, HI-selection strategies, model architectures, and whether computational efficiency is evaluated. Given differences
+in battery chemistries and operating conditions, the ability of selected indicators to represent degradation consistently
+across cells warrants further attention. In addition to estimation performance, model complexity is directly related
+to practical deployment. In recent years, a notable trend in deep model design has been to increase network depth,
+expand model size, or introduce more complex structures for feature interaction to enhance representational capac-
+ity. These designs help models better capture complex degradation patterns but usually come with higher parameter
+counts, computational costs, and storage requirements. Therefore, SOH estimation models need to become more com-
+pact and efficient while retaining effective representational capacity to meet the real-time estimation requirements of
+resource-constrained BMS.
+
+Table 1
+Comparison of existing SOH estimation methods.
+
+Reference     Source data considered     HI selection method           Estimation model (original   Efficiency
+                                         (author-designed)             design)                      considered
+[46]
+[25]        Current Voltage Temperature                                                                  
+[33]                                                                                                     
+[31]                                     PCC ()                        PINN ()                           
+[47]                                                                                                     
+                                         PCC ()                        BMSFormer ()                      
+[21]
+[32]                                     PCC + SCC ()                  BiGRU-Transformer ()              
+[45]                                                                                                     
+[48]                                     PCC ()                        Transformer ()                    
+[49]                                                                                                     
+                                         FOI monotonicity analysis     Linear regression ()              
+[50]
+[51]                                     ()                                                              
+[52]                                                                                                     
+[42]                                     LC ()                         Random Forest Regression ()       
+[44]                                                                                                     
+                                         PCC ()                        CNN-Transformer ()                
+[43]
+                                         SA­PCA ()                     CNN ()                            
+This study
+                                         PCC ()                        BiLSTM-Transformer ()             
+
+                                         Interval selection + feature  GWO-LSSVM-AdaBoost ()
+
+                                         fusion ()
+
+                                         PCC + input comparison () AST-LSTM ()
+
+                                         PCC ()                        LSTM-LAM ()
+
+                                         PCC + SCC ()                  BAS-ELM ()
+
+                                         CCCT window search ()         Random Forest Regression ()
+
+                                         Statistical feature combination NGO-Dualkernel-GPR ()
+
+                                         optimization ()
+
+                                         QPSO interval optimization LSTM-BP ()
+
+                                         ()
+
+                                         Multi-source health indicator MS-AgentNet ()
+
+                                         extraction and optimization
+
+                                         algorithm ()
+
+1.2 Challenges and contributions
+
+      Three main challenges facing existing methods are summarized as follows.
+      (1) Cross-cell stability of health indicators. Raw data collected from multiple sensors contain diverse features
+
+                                                                 4
+related to degradation. The relationship between a candidate health indicator and SOH may vary across cells, and
+an indicator that performs well on one cell may not retain the same representational ability on others. PCC and the
+Spearman correlation coefficient (SCC) evaluate linear and monotonic relationships, respectively using only one makes
+it difficult to assess both aspects. Moreover, even indicators strongly associated with SOH may contain redundant
+information. Model input selection therefore needs to consider both correlations across cells and redundancy among
+indicators to reduce its dependence on the performance of a single cell.
+
+      (2) Fusion of local and long-term degradation information. As cycling progresses, battery capacity generally
+declines, with fluctuations between neighboring cycles and local capacity recovery. Local features reflect short-term
+changes, but capturing long-term capacity fade trends also requires connections across cycles. When aggregating
+information across cycles, local degradation details must be retained so that short-term changes are not weakened.
+Therefore, the model needs not only to extract degradation features at different time scales but also to make local
+variations and long-term trends complement each other to improve SOH estimation accuracy.
+
+      (3) Computational complexity limitations. Many existing deep learning models improve SOH estimation ac-
+curacy by increasing network depth or combining different network structures. These approaches increase the number
+of model parameters and computational operations. Recurrent structures require sequential computation over time
+steps, while standard self-attention computes pairwise relationships among all sequence positions, with time and mem-
+ory complexity growing quadratically with sequence length. These costs increase the operating burden on resource-
+constrained BMS and limit the deployment of online SOH estimation models.
+
+      To address these challenges, this paper proposes a lithium-ion battery SOH estimation framework built around
+MS-AgentNet. The framework contains two components: group-level health-indicator calibration and selection, and a
+lightweight network that models local variations and longer-term trends with low computational overhead. The main
+contributions are as follows.
+
+      (1) A multi-source health indicator extraction and optimization algorithm is proposed. The algorithm first
+extracts multiple types of candidate health indicators from charge-discharge data and their derived curves. MS-CCCT
+then calibrates the voltage window for the charging-time feature. The algorithm uses correlation results from the
+feature-development cells to evaluate each candidate's association with SOH and its redundancy with other indicators.
+It then applies PCC and SCC thresholds and redundancy constraints to select the indicators. The same selection rules
+determine a final HI subset for each dataset, and the selected indicators retain strong linear and monotonic correlations
+with SOH on other cells in that dataset.
+
+      (2) A lightweight local-global network, MS-AgentNet, is constructed. To represent both long-term battery
+degradation trends and short-term capacity fluctuations, small-kernel depthwise separable convolutions are combined
+with ReLU2 agent attention to form a Local-Global Fusion Attention (LGFA) module, integrating local feature extrac-
+tion and global context modeling with low parameter overhead. The model further introduces large-kernel depthwise
+separable convolutions, which work with the small-kernel convolutions to extract degradation features at different
+time scales. With a fixed number of agents and feature dimension, its attention computation reduces the complexity
+with respect to sequence length from O(N 2) for standard self-attention to O(N ). These designs aim to balance SOH
+estimation accuracy with computational and storage overhead.
+
+      (3) Comprehensive validation is conducted on four public datasets. The method is evaluated on four public
+battery datasets with different chemistries, capacities, and cycling protocols. These experiments assess estimation ac-
+curacy, cross-cell generalization, ablation behavior, and computational complexity. Cross-dataset transfer experiments
+further examine the model's transfer performance across different data domains. The results show that the proposed
+model maintains high SOH estimation accuracy with low computational and storage overhead.
+
+                                                                 5
+Fig. 1. Flowchart of the developed SOH estimation approach.
+
+2. Methodological framework and data preparation
+2.1 Overview of the SOH estimation framework
+
+      To use a consistent definition in the following experiments, SOH is calculated as capacity retention, namely the
+ratio of the current available capacity to the rated capacity [9, 22]:
+
+SOH = Ccurrent × 100%,                                                                                            (1)
+Crated
+
+where Ccurrent and Crated denote the current available capacity and rated capacity of the battery, respectively.
+The proposed SOH estimation framework is shown in Fig. 1.
+
+(1) Data acquisition. Public battery aging data covering different battery chemistries and operating conditions are
+
+selected to obtain cycle records of voltage, current, temperature, time, and capacity during charge-discharge cycling.
+
+(2) Systematic feature engineering. The proposed multi-source health indicator extraction and optimization
+
+algorithm constructs a pool of multi-source candidate HIs from these data and determines the model inputs through
+
+6
+group-level calibration and selection. A sliding window is then used to segment the HI time series. Each window is
+paired with the SOH of the next cycle to form an input sample and its label.
+
+      (3) Model training. Samples of the selected HIs are fed into MS-AgentNet. Model parameters are learned on the
+training cell, while the validation cell is used for validation and comparison to select the best-performing hyperparameter
+configuration. The selected model is then directly tested on the remaining cells in the corresponding dataset.
+
+      (4) Model evaluation. The SOH estimation accuracy, cross-cell generalization, and computational and storage
+overhead of the different models are evaluated. Ablation studies are further conducted to analyze the roles of key
+modules, and cross-dataset transfer experiments are used to examine cross-domain adaptation.
+
+2.2 Typical battery datasets
+
+      Four public battery aging datasets, Oxford, CALCE CS2, CALCE CX2, and MIT/Severson (hereafter MIT), are
+selected to examine the generalization capability of the proposed method across different battery systems and operating
+conditions. These datasets include pouch, prismatic, and cylindrical cells and differ considerably in battery chemistries,
+nominal capacities, and operating conditions, providing diverse experimental data for model evaluation under different
+battery degradation scenarios. Their main characteristics are summarized in Table 2. Fig. 2(a)­(d) shows the capacity
+degradation curves of the selected cells, and Fig. 2(e)­(h) presents the charging voltage curves of a representative cell
+from each dataset at different SOH levels. Details of each dataset are given below.
+
+(1) Oxford dataset
+
+      The Oxford dataset is provided by the Battery Intelligence Laboratory at the University of Oxford and contains
+aging data from 8 Kokam SLPB533459H4 lithium-ion pouch cells, each with a nominal capacity of 0.74 Ah [41]. The
+cathode is a blend of lithium nickel cobalt oxide (NCO) and lithium cobalt oxide (LCO), and the anode is graphite [53].
+The aging tests were conducted at a constant temperature of 40 . The cells were charged to 4.2 V using a constant-
+current­constant-voltage protocol and then discharged following a dynamic current profile derived from the urban
+ARTEMIS drive cycle until the voltage reached 2.7 V [54]. Aging records from cycling tests on all 8 cells, Cell1­
+Cell8, are included in the experiments.
+
+(2) CALCE dataset
+
+      The CALCE dataset is provided by the Center for Advanced Life Cycle Engineering at the University of Maryland
+and contains aging data from two groups of prismatic lithium-ion cells, CS2 and CX2 [54,55]. Both groups use lithium
+cobalt oxide (LCO) as the cathode material, with nominal capacities of 1.1 Ah for CS2 and 1.35 Ah for CX2. All
+aging tests were conducted at room temperature, and the cells were charged to 4.2 V using a constant-current­constant-
+voltage protocol. Both CS2 and CX2 were discharged at a constant current of 1C to 2.7 V. Aging records from cycling
+tests on 6 cells, CS2_36­CS2_38 and CX2_36­CX2_38, are included in the experiments.
+
+(3) MIT/Severson dataset
+
+      The MIT/Severson dataset was jointly released by the Massachusetts Institute of Technology, Stanford University,
+and Toyota Research Institute [56]. It uses A123 APR18650M1A 18650 cylindrical lithium-ion cells, each with a
+nominal capacity of approximately 1.1 Ah, a lithium iron phosphate (LFP) cathode, and a graphite anode. The aging
+tests were conducted at a constant temperature of 30 . Three cells, b3c8, b3c13, and b3c29, are included in the
+experiments. All three cells followed two-step fast-charging protocols: 5.3C (54% SOC)­4C for b3c8 and 5.6C (36%
+SOC)­4.3C for b3c13 and b3c29. After reaching 80% SOC, the cells were charged at a constant current of 1C to 3.6
+V, followed by constant-voltage charging. Discharging was performed at a constant current of 4C with a cutoff voltage
+of 2.0 V.
+
+                                                                 7
+Table 2
+Description of the four battery datasets.
+
+Data Sources         Oxford [53]           CALCE CS2 [54, 55]  CALCE CX2 [54, 55]  MIT/Severson [56]
+                     Kokam
+Manufacturer         Pouch                 LG Chem             LG Chem             A123 Systems
+Cell types           NCO-LCO               Prismatic           Prismatic           18650 cylindrical
+Cathode material     0.74                  LCO                 LCO                 LFP
+Rated capacity (Ah)  70%                   1.10                1.35                1.10
+Capacity failure                           0.84 Ah (76.4%)     1.08 Ah (80%)       80%
+threshold            CC (2C)
+Charge protocol                            CC-CV               CC-CV               Two-step fast charge
+(rate)               Dynamic current       (0.5C, 4.2 V)       (0.5C, 4.2 V)       + CC-CV (1C, 3.6 V)
+Discharge protocol   profile
+(rate)               charge to 4.2         CC (1C)             CC (1C)             CC (4C)
+Cut-off voltage (V)  discharge to 2.7
+                     --                    charge to 4.2       charge to 4.2       charge to 3.6
+Cut-off current (A)                        discharge to 2.7    discharge to 2.7    discharge to 2.0
+                                           charge to 0.05      charge to 0.05
+Experiment           40                                                            charge to 0.022
+                                           24                  24                  (C/50)
+
+                                                                                   30
+
+temperature (C)
+
+ Fig. 2. Four battery datasets: (a)­(d) capacity degradation curves of Oxford, CALCE CS2, CALCE CX2, and MIT/Severson cells,
+                              respectively (e)­(h) charging voltage curves of the four datasets in the same order.
+
+2.3 Feature engineering
+
+      This section presents the multi-source health indicator extraction and optimization algorithm for constructing the
+inputs to the SOH estimation model. The algorithm first constructs a pool of multi-source candidate HIs from charge-
+discharge data and then determines the model inputs through group-level calibration and selection. Specifically, MS-
+CCCT calibrates the CCCT voltage window, and PCC/SCC results on the feature-development cell set are used for
+dual-threshold admission and redundancy removal to determine the inputs for each dataset.
+
+2.3.1 Health indicator extraction
+
+      Charging voltage­time (CVT), incremental capacity (IC), differential temperature­voltage (DTV), and differen-
+tial temperature­capacity (DTC) curves are constructed from voltage, current, temperature, time, and capacity data col-
+lected during battery cycling, as shown in Fig. 3(a)­(d). Features describing duration, amplitude, characteristic position,
+and distribution width are extracted based on how these curves change with aging. Discharge capacity within a voltage
+window and charge-discharge energy efficiency are also calculated, forming a pool of 15 candidate HIs [39,42,57,58].
+
+                                                                 8
+Their definitions and categories are listed in Table 3.
+      The charging voltage­time (CVT) curve records changes in terminal voltage over time during constant-current
+
+charging and can be obtained directly from voltage and time samples. As cycling progresses, the CVT curve gradually
+shifts along the time axis, as shown in Fig. 3(a). This shift appears as a continuous change in charge duration within
+a fixed voltage interval as the battery ages. Increased polarization and capacity fade caused by battery aging jointly
+change this charging process [39, 42]. Accordingly, CCCT is defined as:
+
+                               CCCT (V1, V2) = t(V2) - t(V1),           (2)
+
+      where t(V1) and t(V2) are the times when the charging voltage reaches V1 and V2, respectively. The CCCT voltage
+interval is calibrated by MS-CCCT, as described in Section 2.3.2, and the resulting charging-time feature is denoted as
+HI1.
+
+      In addition to charging-time features, changes in capacity with voltage also contain battery degradation infor-
+mation. The incremental capacity (IC) curve is a well-established tool for analyzing electrochemical degradation in
+batteries. Differentiating capacity with respect to voltage converts relatively flat charging voltage plateaus into more
+distinct peaks whose positions and shapes change with battery aging [39, 40]. IC is expressed as:
+
+                                               IC = dQ  Qk+N - Qk ,     (3)
+                                               dV Vk+N - Vk
+
+where Vk and Qk are the terminal voltage and charge capacity at the kth sampling point, respectively, and N is
+
+the interval between the two sampling points. Across cycles, the peak value, characteristic position, and distribution
+
+width of the IC curve change with aging, as shown in Fig. 3(b). The peak value, voltage corresponding to the peak,
+
+and full width at half maximum of the IC curve are therefore extracted and defined as HI2, HI3, and HI4, respectively.
+
+Temperature is another important measure of the internal state of a battery. During constant-current charging,
+
+the battery surface temperature usually changes slowly, making small aging-related differences in thermal response
+
+difficult to identify directly from the raw temperature curve. To identify these differences, Wu et al. [58] proposed
+
+differential temperature­voltage (DTV) analysis. By calculating the rate of change in battery surface temperature with
+
+respect to voltage during charging, this method maps the thermal response to the voltage domain, producing a curve
+
+with peaks and valleys that change with aging [39]. DTV is defined as:
+
+                               DT V = dT  Tk+N - Tk ,                   (4)
+                                               dV Vk+N - Vk
+
+      where Vk and Tk are the terminal voltage and battery surface temperature at the kth sampling point, respectively,
+and N is the interval between the two sampling points. To reduce the effect of noise introduced by differencing, the
+
+DTV curve is smoothed using a moving average with a window size of 200 sampling points. Across cycles, the peak
+
+and valley values and characteristic positions of the DTV curve change with aging, as shown in Fig. 3(c). The peak
+
+value (HI5), voltage corresponding to the peak (HI6), valley value (HI7), voltage corresponding to the valley (HI8), and
+
+peak-to-valley difference (HI9) are extracted to describe the amplitude, characteristic positions, and range of variation
+
+of the thermal response [39].
+
+While DTV characterizes the thermal response in the voltage domain, DTC characterizes it in the charge capacity
+
+domain. With charge capacity as the independent variable, DTC describes how the rate of temperature change evolves
+
+with capacity and is defined as follows [39]:
+
+                               DT C = dT  Tk+N - Tk ,                   (5)
+                                               dQ Qk+N - Qk
+
+where Tk and Qk are the battery surface temperature and charge capacity at the kth sampling point, and N is the
+
+interval between the two sampling points. The DTC curve is also smoothed using a moving average with a window
+
+size of 200 sampling points. The DTC curves in Fig. 3(d) likewise show changes in peak value, characteristic position,
+
+and distribution width across cycles. Accordingly, the peak value, capacity corresponding to the peak, and full width
+
+                                               9
+at half maximum are extracted and defined as HI10, HI11, and HI12.
+      Discharge capacity within a voltage window is obtained by integrating the discharge current over a specified
+
+voltage interval and is defined as:
+
+                                               1                          |Idch(t)| dt,                                    (6)
+                Qdch(Vh, Vl) = 3600
+                                                      {t: VlVdch(t)Vh}
+
+      where Vdch(t) and Idch(t) are the discharge voltage and current, respectively, and integration is performed over
+the discharge time segments in which the voltage lies within [Vl, Vh]. Time is measured in s, and Qdch is measured in
+Ah. Two candidate indicators of discharge capacity within a voltage window are further constructed by calculating the
+
+charge released as the terminal voltage decreases from 3.80 V to 3.40 V and from 3.20 V to 3.00 V. These indicators
+
+are denoted as HI13 and HI14, respectively [25, 57].
+
+Energy efficiency is defined as the ratio of discharge energy to charge energy in a single cycle [59]:
+
+                                            = Edch =  tdch  Vdch(t)  |Idch(t)| dt  ,                                       (7)
+                                                 Ech  0              |Ich(t)| dt
+
+                                                      tch   Vch(t)
+                                                      0
+
+where Vch(t), |Ich(t)|, and tch denote the terminal voltage, current magnitude, and duration of charging, respec-
+
+tively Vdch(t), |Idch(t)|, and tdch denote those of discharging. The full charge-discharge phases of each cycle are used.
+
+This energy efficiency is denoted as HI15 ().
+
+Table 3
+Multi-source candidate health indicators.
+
+No.   Category                             Description of Health Indicators
+
+HI1   CVT                                  Constant current charge time within the voltage interval calibrated by MS-CCCT
+HI2   IC                                   Peak value of the IC curve
+HI3   IC                                   Voltage corresponding to the IC peak
+HI4   IC                                   Full width at half maximum of the IC peak
+HI5   DTV                                  Peak value of the DTV curve
+HI6   DTV                                  Voltage corresponding to the DTV peak
+HI7   DTV                                  Valley value of the DTV curve
+HI8   DTV                                  Voltage corresponding to the DTV valley
+HI9   DTV                                  Peak-to-valley difference of the DTV curve
+HI10  DTC                                  Peak value of the DTC curve
+HI11  DTC                                  Capacity corresponding to the DTC peak
+HI12  DTC                                  Full width at half maximum of the DTC peak
+HI13  Discharge capacity within a          Discharge capacity within 3.80­3.40 V
+      voltage window
+HI14  Discharge capacity within a          Discharge capacity within 3.20­3.00 V
+      voltage window
+HI15  Energy efficiency                    Ratio of discharge energy to charge energy in a single cycle
+
+                                                      10
+Fig. 3. Charge-side characteristic curves used for candidate HI construction: (a) CVT, (b) IC, (c) DTV, and (d) DTC.
+
+2.3.2 Group-Level Dual-Correlation MS-CCCT
+
+      Constant current charge time can reflect changes in battery capacity with cycling, but its correlation with SOH de-
+pends on the voltage interval used for extraction. Some studies directly extract charging-time features from predefined
+local voltage intervals [41, 42]. However, degradation-sensitive intervals differ across datasets, and a fixed window
+used for one dataset is difficult to apply directly to others. To improve the correlation between CCCT and SOH and
+its stability across cells within the same dataset, this study proposes a group-level dual-correlation multi-scale search
+method (MS-CCCT). Two cells from the same dataset form the feature-development set B. Correlation results within
+this set are used to construct a group-level robust score, which determines the extraction window for HI1.
+
+      Most existing CCCT window optimization methods use PCC to evaluate candidate intervals [25, 43]. PCC is a
+common statistical measure of the strength of the linear correlation between CCCT and SOH. However, it is sensitive
+only to linear changes and is insufficient on its own to characterize monotonic nonlinear relationships. SCC specifically
+measures monotonic relationships between variables and is suitable for characterizing such nonlinear features. Both
+PCC and SCC are used to evaluate candidate windows, accounting for the linear correlation and monotonic relationship
+between CCCT and SOH [19, 45, 60]. The PCC i,j and SCC i,j of the ith candidate window on the jth cell in B are
+defined as
+
+       nj
+
+          (fi,j,k - f¯i,j )(yj,k - y¯j )
+
+i,j =  k=1                                     ,                                                                      (8)
+
+       nj       nj
+
+            (fi,j,k - f¯i,j )2 (yj,k - y¯j )2
+
+       k=1      k=1
+
+            11
+       nj
+
+           R(fi,j,k) - R¯(fi,j ) R(yj,k) - R¯(yj )
+
+i,j =  k=1                                                    ,                                            (9)
+
+       nj                            nj
+
+            R(fi,j,k) - R¯(fi,j ) 2       R(yj,k) - R¯(yj) 2
+
+       k=1                           k=1
+
+      where fi,j,k is the CCCT extracted from the ith candidate window at the kth cycle of the jth cell, yj,k is the SOH
+of the corresponding cycle, and nj is the number of valid cycles for that cell. f¯i,j and y¯j are the mean CCCT and SOH,
+respectively, and R(·) denotes the ranking operation. Both PCC and SCC range from -1 to 1, with absolute values
+closer to 1 indicating stronger correlations.
+
+      To account for the correlation performance of each candidate window on both cells, its minimum absolute PCC
+and minimum absolute SCC within B are calculated:
+
+mP CCi = min |i,j|,          mSCCi = min |i,j|.
+
+                     jB                          jB
+
+The smaller of these two values is then used as the group-level robust score of the ith candidate window:
+
+            Si = min(mP CCi, mSCCi).                                                                       (10)
+
+      This score is determined by the lowest correlation across the two cells, preventing a locally high correlation on
+a single cell from dominating window selection and allowing the selected window to maintain strong correlations on
+both cells.
+
+      MS-CCCT uses a three-stage coarse-to-fine search. For the Oxford dataset, the initial search range is 3.50­4.20
+V. Stage R1 uses a window width of 0.40 V and a step size of 0.20 V for coarse localization, and the window with the
+highest robust score becomes the search region for the next stage. Stage R2 searches this region using a window width
+of 0.20 V and a step size of 0.05 V. Stage R3 further refines the search using a window width of 0.10 V and a step size
+of 0.05 V. If the robust score obtained in R3 exceeds that in R2, the R3 window is selected otherwise, the R2 result is
+retained.
+
+      For the Oxford dataset, the 3.55­3.75 V window is finally selected with the highest robust score of 0.994447, and
+its constant current charge time series is used as HI1.
+
+2.3.3 Health indicator selection
+
+      HI selection is a key step in lithium-ion battery SOH estimation [39, 45], as the quality of the selected indicators
+directly affects the final estimation accuracy. Following HI1 window calibration, 15 features based on constant current
+charge time, IC, DTV, DTC, discharge capacity within a voltage window, and energy efficiency are considered as
+candidate HIs. Using the same group-level correlation evaluation, PCC and SCC are calculated both between each
+candidate HI and SOH and between different candidate HIs.
+
+      The correlation results for Oxford Cell1 and Cell2 are shown in Fig. 4, including both PCC and SCC between
+candidate HIs and SOH and among the candidate HIs. The lower triangle of each matrix lists the correlation coefficients,
+while circle size and color in the upper triangle encode correlation strength. Larger, darker circles indicate stronger
+correlations between the corresponding variables.
+
+      The same candidate HI does not show identical correlation performance on the two cells. For HI5 (DTV peak
+value), the absolute PCC and SCC are 0.949 and 0.966 on Cell1 but decrease to 0.898 and 0.902 on Cell2. In contrast,
+HI1 maintains high correlations on both cells. Based on the results for Cell1 alone, HI5 would appear to be strongly
+correlated, but this result does not reflect its correlation level on Cell2. Thus, a correlation ranking based on a single
+cell cannot fully represent the performance of candidate HIs on other cells.
+
+      Existing studies usually select HIs based on the magnitude of their correlation coefficients. When the correlation
+distributions of candidate HIs change with battery chemistry, operating temperature, or other conditions, the selection
+results can be sensitive to the data conditions. An indicator that performs well under one condition may become less
+
+                         12
+     applicable to other cells or operating conditions. To improve the robustness of HI selection to differences between indi-
+     vidual cells and operating conditions, a selection strategy that accounts for the characteristics of correlation distributions
+     is needed.
+
+(a)  (b)
+
+(c)  (d)
+
+       Fig. 4. Correlation matrices of candidate HIs and SOH on the Oxford dataset: (a) Cell1, PCC (b) Cell1, SCC (c) Cell2, PCC (d)
+                                                                              Cell2, SCC.
+
+           Accordingly, this study develops a group-level HI selection method. It first considers PCC and SCC on both cells
+     in the feature-development set and retains only candidate HIs that meet all correlation requirements. The correlation
+     matrices also show high correlations between some candidate HIs, indicating redundant information in the candidate
+     pool. The retained HIs are ranked by correlation strength, and features highly correlated with already selected HIs are
+     further removed to reduce redundancy while preserving feature diversity. The specific selection criteria, thresholds,
+     and complete procedure are given in Table 4.
+
+           After correlation-based admission and redundancy removal, HI1 is retained for the Oxford dataset. Its absolute
+     PCC values on Cell1 and Cell2 are 0.998759 and 0.997322, and its absolute SCC values are 0.998710 and 0.994447,
+
+                                                                      13
+respectively. All four coefficients are close to 1 and differ only slightly between the two cells, indicating that HI1 is
+highly sensitive to SOH changes during degradation and has good cross-cell consistency.
+
+      HI selection is performed only during feature development. Once the indicators are determined, their definitions
+and calculation parameters remain fixed and are directly applied to feature extraction for the other cells in the corre-
+sponding dataset without correlation-based selection, threshold determination, or HI reselection.
+
+      With its definition fixed, HI1 achieves absolute PCC values of 0.997874­0.999337 on Cell3­Cell8. Comparisons
+with existing HIs are presented in Table 5. Its correlations exceed the reported values for the listed sample entropy,
+DTV/IC features, and charging voltage curve slopes on the corresponding cells, showing that HI1 maintains high linear
+correlations on the remaining six cells.
+
+Table 4
+Group-level health indicator selection steps.
+
+Procedure: Group-level health indicator selection
+
+1. Calculate the PCC and SCC of each candidate HI on the cells in the feature-development set B.
+2. Obtain mP CCi = minjB |i,j | and mSCCi = minjB |i,j | for each candidate HI fi.
+3. Retain the HIs satisfying mP CCi  lin and mSCCi  mono, where lin = 0.92 and mono = 0.96, and sort them in descending
+order according to Ri = max(mP CCi, mSCCi).
+4. Initialize the selected HI set S = .
+5. For each retained candidate HI fi:
+
+   compare fi with each HI already contained in S
+   if their group-average absolute PCC and SCC both reach co = 0.95, remove fi
+   otherwise, add fi to S.
+6. Output the final HI subset S.
+
+Table 5
+Absolute PCC comparison of different HIs on the Oxford dataset.
+
+Cell       HI    Sample entropy  P PDTV                            PIC   DTV peak position  Voltage slope
+                        [61]      [62]                            [62]        F V6 [63]          [64]
+Cell3  0.999052
+Cell4  0.998933       0.9876     0.9393                          0.9729          0.964          0.9980
+Cell5  0.997874       0.9885     0.9102                          0.9817          0.972            --
+Cell6  0.998257       0.9133     0.9574                          0.9034                           --
+Cell7  0.999337       0.9848     0.9299                          0.9788            --             --
+Cell8  0.999259       0.9896     0.9676                          0.9748            --
+                      0.9908     0.9654                          0.9713          0.983          0.9982
+                                                                                 0.981          0.9979
+
+3. The proposed MS-AgentNet model
+
+      A lightweight Multi-Scale Agent Network (MS-AgentNet) is proposed to represent both local variations and long-
+term trends in battery degradation while reducing the computational overhead of sequence modeling. The name MS
+refers to the multi-scale convolutional design comprising small-kernel DSConv-S and large-kernel DSConv-L, which
+extracts degradation features at different scales with low parameter overhead. Local-Global Fusion Attention (LGFA)
+combines local convolutional enhancement with efficient attention to connect local degradation information with con-
+text across cycles. The following subsections describe the MS-AgentNet architecture, its multi-scale depthwise sepa-
+rable convolutions, and the LGFA module.
+
+3.1 Architecture overview of MS-AgentNet
+
+      The overall architecture of MS-AgentNet is shown in Fig. 5. Health indicator (HI) sequences are divided into
+sample segments using a sliding window, mapped to a d-dimensional feature space through a linear embedding layer,
+and fed into an MS-AgentNet Block. The Block output passes through layer normalization, flattening, and a linear
+readout layer to produce the SOH estimate. During training, the true SOH of the cycle immediately following each
+input window is used as the supervision label.
+
+                                         14
+      Mathematically, let the input to the lth MS-AgentNet Block be Xl  RB×N×d, where B is the batch size, N is
+the input sequence length, and d is the feature embedding dimension. The Block transforms the features in three steps:
+
+      Step 1: Local-global feature fusion. The input Xl is processed by LGFA, which combines DSConv-S for lo-
+cal degradation feature extraction with ReLU2 Agent Attention (RAA) for global context modeling within the input
+window:
+
+Xl = LGFA(Xl).                    (11)
+
+      Step 2: Feature refinement over longer time scales. The LGFA output Xl passes through layer normalization
+and then DSConv-L to extract degradation features over longer time scales. The DSConv-L output is scaled by Wl and
+added to Xl through a residual connection:
+
+Xl = Xl + Wl DSConv-L (LN(Xl)) .  (12)
+
+      Step 3: Nonlinear mapping. The features Xl are processed by LN0 and then a feedforward neural network
+(FFN). The result is added to Xl through a residual connection to produce the Block output Yl:
+
+Yl = Xl + FFN (LN0(Xl)) .         (13)
+
+      The output Yl is used as the input to the next Block, i.e., Xl+1 = Yl. Here, Wl is a learnable scaling factor. Both
+LN and LN0 denote layer normalization, but LN0 uses no additional scale or bias parameters.
+
+                 Fig. 5. Framework of MS-AgentNet. (a) Overall architecture (b) core structure (c) DSConv-L module.
+
+3.2 The designed multi-scale depthwise separable convolution modules
+
+      To balance feature extraction capability and computational efficiency, small- and large-kernel depthwise separable
+convolutions are used to capture multi-scale local dependencies, enhancing feature diversity while limiting parameter
+overhead. This section first introduces the computational characteristics of standard and depthwise separable convolu-
+tions, followed by the configurations and roles of DSConv-S and DSConv-L.
+
+3.2.1 Basic DSConv structure and computational cost comparison
+
+      Convolution extracts local information from time series through sliding kernels. Standard convolution operates
+across all input channels, with each kernel producing one output feature map corresponding to one output channel. As
+the numbers of input and output channels and the kernel size increase, the parameter count and computational overhead
+
+                                                                 15
+grow rapidly, substantially increasing the computational load and training time. A larger parameter count may also
+increase the risk of overfitting on small-sample battery datasets. The computational cost of standard convolution can
+be expressed as:
+
+       CConv = k × k × Cin × Cout × DF × DF .                             (14)
+
+      where k, Cin, Cout, and DF denote the kernel size, number of input channels, number of output channels, and
+feature map size, respectively.
+
+      Unlike standard convolution, depthwise separable convolution (DSConv) decomposes convolution into two
+stages: depthwise convolution and pointwise convolution [65]. Depthwise convolution applies a separate kernel to
+each input channel to extract local features within that channel. A 1 × 1 pointwise convolution then integrates features
+across channels and adjusts the number of channels to Cout. By separating within-channel feature extraction from cross-
+channel feature fusion, DSConv reduces the dense cross-channel operations required by standard convolution. The
+structures of standard convolution and depthwise separable convolution are illustrated in Fig. 6(a) and (b), respectively.
+Its computational cost can be expressed as:
+
+CDSConv = k × k × Cin × DF × DF + Cin × Cout × DF × DF .                  (15)
+
+The ratio of the computational costs of the two types of convolution is:
+
+CDSConv = k × k × Cin × DF × DF + Cin × Cout × DF × DF
+CConv            k × k × Cin × Cout × DF × DF
+       11                                                                 (16)
+
+       = Cout + k2 .
+
+Equation (16) shows that, with the same input and output channel configurations, DSConv has a lower computa-
+
+tional cost than standard convolution, providing the basis for the small- and large-kernel modules described below.
+
+3.2.2 DSConv-S: Dual-role local enhancement
+
+      Small-kernel DSConv-S uses a compact 1 × 5 depthwise convolution and is embedded in LGFA before the global
+interactions in RAA. The structure of DSConv-S is illustrated in Fig. 6(c). It serves two roles: input enhancement and
+
+local feature preservation:
+      1. Input enhancement. To extract fine-grained degradation information from health indicator sequences,
+
+DSConv-S models local relationships between the feature representations of neighboring cycles to form a locally
+
+enhanced representation XS. Depthwise convolution extracts local dependencies within each channel, while point-
+wise convolution integrates features across channels. RAA then constructs queries, keys, and values from XS. This
+convolution thus supplies local context before RAA aggregates information across cycles.
+
+      2. Local feature preservation. Alongside information interactions across cycles, XS passes through layer nor-
+malization and is sent directly through the local branch to the fusion stage, where it is added to the RAA branch output.
+
+This path combines the locally enhanced health indicator representation with the global context established by RAA
+within the input window to form a joint local-global representation for SOH estimation.
+
+      DSConv-S uses a channel expansion factor of two. The input features are X  RB×N×d, where B, N , and d
+denote the batch size, sequence length, and embedding dimension, respectively. The input is first transposed so that
+the embedding dimension becomes the convolutional channel dimension. The first 1 × 1 pointwise convolution then
+expands the channel dimension to 2d:
+
+       Y1 = PW (T (X))  RB×2d×N .                                         (17)
+
+      The expanded features pass through a 1 × 5 depthwise convolution, which processes the sequence features inde-
+pendently within each channel to extract information from a short local neighborhood:
+
+                      16
+Y2 = DW5(Y1)  RB×2d×N .                                                                                 (18)
+
+A ReLU activation is then applied to introduce nonlinearity:
+
+Y3 = ReLU(Y2).                                                                                          (19)
+
+      Next, the second 1×1 pointwise convolution integrates features across channels and restores the channel dimension
+to d:
+
+Y4 = PW(Y3)  RB×d×N .                                                                                   (20)
+
+      Finally, the output is transposed back to its original arrangement and combined with the input through a residual
+connection:
+
+XS = DSConv-S(X) = X + T -1(Y4).                                                                        (21)
+
+      where PW and PW denote the pointwise convolutions for channel expansion and restoration, respectively, DW5
+denotes the 1 × 5 depthwise convolution, and T (·) and T -1(·) denote the transpose and inverse transpose operations,
+respectively.
+
+      Computational analysis. With a channel expansion factor of two, the computational cost of DSConv-S mainly
+comes from two 1 × 1 pointwise convolutions and one 1 × 5 depthwise convolution and can be expressed as:
+
+Cin × 2Cout × DF × DF + 1 × 5 × 2Cout × DF × DF + 2Cout × Cout × DF × DF .                              (22)
+
+      where 2Cout and DF × DF denote the expanded number of channels and the feature map size, respectively.
+
+3.2.3 DSConv-L: Feature refinement over longer time scales
+
+      DSConv-S enhances local information before attention, while DSConv-L follows LGFA to further refine the fea-
+ture representation that combines local information and global context. A 1 × 1 pointwise convolution first expands the
+channel dimension by a factor of three to extract rich representations, followed by a 1 × 31 depthwise convolution that
+captures local sequential patterns over longer time scales within each channel. A second 1 × 1 pointwise convolution
+integrates these features across channels and restores the original channel dimension. The transformation order is the
+same as in DSConv-S. At the MS-AgentNet Block level, the convolution output is scaled by a learnable factor and
+added to the original LGFA output through a residual connection, incorporating the further extracted sequence features
+into the existing representation, as shown in Eq. (12). The small- and large-kernel convolutions thus jointly enrich
+multi-scale degradation representations for SOH estimation. The structure of DSConv-L is illustrated in Fig. 6(d).
+
+      Computational analysis. With a channel expansion factor of three, the computational cost of DSConv-L can be
+expressed as:
+
+Cin × 3Cout × DF × DF + 1 × 31 × 3Cout × DF × DF + 3Cout × Cout × DF × DF .                             (23)
+
+where 3Cout and DF × DF denote the expanded number of channels and the feature map size, respectively.
+
+17
+       Fig. 6. The fundamental structures of convolutional modules: (a) standard convolution (b) standard depthwise separable
+                                         convolution (c) DSConv-S module and (d) DSConv-L module.
+
+3.3 The proposed Local-Global Fusion Attention module
+
+      This section presents the general form of multi-head self-attention, briefly compares Softmax attention and linear
+attention, and introduces LGFA, which combines local feature extraction with global interactions that scale linearly
+with sequence length.
+
+3.3.1 General form of multi-head self-attention
+
+      Multi-head self-attention uses multiple parallel attention heads, each calculating correlations between features
+within a different representation subspace [29]. Given input features X  RN×d, the query, key, and value representa-
+tions of the ith attention head are:
+
+Qi = XWQi ,      Ki = XWKi ,                                 Vi = XWiV .             (24)
+
+      where N is the sequence length, d is the input feature dimension, and WQi , WiK , WVi  Rd×dh are learnable linear
+projection matrices. Here, i = 1, 2, . . . , h, h is the number of attention heads, and dh = d/h is the feature dimension
+of each head.
+
+When a nonnegative similarity function is used to construct normalized attention weights, the output at the pth
+
+position of the ith attention head can be expressed as:
+
+         N
+
+            Sim (Qi,p, Ki,j ) Vi,j
+
+Oi,p  =  j=1                                                 , p = 1, 2, . . . , N.  (25)
+              N
+
+                 Sim (Qi,p, Ki,j )
+
+         j=1
+
+      where Qi,p is the query at the pth position in the ith attention head, Ki,j and Vi,j are the key and value at the jth
+position, respectively, and Sim(·, ·) is a nonnegative similarity function.
+
+      The outputs at all positions form the output matrix Oi  RN×dh of the ith attention head. The outputs of all heads
+are then concatenated along the feature dimension. Attention mechanisms mainly differ in their similarity functions
+and computation order.
+
+3.3.2 Softmax attention and linear attention
+
+      Standard Softmax attention calculates correlations between sequence positions through query-key dot products
+and normalizes the similarity scores using the Softmax function [29]. The output of the ith attention head can be
+
+                                                         18
+expressed as:
+
+                                Oi = Softmax                 QiKiT  Vi.     (26)
+                                                                dh
+
+The exponential mapping and normalization in Softmax assign larger attention weights to more highly correlated
+
+query-key pairs. However, computing QiKiT requires pairwise similarity calculations between all queries and keys,
+forming an N × N attention score matrix. Thus, the computational complexity of one attention head is O(N 2dh), and
+the memory complexity of the attention score matrix is O(N 2). As the sequence length increases, the computational
+
+and storage overhead grows substantially [35].
+
+To address the quadratic computational cost of Softmax attention, linear attention maps queries and keys through a
+
+kernel function (·) and rearranges the computation order using the associative property of matrix multiplication [36].
+
+The output of the ith attention head can be written as:
+
+                                Oi =            (Qi) (Ki)TVi        .       (27)
+                                                 (Qi) [(Ki)T1]
+
+      where (·) is a nonnegative feature mapping, such as (x) = ELU(x) + 1, and 1 is an all-ones vector used to
+calculate the corresponding normalization term.
+
+      By first calculating (Ki)TVi, linear attention avoids constructing the full N × N attention matrix. When the
+feature mapping dimension equals dh, its computational complexity is O(N dh2 ). For a fixed dh, this complexity is
+linear in the sequence length N .
+
+      Linear attention enables global information interactions at a low computational complexity, but its computation
+does not explicitly incorporate local neighborhood features [25, 35, 39]. Modeling health indicator sequences con-
+structed from multi-source signals and their derived curves requires both capturing long-term battery degradation trends
+and retaining fine-grained degradation information in variations between neighboring cycles. Local feature extraction
+therefore needs to be combined with an efficient attention mechanism to balance degradation representation and com-
+putational efficiency.
+
+3.3.3 The proposed LGFA module
+
+      To address these requirements, small-kernel depthwise separable convolution (DSConv-S) is combined with
+ReLU² Agent Attention (RAA) to form the Local-Global Fusion Attention (LGFA) module, as shown in Fig. 7(d).
+DSConv-S first extracts local features, and the resulting representation is fed into the local and RAA branches. The
+local branch preserves local degradation information, while the RAA branch aggregates these features across sequence
+positions through agent aggregation and broadcasting. The outputs of the two branches are fused by addition.
+
+      (1) ReLU² Agent Attention.
+      RAA uses a small number of agents to mediate global interactions, avoiding direct pairwise attention between all
+sequence positions [66]. During agent aggregation, the agents gather information from the keys and values during
+information broadcasting, each query retrieves information from the agent context. Together, these two stages enable
+degradation-related information to be shared among health indicator representations within the input window, thereby
+establishing cross-cycle context.
+      In RAA, X denotes the input features. Within LGFA, this input is the local representation XS produced by DSConv-
+S. To reduce the parameter overhead of query, key, and value generation, RAA uses learnable channel scaling to adjust
+the relative contributions of different feature channels and splits the scaled features across attention heads:
+
+               Qi = Spliti(X  sq), Ki = Spliti(X  sk), Vi = Spliti(X  sv).  (28)
+
+      where sq, sk, sv  Rd are learnable channel scaling vectors,  denotes element-wise multiplication, and Spliti(·)
+divides the feature dimension into h subspaces of dimension dh and selects the ith subspace.
+
+      Compared with standard linear projections for queries, keys, and values, which require approximately 3d2 param-
+
+eters, the three channel scaling vectors contain only 3d parameters, reducing the parameter overhead of query, key, and
+
+                                                         19
+value generation.
+      RAA uses na = 2 learnable agents, represented by a matrix A  Rna×d. Their parameters are learned during
+
+training and shared across input samples.
+
+      The global agent matrix A is divided into h subspaces along the feature dimension. The agent representation for
+the ith attention head is Ai = Spliti(A)  Rna×dh .
+
+      During information broadcasting, each query assigns broadcasting weights according to how it matches the na
+agents. Standard Agent Attention uses Softmax normalization in both aggregation and broadcasting. When all scores
+
+in a row are reduced by a common positive scaling factor, the relative ratios between positive scores remain unchanged,
+
+but the weights approach a uniform distribution. The corresponding query therefore reads an increasingly equal mixture
+
+of the na agent contexts. To preserve the distinction between positive matches under such scale changes, RAA uses
+ReLU² row normalization in both stages:
+
+                                         ReLU(Zr,c)2         ,  M    ReLU(Zr,j )2  >  0,
+                                                                j=1
+                                         M    ReLU(Zr,j  )2
+               [R2(Z)]r,c        =       j=1                                                                         (29)
+
+                                      1  ,                      M    ReLU(Zr,j )2  =  0.
+                                                                j=1
+                                      M
+
+      where M is the number of elements normalized in each row: M = N during agent aggregation and M = na during
+information broadcasting. ReLU sets nonpositive similarity scores to zero. For a row containing positive scores, the
+
+squared common positive scaling factor cancels between the numerator and denominator. Thus, the weight distribution
+
+remains unchanged when all scores are scaled by the same positive factor. Squaring further increases the weight ratio
+
+between larger and smaller positive scores, giving greater emphasis to higher positive similarity scores. When a row
+
+contains no positive similarity scores, R2(·) returns a uniform distribution to keep the normalization valid.
+      During agent aggregation, Ai acts as the query to gather context from the sequence keys and values:
+
+                                 k,i = R2     AiKTi  ,          VA,i = k,iVi.                                        (30)
+                                                 dh
+
+where k,i  Rna×N contains the agents' aggregation weights for each sequence position, and VA,i  Rna×dh
+
+is the resulting agent context.
+
+During information broadcasting, each query position reads information from the agent context according to its
+
+own features:
+
+                                 q,i = R2     QiATi  ,          Oi = q,iVA,i.                                        (31)
+                                                 dh
+
+where q,i  RN×na contains the query-specific broadcasting weights over the agents, and Oi  RN×dh is the
+
+output of the ith attention head. ReLU² row normalization converts query-agent similarity scores into broadcasting
+
+weights, which combine the na agent contexts to form the corresponding global context representation.
+
+Equations (30) and (31) show that the agent-mediated sequence interaction in the ith attention head can be repre-
+
+sented by the equivalent mapping q,ik,i  RN×N , whose rank is at most the number of agents na. This equivalent
+matrix is not explicitly constructed the computation proceeds through agent aggregation and information broadcasting.
+
+The outputs of all attention heads are concatenated along the feature dimension. A learnable output scaling vector
+
+so then adjusts the channel responses, and the result is added to the input features through a residual connection:
+
+                                 RAA(X) = X + Concat(O1, . . . , Oh)  so.                                            (32)
+
+      where Concat(·) concatenates the outputs of all attention heads along the feature dimension, and so  Rd is a
+learnable output scaling vector.
+
+      RAA generates attention weight matrices of size na × N and N × na during aggregation and broadcasting,
+respectively. The computational complexity is therefore O(N nadh) for one attention head and O(N nad) for all h
+heads, while the memory required for the attention weights is O(hN na). For fixed d, h, and na, the computational
+
+                                                     20
+cost of the attention interactions and the memory required for the attention weights both grow linearly with the sequence
+length N .
+
+      (2) Local-global feature fusion.
+      The input features X first pass through DSConv-S to obtain the local representation XS = DSConv-S(X), which
+is then fed into the local and RAA branches. The local branch applies layer normalization to XS, while the RAA
+branch establishes cross-position feature interactions through agent aggregation and information broadcasting. The
+fused output XF of LGFA is calculated as:
+
+XF = LN(XS) + Wa Dropout (RAA(XS)) .  (33)
+
+      where XF is the fused LGFA output, LN(XS) is the normalized local branch representation, and RAA(XS) is the
+RAA branch output. Dropout(·) provides regularization during training [67], and Wa is a learnable scaling factor that
+adjusts the contribution of the RAA branch.
+
+      This additive fusion combines the local degradation features extracted by DSConv-S with the global context estab-
+lished by RAA, providing a joint local-global representation for SOH estimation while maintaining linear computational
+complexity with respect to the sequence length N .
+
+      Fig. 7. Comparison of (a) Softmax attention, (b) linear attention, (c) Agent Attention, and (d) the proposed LGFA module.
+
+4. Experimental results and analysis
+
+      This section systematically evaluates MS-AgentNet on four public battery datasets. The experiments cover HI ef-
+fectiveness, model performance comparisons, module ablation and complexity analysis, and cross-domain adaptation.
+The HI experiments examine whether the selected features can represent battery degradation patterns and thus provide
+suitable model inputs. The model comparisons assess estimation accuracy and stability across cells. Ablation studies
+further examine the individual and complementary effects of multi-scale local feature extraction and cross-cycle con-
+text modeling, and compare different convolutional configurations to assess the complementary roles of DSConv-S and
+DSConv-L complexity analysis evaluates computational and storage overhead. Finally, cross-dataset transfer experi-
+ments examine the model's transfer performance across different data domains. Together, these experiments evaluate
+the predictive performance, ablation behavior, computational complexity, and transfer behavior of MS-AgentNet.
+
+      Model training is conducted on a compute instance with 25 vCPUs provided by an Intel Xeon Platinum 8470Q
+processor, one NVIDIA GeForce RTX 5090 GPU with 32 GB of graphics memory, and 90 GB of RAM. The instance
+runs Ubuntu 22.04. The prediction models are implemented using PyTorch 2.12.1 and Python 3.12, with CUDA 13.0.
+
+4.1 Evaluation metrics
+
+      Four commonly used metrics are selected to evaluate SOH estimation performance: mean absolute error (MAE),
+mean absolute percentage error (MAPE), root mean square error (RMSE), and the coefficient of determination (R2)
+[68].
+
+                                                                 21
+      MAE is the mean absolute difference between predicted and true SOH over all evaluation samples and reflects the
+overall error level. It does not assign extra weight to individual large errors and provides a direct measure of overall
+estimation accuracy.
+
+      MAPE normalizes absolute errors by the true SOH, allowing estimation performance to be compared across
+datasets. When the true SOH approaches zero, MAPE may become much larger and should be considered together
+with MAE and RMSE.
+
+      RMSE is the square root of the mean squared difference between predicted and true SOH. Compared with MAE,
+it assigns greater weight to large prediction deviations and thus further reflects the model's ability to limit large errors.
+
+      R2 measures how well the model fits variations in the true SOH. A value closer to 1 indicates a better fit to the
+overall degradation trend.
+
+      The four metrics are defined as follows:
+
+          1n                                                                 (34)
+MAE =              |yi - y^i|
+           n
+              i=1
+
+            1n     yi - y^i                                                  (35)
+MAPE =
+          n             yi
+
+              i=1
+
+          1   n
+          n
+RMSE =             (yi - y^i)2                                               (36)
+
+              i=1
+
+R2 = 1 -      n    (yi  -                                             y^i)2  (37)
+              i=1
+
+              n    (yi  -                                             y¯)2
+              i=1
+
+where yi and y^i are the true and predicted SOH of the ith sample, respectively, y¯ is the mean true SOH of the
+
+evaluation samples, and n is the total number of evaluation samples.
+
+4.2 HI selection results and effectiveness analysis
+
+      To evaluate how effectively group-level HI selection identifies inputs that remain stable across cells, this section
+compares SOH estimation performance with different HIs on the Oxford dataset. Based on the PCC and SCC of
+candidate HIs on Cell1, the indicator with the highest combined correlation score is selected from each of the IC, DTV,
+and DTC categories, giving HI4, HI9, and HI11, respectively. All three combined correlation scores exceed 0.94. These
+HIs and the CCCT indicator HI1, which is obtained through group-level selection, are separately fed into MS-AgentNet.
+The input combining HI1, HI4, HI9, and HI11 is denoted as Fusion. The validation result on Cell2 and the test results
+on Cell3­Cell8 with different inputs are given in Table 6.
+
+      The results show that using HI1 consistently yields high estimation accuracy across Cell2­Cell8, with the lowest
+average MAE, RMSE, and MAPE among the five input schemes. Its average MAPE is 0.00615, or 0.615%. When all
+four HIs are used together, Fusion ranks fourth for all three average errors, showing that directly combining multiple
+types of HIs does not provide further performance gains.
+
+      Moreover, the representational ability of the same HI differs across cells. For example, HI9 yields lower estimation
+errors than HI11 on Cell7, whereas the opposite is observed on Cell8. In contrast, HI1 obtained through group-level
+selection achieves the lowest MAE, RMSE, and MAPE on all seven cells. These results show that a high correlation
+on one cell does not guarantee the same representational ability on other cells in the group. The group-selected HI1
+provides a more stable input for SOH estimation on this group of Oxford cells.
+
+          22
+Table 6
+SOH estimation errors of different health-indicator inputs on the Oxford dataset.
+
+                         MAE                                          RMSE                                         MAPE
+
+Cell   CCCT IC           DTV DTC Fusion CCCT IC                       DTV DTC Fusion CCCT IC                       DTV DTC Fusion
+
+Cell2  0.00437  0.01607  0.01941  0.01458  0.01256  0.00706  0.02238  0.02145  0.01890  0.01634  0.00535  0.02036  0.02344  0.01810  0.01542
+Cell3  0.00295  0.00456  0.08852  0.01490  0.03835  0.00366  0.00576  0.09371  0.01770  0.04087  0.00351  0.00527  0.10174  0.01765  0.04466
+Cell4  0.00838  0.00934  0.01614  0.02349  0.01751  0.00898  0.01249  0.01679  0.02505  0.01898  0.00988  0.01115  0.01867  0.02705  0.02027
+Cell5  0.00314  0.00819  0.03244  0.02131  0.02085  0.00362  0.00903  0.03532  0.02267  0.02353  0.00357  0.00924  0.03672  0.02428  0.02378
+Cell6  0.00619  0.00941  0.03163  0.00875  0.01381  0.00860  0.01302  0.03414  0.01276  0.01670  0.00733  0.01087  0.03556  0.01030  0.01604
+Cell7  0.00777  0.01408  0.02278  0.02534  0.01837  0.00804  0.01499  0.02650  0.03389  0.02344  0.00894  0.01594  0.02619  0.03028  0.02154
+Cell8  0.00389  0.00967  0.05388  0.02084  0.02694  0.00469  0.01099  0.05597  0.02659  0.03201  0.00445  0.01102  0.06297  0.02530  0.03159
+
+Average 0.00524 0.01019 0.03783 0.01846 0.02120 0.00638 0.01267 0.04055 0.02251 0.02455 0.00615 0.01198 0.04361 0.02185 0.02476
+
+Note: Cell2 is the validation cell for hyperparameter selection. CCCT, IC, DTV, and DTC correspond to HI1, HI4, HI9, and HI11,
+respectively.
+
+4.3 Model training and parameter configuration
+
+      This study uses Cell1, CS2_36, CX2_36, and b3c8 as the training cells, and Cell2, CS2_37, CX2_37, and b3c13
+as the corresponding validation cells. All models are trained with the AdamW optimizer and the mean squared error
+loss, with a batch size of 128, a weight decay of 3 × 10-4, and a cosine annealing learning-rate schedule (Tmax = 600).
+
+      A grid search is used to determine the model hyperparameters, with the search space listed in Table 7. For the model
+structure, MS-AgentNet, Transformer, and CNN-Transformer are configured through the network depth, embedding
+dimension, FFN hidden dimension, and number of attention heads, whereas LSTM and CNN-LSTM are configured
+through the number of LSTM layers and the hidden dimension. Combined with the number of training epochs and
+the learning rate, the three attention-based models each produce 768 candidate configurations per dataset, and the two
+recurrent models each produce 64 candidate configurations.
+
+Table 7
+Hyperparameter grid search space.
+
+Hyperparameter                                               Search space/Values
+
+Learning rate                                                [0.001, 0.01]
+Training epochs                                              [100, 1000]
+Network depth L                                              [1, 2, 4, 8]
+Embedding/hidden dimension d                                 [16, 32, 64, 128]
+FFN hidden dimension                                         [16, 32, 64, 128]
+Number of attention heads                                    [1, 2, 4]
+
+      Each model is trained on the training cell using the candidate configurations, and the best configuration is selected
+according to its estimation performance on the validation cell. The selected models are then directly tested on the other
+cells to evaluate their SOH estimation accuracy and cross-cell generalization.
+
+4.4 Comparison of SOH estimation accuracy and cross-cell generalization
+
+      Based on the selection results in Section 2.3, the inputs are HI1 for Oxford, HI1 and HI2 for CALCE CS2, HI13
+for CALCE CX2, and HI14 and HI15 for MIT/Severson. With these HI inputs, the SOH estimation performance of
+MS-AgentNet is further compared with that of four baseline models. The layer configurations of the five models are
+listed in Table 8.
+
+                                                             23
+Table 8
+Layer configurations of different deep learning models.
+
+MS-AgentNet      CNN-                                    Transformer         CNN-LSTM          LSTM
+                 Transformer
+
+Input            Input                                   Input               Input             Input
+
+Embedding layer  Embedding layer                         Embedding layer     Conv1D (1×3) ReLU Linear
+
+LGFA module      Positional Encoder                      Positional Encoder  MaxPooling (2×2)  LSTM layer
+
+DSConv-L module  Softmax Attention                       Softmax Attention   Conv1D (1×3) ReLU LSTM layer
+
+Add & Norm       Conv1D (1×3) ReLU                       Add & Norm          LSTM layer        LSTM layer
+
+FFN              MaxPooling (2×2)                        Softmax Attention   LSTM layer        Linear
+
+Add & Norm       Conv1D (1×3) ReLU, Add &                Add & Norm          LSTM layer
+Linear           Norm                                    FFN                 Linear
+
+                 Softmax Attention
+
+                 Add & Norm
+
+FFN denotes the feed-forward network. The embedding and hidden dimensions and the number of stacked blocks or LSTM layers are
+determined by the hyperparameter grid search in Table 7.
+
+4.4.1 Estimation accuracy on the Oxford dataset
+
+      Fig. 8 and Table 9 present the validation results on Oxford Cell2 and the test results on Cell3­Cell8 for MS-
+AgentNet, CNN-Transformer, CNN-LSTM, Transformer, and LSTM.
+
+                                                                24
+       Cell2         Cell3
+
+Cell4         Cell5         Cell6
+
+       Cell7         Cell8
+
+                                    Fig. 8. SOH estimation results of different models on the Oxford dataset.
+
+      Overall, all models track the capacity fade trends, but their predictions differ in regions with local variations. In
+particular, the local deviations in Cell4 and the rapid decline in the later stage of Cell6 lead to different degrees of
+tracking error. In the enlarged regions, the MS-AgentNet curve remains closer to the true SOH than most baseline
+curves the corresponding errors are reported in Table 9. Its predictions also closely follow the true SOH of Cell3 and
+Cell5, whose degradation trajectories are relatively smooth.
+
+      The quantitative results show that MS-AgentNet achieves the best R2, MAE, MAPE, and RMSE on Cell2, Cell3,
+Cell5, and Cell6, as well as the highest R2 and lowest RMSE on Cell4. Averaged over Cell2­Cell8, its R2 is 0.98379,
+and its MAE, MAPE, and RMSE are 0.00524, 0.00615, and 0.00638, respectively, ranking first among the five models
+for all four metrics. Compared with CNN-Transformer, CNN-LSTM, Transformer, and LSTM, its average MAE is
+reduced by 2.42%, 8.87%, 4.20%, and 12.52%, its average MAPE by 2.38%, 8.48%, 3.76%, and 12.52%, and its
+
+                                                                 25
+average RMSE by 5.06%, 11.39%, 5.62%, and 15.83%, respectively. These results show that MS-AgentNet achieves
+high SOH estimation accuracy and good prediction robustness on the Oxford dataset.
+
+Table 9
+SOH estimation errors of different models on the Oxford dataset.
+
+Cell     Method              R2                                        MAE     MAPE     RMSE
+Cell2
+Cell3    MS-AgentNet      0.98825                                     0.00473  0.00578  0.00722
+Cell4    CNN-Transformer  0.98198                                     0.00626  0.00758  0.00897
+Cell5    CNN-LSTM         0.98352                                     0.00568  0.00686  0.00861
+Cell6    Transformer      0.97454                                     0.00829  0.00980  0.01051
+Cell7    LSTM             0.99100                                     0.00400  0.00488  0.00636
+Cell8
+Average  MS-AgentNet      0.99711                                     0.00260  0.00309  0.00325
+         CNN-Transformer  0.99088                                     0.00489  0.00572  0.00564
+         CNN-LSTM         0.99378                                     0.00393  0.00463  0.00479
+         Transformer      0.97654                                     0.00733  0.00843  0.00871
+         LSTM             0.99564                                     0.00334  0.00396  0.00402
+
+         MS-AgentNet      0.98018                                     0.00654  0.00776  0.00734
+         CNN-Transformer  0.96326                                     0.00895  0.01053  0.00986
+         CNN-LSTM         0.96820                                     0.00855  0.01009  0.00931
+         Transformer      0.94307                                     0.01003  0.01152  0.01111
+         LSTM             0.97327                                     0.00753  0.00897  0.00856
+
+         MS-AgentNet      0.99403                                     0.00272  0.00306  0.00323
+         CNN-Transformer  0.97905                                     0.00515  0.00573  0.00603
+         CNN-LSTM         0.98519                                     0.00426  0.00476  0.00509
+         Transformer      0.93682                                     0.00846  0.00942  0.00988
+         LSTM             0.99042                                     0.00337  0.00383  0.00411
+
+         MS-AgentNet      0.97256                                     0.00487  0.00584  0.00799
+         CNN-Transformer  0.95812                                     0.00759  0.00884  0.00981
+         CNN-LSTM         0.96171                                     0.00675  0.00799  0.00945
+         Transformer      0.93246                                     0.00993  0.01131  0.01166
+         LSTM             0.96962                                     0.00620  0.00733  0.00843
+
+         MS-AgentNet      0.98682                                     0.00518  0.00601  0.00580
+         CNN-Transformer  0.97872                                     0.00665  0.00765  0.00736
+         CNN-LSTM         0.97447                                     0.00769  0.00885  0.00819
+         Transformer      0.93764                                     0.01115  0.01275  0.01193
+         LSTM             0.98419                                     0.00623  0.00719  0.00648
+
+         MS-AgentNet      0.99425                                     0.00384  0.00441  0.00467
+         CNN-Transformer  0.98615                                     0.00582  0.00662  0.00723
+         CNN-LSTM         0.98661                                     0.00567  0.00644  0.00711
+         Transformer      0.97721                                     0.00760  0.00869  0.00901
+         LSTM             0.99588                                     0.00341  0.00394  0.00395
+
+         MS-AgentNet      0.98760                                     0.00435  0.00513  0.00564
+         CNN-Transformer  0.97688                                     0.00647  0.00752  0.00784
+         CNN-LSTM         0.97907                                     0.00608  0.00709  0.00751
+         Transformer      0.95404                                     0.00897  0.01028  0.01040
+         LSTM             0.98572                                     0.00487  0.00573  0.00599
+
+Note: Cell2 denotes the validation cell used for hyperparameter selection, and its values are averages of five independent runs. The best
+results are shown in bold.
+
+4.4.2 Cross-cell generalization on the CALCE and MIT datasets
+
+      This section further compares MS-AgentNet with the four baseline models on the CALCE CS2, CALCE CX2,
+and MIT/Severson datasets. CS2_37, CX2_37, and b3c13 are the validation cells, while CS2_38, CX2_38, and b3c29
+are the test cells. These datasets differ from Oxford in battery chemistries and charge-discharge protocols and show
+diverse degradation dynamics, including smooth capacity fade, transitions between stages, and accelerated late-life
+degradation. The SOH estimation results are shown in Fig. 9.
+
+      Overall, all models track the capacity fade trends of different cells, but their prediction performance differs at local
+nonlinear transitions and during accelerated late-life degradation. In particular, CX2_38 undergoes several transitions
+
+                                                                  26
+between stages and shows a clear nonlinear degradation tail. In the enlarged views, prediction deviations grow more
+slowly for MS-AgentNet than for the baseline models during accelerated degradation the corresponding errors are
+reported in Table 10. For CS2_38 and b3c29, whose degradation trajectories are more continuous, MS-AgentNet also
+maintains close agreement with the true SOH.
+
+      Table 10 lists the SOH estimation errors of all models on the three validation cells and three test cells. MS-
+AgentNet achieves the best R2, MAE, MAPE, and RMSE on five of them. Notably, on the test cell CX2_38, which
+shows transitions between stages and a nonlinear degradation tail, its MAPE is only 0.037673, a reduction of 59.75%
+and 51.80% compared with CNN-Transformer and Transformer, respectively. This shows that the model maintains low
+prediction errors during accelerated late-life degradation.
+
+      Across the six cells, MS-AgentNet achieves an average R2 of 0.9896 and average MAE, MAPE, and RMSE of
+0.00707, 0.013335, and 0.01188, respectively, ranking first among the five models for all four metrics. Compared with
+CNN-Transformer, CNN-LSTM, Transformer, and LSTM, its average MAE is reduced by 13.50%, 26.02%, 9.11%,
+and 22.94%, its average MAPE by 42.19%, 60.08%, 34.49%, and 58.17%, and its average RMSE by 12.04%, 26.52%,
+7.97%, and 23.09%, respectively. On the three test cells, MS-AgentNet maintains low estimation errors during smooth
+capacity fade, transitions between stages, and accelerated late-life degradation, showing good prediction robustness
+and cross-cell generalization capability.
+
+CS2_37  CX2_37  b3c13
+
+CS2_38  CX2_38  b3c29
+
+Fig. 9. SOH estimation results of different models on the CALCE and MIT/Severson datasets.
+
+                                             27
+Table 10
+SOH estimation errors of different models on the CALCE and MIT/Severson datasets.
+
+Dataset       Method           R2       MAE                                        MAPE     RMSE
+
+CALCE CS2     MS-AgentNet      0.99262  0.00727                                    0.00943  0.01159
+(CS2_37)
+              CNN-Transformer  0.98722  0.01144                                    0.01485  0.01520
+CALCE CS2     CNN-LSTM         0.99015  0.00881                                    0.01149  0.01339
+(CS2_38)      Transformer      0.98741  0.01087                                    0.01443  0.01491
+              LSTM             0.99251  0.00730                                    0.00947  0.01168
+CALCE CX2
+(CX2_37)      MS-AgentNet      0.97921  0.01205                                    0.01619  0.01767
+
+CALCE CX2     CNN-Transformer  0.97211  0.01462                                    0.01944  0.02035
+(CX2_38)      CNN-LSTM         0.97454  0.01355                                    0.01817  0.01954
+              Transformer      0.97055  0.01478                                    0.02020  0.02072
+MIT/Severson  LSTM             0.97906  0.01276                                    0.01708  0.01774
+(b3c13)
+              MS-AgentNet      0.97548  0.01021                                    0.01485  0.01883
+MIT/Severson
+(b3c29)       CNN-Transformer  0.97230  0.01141                                    0.01635  0.01998
+              CNN-LSTM         0.97242  0.01132                                    0.01627  0.01998
+              Transformer      0.96190  0.01648                                    0.02303  0.02333
+              LSTM             0.97519  0.00997                                    0.01442  0.01896
+
+              MS-AgentNet      0.99025  0.01570                                    0.08321  0.02594
+
+              CNN-Transformer  0.98736  0.01867                                    0.10879  0.02970
+              CNN-LSTM         0.97793  0.02143                                    0.15207  0.03875
+              Transformer      0.97489  0.02703                                    0.16513  0.04169
+              LSTM             0.97654  0.02165                                    0.16073  0.04042
+
+              MS-AgentNet      0.99686  0.00143                                    0.00156  0.00222
+
+              CNN-Transformer  0.99125  0.00237                                    0.00261  0.00371
+              CNN-LSTM         0.99135  0.00234                                    0.00256  0.00371
+              Transformer      0.99083  0.00256                                    0.00279  0.00379
+              LSTM             0.99485  0.00181                                    0.00199  0.00282
+
+              MS-AgentNet      0.99634  0.00211                                    0.00227  0.00244
+
+              CNN-Transformer  0.99269  0.00304                                    0.00327  0.00345
+              CNN-LSTM         0.99229  0.00302                                    0.00324  0.00354
+              Transformer      0.98882  0.00374                                    0.00400  0.00425
+              LSTM             0.99457  0.00259                                    0.00278  0.00290
+
+Average       MS-AgentNet      0.98846  0.00813                                    0.02125  0.01311
+              CNN-Transformer  0.98382  0.01026                                    0.02755  0.01540
+              CNN-LSTM         0.98311  0.01008                                    0.03397  0.01648
+              Transformer      0.97907  0.01258                                    0.03826  0.01811
+              LSTM             0.98545  0.00935                                    0.03441  0.01575
+
+Note: CS2_37, CX2_37, and b3c13 denote the validation cells used for hyperparameter selection. The best results are shown in bold.
+
+4.5 Cross-dataset transfer experiments
+
+      When the source and target domains come from different datasets, differences in chemistry, operating protocols,
+and degradation trajectories may cause domain shift [57,69]. To examine the cross-dataset transfer performance of MS-
+AgentNet, this study conducts source-only evaluation and few-shot adaptation experiments. In source-only evaluation,
+the model is trained only on the source-domain reference cell and directly tested on the target-domain cell without
+updating its parameters using target-domain data. In few-shot adaptation, the feature extraction modules are frozen, and
+the first 30% of cycle data from the target-domain reference cell are used to update the readout layer before evaluation
+
+                                   28
+on the target-domain test cell [57, 70].
+      CALCE CS2, CALCE CX2, and Oxford are treated as three data domains. CS2_36, CX2_36, and Oxford Cell1
+
+are used for source-domain training or target-domain adaptation, while CS2_38, CX2_38, and Oxford Cell3 are used
+only for target-domain testing. CALCE CS2 and CALCE CX2 both use LCO chemistry, whereas Oxford uses a blended
+NCO-LCO chemistry. The experiments therefore cover both same-chemistry and cross-chemistry transfer. To keep the
+input definitions consistent between the source and target domains, all transfer directions use two HIs: CCCT (3.8,
+4.0) and Qdch(3.8, 3.4)/Crated.
+
+4.5.1 Performance across transfer directions
+
+      As shown in Table 11, CS2CX2 and CX2CS2 achieve R2 values of 0.8421 and 0.7847 and MAE values
+of 0.0697 and 0.0388, respectively, indicating that the model still represents degradation trends well when transferred
+between the two CALCE domains. In contrast, the four transfer directions involving Oxford yield MAE values of
+0.1530­0.6346 and R2 values below 0, showing that direct transfer performance varies considerably with the domain
+pair and transfer direction.
+
+      The few-shot adaptation results are presented in Table 12. After adaptation, MAE, MAPE, and RMSE decrease in
+all six transfer directions. For MAE, the reductions are 21.91%­45.91% between the two CALCE domains, 86.84%­
+87.61% for CALCEOxford, and 13.27%­31.21% for OxfordCALCE. After adaptation, R2 reaches 0.9566 for
+CS2CX2 and 0.8806 for CX2CS2 but remains below 0 in all four directions involving Oxford. This indicates that
+cross-dataset transfer involving Oxford is more challenging than transfer between the two CALCE domains.
+
+Table 11
+Results of source-only evaluation across datasets.
+
+Source  Target  R2                                        MAE     MAPE    RMSE
+
+CS2     CX2       0.8421                                  0.0697  0.3974  0.1051
+CS2     Oxford  -60.5701                                  0.4761  0.5573  0.4778
+CX2     CS2                                               0.0388  0.0557  0.0568
+CX2     Oxford    0.7847                                  0.6346  0.7423  0.6375
+Oxford  CS2     -108.6169                                 0.1530  0.2196  0.1950
+Oxford  CX2                                               0.3528  1.5040  0.4164
+                 -1.5309
+                 -1.4786
+
+Table 12
+Transfer results after 30% target-domain adaptation.
+
+Source  Target  R2                                        MAE     MAPE    RMSE
+
+CS2     CX2      0.9566                                   0.0377  0.1830  0.0533
+CS2     Oxford  -0.2679                                   0.0590  0.0722  0.0685
+CX2     CS2      0.8806                                   0.0303  0.0406  0.0422
+CX2     Oxford  -1.6085                                   0.0835  0.1024  0.0982
+Oxford  CS2     -1.1030                                   0.1327  0.1935  0.1777
+Oxford  CX2     -0.4809                                   0.2427  1.2100  0.3218
+
+4.5.2 Effect of the target-domain adaptation ratio
+
+      With CS2_36 and CX2_36 used as the respective source domains, the readout layer is adapted with early-cycle
+data from Oxford Cell1 at adaptation ratios of 10%, 30%, 50%, and 70%. The results are given in Table 13.
+
+      As the adaptation ratio increases from 10% to 70%, MAE, MAPE, and RMSE decrease continuously for both
+source-domain settings. With CS2 as the source domain, MAE decreases from 0.0831 to 0.0252, while R2 increases
+from -1.3934 to 0.7650 and becomes positive at an adaptation ratio of 50%. With CX2 as the source domain, MAE
+decreases from 0.1095 to 0.0559, while R2 increases from -3.2217 to -0.1268 at an adaptation ratio of 70%. At all four
+adaptation ratios, the CS2 source domain yields higher R2 values than the CX2 source domain.
+
+      A comparison of adjacent adaptation ratios shows that increasing the ratio from 30% to 50% reduces MAE by
+0.0224 and 0.0221 for the CS2 and CX2 source domains, respectively. Increasing it from 50% to 70% gives smaller
+
+                                                      29
+reductions of 0.0114 and 0.0055. These results show that adding target-domain observations continuously improves
+adaptation performance on Oxford. At the same adaptation ratio, the CS2 source domain consistently yields lower
+estimation errors and higher R2, further showing the effect of source-domain selection on cross-dataset adaptation
+performance.
+
+Table 13
+Transfer results with different amounts of target-domain data.
+
+Transfer     Target data (%)  R2       MAE     MAPE    RMSE
+
+CS2  Oxford  10               -1.3934  0.0831  0.1015  0.0942
+CS2  Oxford
+CS2  Oxford  30               -0.2679  0.0590  0.0722  0.0685
+CS2  Oxford
+             50               0.5094   0.0366  0.0445  0.0426
+CX2  Oxford
+CX2  Oxford  70               0.7650   0.0252  0.0305  0.0293
+CX2  Oxford
+CX2  Oxford  10               -3.2217  0.1095  0.1339  0.1251
+
+             30               -1.6085  0.0835  0.1024  0.0982
+
+             50               -0.3836  0.0614  0.0747  0.0716
+
+             70               -0.1268  0.0559  0.0677  0.0646
+
+4.6 Module ablation and model complexity analysis
+
+      The preceding SOH estimation results show that the batteries exhibit different degradation characteristics, includ-
+ing smooth capacity fade, local variations, stage transitions, and accelerated late-life degradation, and that the full MS-
+AgentNet generally maintains low estimation errors across these scenarios. However, comparisons of complete models
+do not distinguish the specific roles of different structures in degradation feature modeling. Module ablation and com-
+plexity analyses are therefore conducted. The ablation studies remove and combine multi-scale DSConv and RAA to
+examine the individual and complementary effects of local degradation information extraction and cross-cycle context
+modeling, and further analyze the complementary roles of DSConv-S and DSConv-L at different feature-processing
+stages complexity analysis quantifies the computational and storage overhead of the resulting architecture.
+
+4.6.1 Module ablation analysis
+
+      Efficient attention reduces the computational overhead of standard attention by compressing information interac-
+tions [35,36,71,72], but this process may weaken the representation of fine-grained local degradation information [25].
+Directly introducing standard convolutions can enhance local feature modeling but increases the parameter count and
+computational load [65]. To balance local degradation representation and computational efficiency, MS-AgentNet uses
+multi-scale DSConv to extract fine-grained local degradation information from health indicator sequences and RAA to
+establish cross-cycle context within the input window. Four variants, M1­M4, are used to examine their individual and
+combined effects. M1 retains the basic backbone without multi-scale DSConv or RAA, M2 adds multi-scale DSConv
+to M1, M3 adds RAA, and M4 integrates both multi-scale DSConv and RAA.
+
+      As shown in Table 14, multi-scale DSConv and RAA each improve estimation on some datasets when used in
+isolation, but neither yields consistent gains across all degradation scenarios. Compared with the baseline M1, M2,
+which adds multi-scale DSConv, reduces the combined average error by approximately 1.20% and 8.45% on CX2 and
+Oxford, respectively. M3, which adds RAA, reduces this error by approximately 3.18%, 11.60%, and 15.49% on CS2,
+CX2, and Oxford, respectively. However, M2 does not achieve lower errors on CS2 or MIT, nor does M3 on MIT.
+These results indicate that relying solely on local degradation information extraction or cross-cycle context modeling
+does not yield consistent performance gains across different battery degradation scenarios.
+
+      When multi-scale DSConv and RAA are jointly integrated, the full model M4 achieves the lowest or jointly lowest
+combined average error at the reported precision on all four datasets, with the complementary effect being most evident
+on CX2. On this dataset, M2 and M3 reduce the combined average error relative to M1 by only approximately 1.20%
+and 11.60%, respectively, whereas M4 reduces it from 0.0500 to 0.0225, with a reported reduction of 54.94%. Even
+compared with M3, which uses RAA alone, M4 further reduces the error by 49.05%. These results indicate that the
+marked improvement of the full model reflects the complementary effect of multi-scale local degradation information
+
+                              30
+extraction and cross-cycle context modeling rather than primarily the contribution of either module in isolation.
+      This result is consistent with the stage transitions and nonlinear degradation observed in the CX2 data, as illus-
+
+trated by CX2_38. These trajectories contain both local variations and degradation evolution across cycles. Multi-scale
+DSConv captures fine-grained local degradation patterns in the health indicator sequences, while RAA establishes
+cross-cycle context within the input window. Their joint integration allows the model to use both fine-grained lo-
+cal degradation patterns and cross-cycle context, providing a more complete representation of complex degradation
+trajectories.
+
+      The magnitude of this complementary benefit varies across datasets. On Oxford, M4 reduces the combined av-
+erage error by 16.52% relative to M1, but the further reduction relative to M3 is only 1.52%. On CS2, M3 still has a
+slightly lower MAE than M4, while on MIT, M1 and M4 both have a combined average error of 0.0020 at the reported
+precision. Thus, the advantage of the full configuration does not lie in every module independently improving every
+metric on every dataset, but in the more consistent overall performance across degradation scenarios achieved through
+complementary local degradation information extraction and cross-cycle context modeling.
+
+      The preceding comparisons show that the joint configuration of multi-scale DSConv and RAA achieves more
+consistent overall performance across datasets. To further examine local enhancement before attention and feature
+refinement after local-global fusion, RAA is retained while the combinations of DSConv-S and DSConv-L are varied.
+Four variants are considered: S0 retains neither convolutional module, S5 retains DSConv-S, S31 retains DSConv-L,
+and SFull retains both. S0 and SFull correspond to M3 and M4 in Table 14, respectively.
+
+      Table 15 further shows that the benefits of retaining either convolutional module alone vary across datasets. Com-
+pared with S0, which uses RAA alone, S5 provides a small improvement only on MIT, reducing the combined average
+error from 0.0026 to 0.0025, or by approximately 3.85%, while achieving no lower error on CS2, CX2, or Oxford. By
+contrast, S31 reduces MAE, RMSE, and MAPE on CX2, lowering the combined average error from 0.0442 to 0.0348,
+or by approximately 21.27%, but still does not outperform S0 on CS2 or Oxford. Thus, retaining only pre-attention local
+enhancement or only post-fusion feature refinement does not provide a consistent advantage across all four datasets.
+
+      When DSConv-S and DSConv-L are both retained, SFull achieves the lowest combined average error on all four
+datasets. On CX2, the error further decreases to 0.0225, approximately 35.34% lower than that of S31 on MIT, it is
+approximately 20.00% lower than that of S5, the best single-convolution configuration. This result is consistent with
+the stage transitions and nonlinear degradation observed in the CX2 data, as illustrated by CX2_38, and further supports
+the design of applying convolution at different feature-processing stages. DSConv-S precedes RAA and extracts fine-
+grained local degradation information from neighboring cycles, so that subsequent cross-cycle context aggregation
+uses locally enhanced representations. In the full model, DSConv-L follows LGFA and further refines the sequence
+representation after local-global fusion. The two convolutional modules thus play complementary roles at different
+feature-processing stages, further enriching the model's degradation representations.
+
+      However, the magnitude of the combined benefit remains dataset-dependent. SFull provides only small improve-
+ments over S0 on CS2 and Oxford, with larger improvements on CX2 and MIT. Together, the two ablation studies show
+complementary effects between multi-scale DSConv and RAA and between DSConv-S and DSConv-L. DSConv-S
+enhances fine-grained local degradation features before cross-cycle interaction, RAA establishes cross-cycle context
+within the input window, and DSConv-L further refines the feature representation after local-global fusion. Their joint
+integration provides a more complete degradation representation for SOH estimation. The current results do not estab-
+lish a one-to-one correspondence between a specific convolutional kernel size and a physical degradation mechanism.
+
+                                                                 31
+Table 14
+Ablation results on different datasets.
+
+Dataset  Model       Backbone            Multi-scale  RAA       MAE     RMSE    MAPE    Average Reduction
+                                          DSConv
+
+CS2      M1                              --           --        0.0123  0.0183  0.0166  0.0157  3.74%
+
+         M2                                           --        0.0130  0.0184  0.0171  0.0162  6.49%
+
+         M3                              --                     0.0119  0.0178  0.0161  0.0152  0.62%
+
+             M4                                                 0.0120  0.0174  0.0160  0.0151  --
+         (Proposed)
+
+CX2      M1                              --           --        0.0170  0.0294  0.1035  0.0500  54.94%
+
+         M2                                           --        0.0164  0.0284  0.1033  0.0494  54.40%
+
+         M3                              --                     0.0156  0.0270  0.0899  0.0442  49.05%
+
+             M4                                                 0.0106  0.0193  0.0377  0.0225  --
+         (Proposed)
+
+MIT      M1                              --           --        0.0019  0.0022  0.0020  0.0020  2.43%
+
+         M2                                           --        0.0021  0.0025  0.0023  0.0023  14.16%
+
+         M3                              --                     0.0024  0.0028  0.0026  0.0026  23.91%
+
+             M4                                                 0.0018  0.0022  0.0020  0.0020  --
+         (Proposed)
+
+Oxford   M1                              --           --        0.0063  0.0076  0.0073  0.0071  16.52%
+
+         M2                                           --        0.0058  0.0070  0.0067  0.0065  9.50%
+
+         M3                              --                     0.0054  0.0063  0.0062  0.0060  1.52%
+
+             M4                                                 0.0053  0.0062  0.0062  0.0059  --
+         (Proposed)
+
+Average denotes the arithmetic mean of MAE, RMSE, and MAPE Reduction denotes the relative decrease in Average achieved by M4 with
+respect to the corresponding ablation variant.
+
+Table 15
+Effects of DSConv-S and DSConv-L configurations.
+
+Dataset  Model       DSConv-S            DSConv-L          RAA          MAE     RMSE    MAPE    Average
+CS2
+CX2        S0             --                  --                        0.0119  0.0178  0.0161  0.0152
+MIT        S5                                 --                        0.0128  0.0184  0.0170  0.0161
+Oxford    S31             --                                            0.0124  0.0179  0.0166  0.0156
+         SFull                                                          0.0120  0.0174  0.0160  0.0151
+
+           S0             --                  --                        0.0156  0.0270  0.0899  0.0442
+           S5                                 --                        0.0162  0.0285  0.1036  0.0494
+          S31             --                                            0.0135  0.0232  0.0677  0.0348
+         SFull                                                          0.0106  0.0193  0.0377  0.0225
+
+           S0             --                  --                        0.0024  0.0028  0.0026  0.0026
+           S5                                 --                        0.0023  0.0027  0.0025  0.0025
+          S31             --                                            0.0025  0.0028  0.0026  0.0026
+         SFull                                                          0.0018  0.0022  0.0020  0.0020
+
+           S0             --                  --                        0.0054  0.0063  0.0062  0.0060
+           S5                                 --                        0.0056  0.0066  0.0065  0.0062
+          S31             --                                            0.0055  0.0065  0.0064  0.0061
+         SFull                                                          0.0053  0.0062  0.0062  0.0059
+
+4.6.2 Model complexity analysis
+
+      In practical applications, computational efficiency and storage requirements are important evaluation crite-
+ria alongside estimation accuracy [73]. This study compares the resource consumption of MS-AgentNet, CNN-
+Transformer, CNN-LSTM, Transformer, and LSTM using four metrics: FLOPs, training time, trainable parameter
+count, and storage size. Operation counts obtained using the profile function in the THOP library are supplemented
+with counts for attention operations and then converted to the number of floating-point operations required for a single
+
+                                                           32
+forward pass. Training time is recorded in seconds using Python's time module and represents the time needed to
+complete the specified number of training epochs. The total number of trainable parameters is counted using PyTorch.
+Storage size is measured using Python's os.path.getsize function and converted to KB, representing the space
+required to save the model weights. All metrics are measured in the same experimental environment.
+
+      To ensure a fair comparison, all five models use HI1 and HI2 from CS2_36 as inputs, with the number of training
+epochs, learning rate, batch size, and dropout rate set to 1000, 0.01, 128, and 0.1, respectively. For the structural setting
+n, MS-AgentNet, CNN-Transformer, and Transformer use four attention heads, whereas CNN-LSTM and LSTM use
+four LSTM layers. The embedding and FFN hidden dimensions of the attention-based models are set to 16, and the hid-
+den dimension of the LSTM-based models is also set to 16. The configurations and complexity results are summarized
+in Table 16.
+
+      As shown in Table 16, MS-AgentNet requires 0.045760 M FLOPs, has 4,643 trainable parameters, and occupies
+27.44 KB of weight storage, the lowest values among the five models. Compared with the standard Transformer, it
+requires fewer forward-pass operations and less storage, with a similar parameter count. It also uses fewer parameters
+and less storage than CNN-Transformer and CNN-LSTM. Compared with LSTM, its forward-pass computation is
+approximately 50.5% lower.
+
+      These results are consistent with the lightweight design described above. Depthwise separable convolution reduces
+dense cross-channel operations while extracting local degradation features. RAA uses a small number of agents to
+reduce the cost of cross-cycle interactions within the input window and employs learnable channel scaling to reduce
+the parameters required for query, key, and value generation.
+
+      MS-AgentNet has the longest training time among the five models, at 123.338 s. Its lower forward-pass compu-
+tation therefore does not translate into faster training under the tested conditions.
+
+      To examine storage overhead as model width changes, the representation or hidden dimension of each model is
+set to 16, 32, 64, and 128, with all other settings unchanged. As shown in Fig. 10, storage size increases with model
+width for all five models, but MS-AgentNet maintains the lowest value at all four tested widths. At a dimension of 128,
+its storage size is 714.37 KB, 32.2% lower than that of Transformer, the closest model, at the same dimension. This
+storage advantage is maintained across the tested model widths and is not limited to the default configuration.
+
+      Together with the SOH estimation results, these comparisons indicate a favorable balance between estimation
+accuracy and resource overhead. Lower forward-pass computation and a smaller weight storage footprint help address
+the computational and storage constraints of resource-constrained BMS. These results support the potential of MS-
+AgentNet for lightweight SOH estimation, while online inference latency and runtime memory usage remain to be
+evaluated on embedded hardware.
+
+Table 16
+Model complexity comparison under standardized settings.
+
+Models       Training hyperparameters Model hyperparameters            Performance indicators
+
+             e  lr  b       de  dd   n FLOPs (M) Training time (s) Parameters Storage size
+
+                                                                                               (KB)
+
+MS-AgentNet  1000 0.01 128 16 16     4                       0.045760  123.338  4643           27.44
+                                                                       80.638   4673           29.60
+Transformer  1000 0.01 128 16 16     4                       0.049760  90.195   6241           36.97
+                                                                       48.828   15912          68.33
+CNN-Transformer 1000 0.01 128 16 16  4                       0.053024  44.568   8769           39.90
+
+CNN-LSTM     1000 0.01 128  ­   16   4 0.067520
+
+LSTM         1000 0.01 128  ­   16   4 0.092512
+
+Note: e, lr, b, and de denote the number of training epochs, learning rate, batch size, and embedding dimension, respectively. dd denotes the
+FFN hidden dimension or LSTM hidden-state dimension, and n denotes the number of attention heads or LSTM layers, depending on the
+model. The lowest value for each resource metric is shown in bold.
+
+                                     33
+2000 (a)                                                                      MS-AgentNet
+                                                                              CNN-Transformer
+                 2000 (b)                                                     Transformer
+                                                                              CNN-LSTM
+Storage size (KB)1000                    500                                  LSTM
+
+                      Storage size (KB)100
+
+500
+
+                                         20       CNN-T  Trans.  CNN-L  LSTM
+                                            MS-A
+
+200
+
+100
+
+50
+
+20                                            16                 32           64                    128
+
+                                                                 Representation / hidden dimension
+
+Fig. 10. Storage sizes of five models at different model widths: (a) storage size at each width (b) overall distribution across the tested
+                                                                            widths.
+
+5. Conclusion
+
+      This study proposes a lightweight lithium-ion battery SOH estimation framework for resource-constrained battery
+management systems to address limited cross-cell HI stability and the difficulty of balancing prediction accuracy with
+computational efficiency. The study focuses on systematic HI construction and lightweight network design. The pro-
+posed multi-source health indicator extraction and optimization algorithm first constructs multiple types of candidate
+HIs from charging and discharging data and their derived curves. Based on correlations on the feature-development
+cell set, MS-CCCT then adaptively calibrates the constant-current charging voltage window at multiple scales, and
+PCC/SCC dual-threshold admission and redundancy removal determine the model inputs. With feature definitions
+and parameters held fixed, the selected HIs retain strong linear and monotonic relationships with SOH on other cells
+within the same dataset. For sequence modeling, MS-AgentNet combines ReLU² agent attention with small- and large-
+kernel depthwise separable convolutions to enhance the representation of local degradation variations and degradation
+trends over longer time scales through local feature extraction and global context modeling. With a fixed number of
+agents, RAA uses a small number of static learnable agents for information aggregation and broadcasting, reducing the
+theoretical complexity of attention-based correlation interactions from O(N 2d) to O(N nad).
+
+      Experiments on four public battery datasets, Oxford, CALCE CS2, CALCE CX2, and MIT/Severson, show that
+MS-AgentNet achieves better overall performance than the four baseline models, CNN-Transformer, CNN-LSTM,
+Transformer, and LSTM. Specifically, the average MAPE of MS-AgentNet over the two cells in the CALCE CX2
+dataset is 52.69% lower than that of CNN-Transformer. Under the standardized complexity-test settings, MS-AgentNet
+also has low forward-pass computation, a small parameter count, and a small weight storage footprint. Ablation studies
+further show complementary effects between multi-scale DSConv and RAA and between DSConv-S and DSConv-L,
+contributing to more consistent overall performance across degradation scenarios. Overall, the proposed framework
+achieves a good balance between SOH estimation accuracy and resource consumption. It maintains good estimation
+performance on the test cells in the corresponding datasets, showing a degree of in-domain cross-cell generalization
+and potential for application in resource-constrained battery management systems.
+
+      Despite these results, the framework still relies on identifiable charging and discharging data segments, and its
+cross-dataset adaptation performance is affected by domain differences, source-domain selection, and the amount of
+target-domain data. Future work will focus on HI construction for incomplete charging and dynamic operating seg-
+ments, together with lightweight domain adaptation strategies. Further validation will cover more battery chemistries,
+
+                                                                        34
+real-vehicle operating data, and embedded hardware platforms to improve the framework's practical applicability and
+deployment reliability.
+
+References
+
+ [1] Scrosati B, Garche J. Lithium batteries: Status, prospects and future. Journal of Power Sources 2010195(9):2419­2430.
+      https://doi.org/10.1016/j.jpowsour.2009.11.048.
+
+ [2] Kim T, Song W, Son D-Y, Ono LK, Qi Y. Lithium-ion batteries: Outlook on present, future, and hybridized technologies.
+      Journal of Materials Chemistry A 20197(7):2942­2964. https://doi.org/10.1039/C8TA10513H.
+
+ [3] Krause FC, Ruiz JP, Jones SC, Brandon EJ, Darcy EC, Iannello CJ, Bugga RV. Performance of commercial Li-ion cells
+      for future NASA missions and aerospace applications. Journal of The Electrochemical Society 2021168(4):040504. https:
+      //doi.org/10.1149/1945-7111/abf05f.
+
+ [4] Xiong R, Kim J, Shen W, et al. Key technologies for electric vehicles. Green Energy and Intelligent Transportation
+      20221(2):100041. https://doi.org/10.1016/j.geits.2022.100041.
+
+ [5] Barré A, Deguilhem B, Grolleau S, Gérard M, Suard F, Riu D. A review on lithium-ion battery ageing mechanisms and
+      estimations for automotive applications. Journal of Power Sources 2013241:680­689. https://doi.org/10.1016/j.jpowsour.
+      2013.05.040.
+
+ [6] Ma S, Jiang M, Tao P, Song C, Wu J, Wang J, Deng T, Shang W. Temperature effect and thermal impact in lithium-ion
+      batteries: A review. Progress in Natural Science: Materials International 201828(6):653­666. https://doi.org/10.1016/j.
+      pnsc.2018.11.002.
+
+ [7] Wang C-J, Zhu Y-L, Gao F, Bu X-Y, Chen H-S, Quan T, Xu Y-B, Jiao Q-J. Internal short circuit and thermal runaway
+      evolution mechanism of fresh and retired Li-ion batteries with LiFePO4 cathode during overcharge. Applied Energy
+      2022328:120224. https://doi.org/10.1016/j.apenergy.2022.120224.
+
+ [8] Feng L, Jiang L, Liu J, Wang Z, Wei Z, Wang Q. Dynamic overcharge investigations of lithium ion batteries with different
+      state of health. Journal of Power Sources 2021507:230262. https://doi.org/10.1016/j.jpowsour.2021.230262.
+
+ [9] Lu J, Xiong R, Tian J, et al. Deep learning to estimate lithium-ion battery state of health without additional degradation
+      experiments. Nature Communications 202314:2760. https://doi.org/10.1038/s41467-023-38458-w.
+
+[10] Che Y, Hu X, Lin X, Guo J, Teodorescu R. Health prognostics for lithium-ion batteries: Mechanisms, methods, and
+      prospects. Energy & Environmental Science 202316:338­371. https://doi.org/10.1039/D2EE03019E.
+
+[11] Tian H, Qin P, Li K, Zhao Z. A review of the state of health for lithium-ion batteries: Research status and suggestions.
+      Journal of Cleaner Production 2020261:120813. https://doi.org/10.1016/j.jclepro.2020.120813.
+
+[12] Wang Y, Tian J, Sun Z, Wang L, Xu R, Li M, Chen Z. A comprehensive review of battery modeling and state estimation
+      approaches for advanced battery management systems. Renewable and Sustainable Energy Reviews 2020131:110015.
+      https://doi.org/10.1016/j.rser.2020.110015.
+
+[13] Li J, Adewuyi K, Lotfi N, Landers RG, Park J. A single particle model with chemical/mechanical degradation physics
+      for lithium ion battery state of health (SOH) estimation. Applied Energy 2018212:1178­1190. https://doi.org/10.1016/j.
+      apenergy.2018.01.011.
+
+[14] Deng Z, Yang L, Deng H, Cai Y, Li D. Polynomial approximation pseudo-two-dimensional battery model for online appli-
+      cation in embedded battery management system. Energy 2018142:838­850. https://doi.org/10.1016/j.energy.2017.10.097.
+
+[15] Wang D, Zhang Q, Huang H, Yang B, Dong H, Zhang J. An electrochemical­thermal model of lithium-ion battery and state
+      of health estimation. Journal of Energy Storage 202247:103528. https://doi.org/10.1016/j.est.2021.103528.
+
+[16] Rechkemmer SK, Zang X, Zhang W, Sawodny O. Empirical Li-ion aging model derived from single particle model. Journal
+      of Energy Storage 201921:773­786. https://doi.org/10.1016/j.est.2019.01.005.
+
+[17] Chen L, Lü Z, Lin W, Li J, Pan H. A new state-of-health estimation method for lithium-ion batteries through the intrinsic
+      relationship between ohmic internal resistance and capacity. Measurement 2018116:586­595. https://doi.org/10.1016/j.
+      measurement.2017.11.016.
+
+[18] Ge M-F, Liu Y, Jiang X, Liu J. A review on state of health estimations and remaining useful life prognostics of lithium-ion
+      batteries. Measurement 2021174:109057. https://doi.org/10.1016/j.measurement.2021.109057.
+
+[19] Roman D, Saxena S, Robu V, Flynn D, Pecht M. Machine learning pipeline for battery state of health estimation. arXiv
+      2021. https://doi.org/10.48550/arXiv.2102.00837.
+
+                                                                 35
+[20] Fei Z, Yang F, Tsui K-L, Li L, Zhang Z. Early prediction of battery lifetime via a machine learning based framework. Energy
+      2021225:120205. https://doi.org/10.1016/j.energy.2021.120205.
+
+[21] Li Y, Zou C, Berecibar M, Nanini-Maury E, Chan JC-W, van den Bossche P, Van Mierlo J, Omar N. Random forest regression
+      for online capacity estimation of lithium-ion batteries. Applied Energy 2018232:197­210. https://doi.org/10.1016/j.
+      apenergy.2018.09.182.
+
+[22] Luo K, Chen X, Zheng H, Shi Z. A review of deep learning approach to predicting the state of health and state of charge of
+      lithium-ion batteries. Journal of Energy Chemistry 202274:159­173. https://doi.org/10.1016/j.jechem.2022.06.049.
+
+[23] Qian C, Xu B, Chang L, Sun B, Feng Q, Yang D, Ren Y, Wang Z. Convolutional neural network based capacity estimation
+      using random segments of the charging curves for lithium-ion batteries. Energy 2021227:120333. https://doi.org/10.1016/
+      j.energy.2021.120333.
+
+[24] Lee G, Kwon D, Lee C. A convolutional neural network model for SOH estimation of Li-ion batteries with physical inter-
+      pretability. Mechanical Systems and Signal Processing 2023188:110004. https://doi.org/10.1016/j.ymssp.2022.110004.
+
+[25] Li X, Zhao M, Zhong S, Li J, Fu S, Yan Z. BMSFormer: An efficient deep learning model for online state-of-health
+      estimation of lithium-ion batteries under high-frequency early SOC data with strong correlated single health indicator.
+      Energy 2024313:134030. https://doi.org/10.1016/j.energy.2024.134030.
+
+[26] Xu H, Wu L, Xiong S, Li W, Garg A, Gao L. An improved CNN-LSTM model-based state-of-health estimation approach
+      for lithium-ion batteries. Energy 2023276:127585. https://doi.org/10.1016/j.energy.2023.127585.
+
+[27] Tian Y, Wen J, Yang Y, Shi Y, Zeng J. State-of-Health Prediction of Lithium-Ion Batteries Based on CNN-BiLSTM-AM.
+      Batteries 20228(10):155. https://doi.org/10.3390/batteries8100155.
+
+[28] Zheng Y, Hu J, Chen J, Deng H, Hu W. State of health estimation for lithium battery random charging process based on
+      CNN-GRU method. Energy Reports 20239:1­10. https://doi.org/10.1016/j.egyr.2022.12.093.
+
+[29] Vaswani A, Shazeer N, Parmar N, Uszkoreit J, Jones L, Gomez AN, Kaiser L, Polosukhin I. Attention Is All You Need. In:
+      Advances in Neural Information Processing Systems, vol. 30 2017. https://doi.org/10.48550/arXiv.1706.03762.
+
+[30] Park SH, Kim SH. Physics-Informed Transformer Using Degradation-Sensitive Indicators for Long-Term State-of-Health
+      Estimation of Lithium-Ion Batteries. Batteries 202612(2):48. https://doi.org/10.3390/batteries12020048.
+
+[31] Chen L, Xie S, Lopes AM, Bao X. A vision transformer-based deep neural network for state of health estimation of lithium-
+      ion batteries. International Journal of Electrical Power & Energy Systems 2023152:109233. https://doi.org/10.1016/j.
+      ijepes.2023.109233.
+
+[32] Gu X, See KW, Li P, Shan K, Wang Y, Zhao L, Lim KC, Zhang N. A novel state-of-health estimation for the lithium-ion
+      battery using a convolutional neural network and transformer model. Energy 2023262:125501. https://doi.org/10.1016/j.
+      energy.2022.125501.
+
+[33] Jia C, Tian Y, Shi Y, Jia J, Wen J, Zeng J. State of health prediction of lithium-ion batteries based on bidirectional gated
+      recurrent unit and transformer. Energy 2023285:129401. https://doi.org/10.1016/j.energy.2023.129401.
+
+[34] Bai T, Wang H. Convolutional transformer-based multiview information perception framework for lithium-ion battery state-
+      of-health estimation. IEEE Transactions on Instrumentation and Measurement 202372:1­12. https://doi.org/10.1109/TIM.
+      2023.3300451.
+
+[35] Tay Y, Dehghani M, Bahri D, Metzler D. Efficient Transformers: A survey. ACM Computing Surveys 202255(6). https:
+      //doi.org/10.1145/3530811.
+
+[36] Katharopoulos A, Vyas A, Pappas N, Fleuret F. Transformers are RNNs: Fast autoregressive Transformers with linear
+      attention. In: Proceedings of the 37th International Conference on Machine Learning, PMLR 119 2020. p. 5156­5165.
+      https://doi.org/10.48550/arXiv.2006.16236.
+
+[37] Lin C, Xu J, Hou J, et al. A fast data-driven battery capacity estimation method under non-constant current charging and
+      variable temperature. Energy Storage Materials 202363:102967. https://doi.org/10.1016/j.ensm.2023.102967.
+
+[38] Wu J, Liu Z, Zhang Y, Lei D, Zhang B, Cao W. Data-driven state of health estimation for lithium-ion battery based on
+      voltage variation curves. Journal of Energy Storage 202373:109191. https://doi.org/10.1016/j.est.2023.109191.
+
+[39] Li D, Xing Y, Li X. Joint state of health and remaining useful life assessment of lithium-ion batteries using a novel at-
+      tention mechanism-based deep learning model and multi-source optimized health indicators. Journal of Energy Storage
+      2026161:121823. https://doi.org/10.1016/j.est.2026.121823.
+
+[40] Wen J, Chen X, Li X, Li Y. SOH prediction of lithium battery based on IC curve feature and BP neural network. Energy
+      2022261:125234. https://doi.org/10.1016/j.energy.2022.125234.
+
+                                                                 36
+[41] Richardson RR, Birkl CR, Osborne MA, Howey DA. Gaussian process regression for in situ capacity estimation of lithium-
+      ion batteries. IEEE Transactions on Industrial Informatics 201815:127­138. https://doi.org/10.1109/TII.2018.2794997.
+
+[42] Lin C, Xu J, Shi M, Mei X. Constant current charging time based fast state-of-health estimation for lithium-ion batteries.
+      Energy 2022247:123556. https://doi.org/10.1016/j.energy.2022.123556.
+
+[43] Tian Y, Dong Q, Tian J, Li X, Li G, Mehran K. Capacity estimation of lithium-ion batteries based on optimized charging
+      voltage section and virtual sample generation. Applied Energy 2023332:120516. https://doi.org/10.1016/j.apenergy.2022.
+      120516.
+
+[44] Dai H, Wang J, Huang Y, Lai Y, Zhu L. Lightweight state-of-health estimation of lithium-ion batteries based on statistical
+      feature optimization. Renewable Energy 2024222:119907. https://doi.org/10.1016/j.renene.2023.119907.
+
+[45] Lin M, Ke L, Wang W, Meng J, Guan Y, Wu J. Health prognosis via feature optimization and convolutional neural network
+      for lithium-ion batteries. Engineering Applications of Artificial Intelligence 2024133:108666. https://doi.org/10.1016/j.
+      engappai.2024.108666.
+
+[46] Wang F, Zhai Z, Zhao Z, Di Y, Chen X. Physics-informed neural network for lithium-ion battery degradation stable modeling
+      and prognosis. Nature Communications 202415:4332. https://doi.org/10.1038/s41467-024-48779-z.
+
+[47] Li Y, Abdel-Monem M, Gopalakrishnan R, Berecibar M, Nanini-Maury E, Omar N, van den Bossche P, Van Mierlo J. A
+      quick on-line state of health estimation method for Li-ion battery with incremental capacity curves processed by Gaussian
+      filter. Journal of Power Sources 2018373:40­53. https://doi.org/10.1016/j.jpowsour.2017.10.092.
+
+[48] Li Z, Zhang X, Gao W. State of health estimation of lithium-ion battery during fast charging process based on BiLSTM-
+      transformer. Energy 2024311:133418. https://doi.org/10.1016/j.energy.2024.133418.
+
+[49] Peng S, Zhu J, Wu T, Tang A, Kan J, Pecht M. SOH early prediction of lithium-ion batteries based on voltage interval
+      selection and features fusion. Energy 2024308:132993. https://doi.org/10.1016/j.energy.2024.132993.
+
+[50] Li P, Zhang Z, Xiong Q, Ding B, Hou J, Luo D, Rong Y, Li S. State-of-health estimation and remaining useful life pre-
+      diction for the lithium-ion battery based on a variant long short term memory neural network. Journal of Power Sources
+      2020459:228069. https://doi.org/10.1016/j.jpowsour.2020.228069.
+
+[51] Lin M, Wu J, Meng J, Wang W, Wu J. State of health estimation with attentional long short-term memory network for
+      lithium-ion batteries. Energy 2023268:126706. https://doi.org/10.1016/j.energy.2023.126706.
+
+[52] Hou X, Guo X, Yuan Y, Zhao K, Tong L, Yuan C, Teng L. The state of health prediction of Li-ion batteries based on an
+      improved extreme learning machine. Journal of Energy Storage 202370:108044. https://doi.org/10.1016/j.est.2023.108044.
+
+[53] Birkl CR, Roberts MR, McTurk E, Bruce PG, Howey DA. Degradation diagnostics for lithium-ion cells. Journal of Power
+      Sources 2017341:373­386. https://doi.org/10.1016/j.jpowsour.2016.12.011.
+
+[54] dos Reis G, Strange C, Yadav M, Li S. Lithium-ion battery data and where to find it. Energy and AI 20215:100081.
+      https://doi.org/10.1016/j.egyai.2021.100081.
+
+[55] He W, Williard N, Osterman M, Pecht M. Prognostics of lithium-ion batteries based on Dempster­Shafer theory and the
+      Bayesian Monte Carlo method. Journal of Power Sources 2011196(23):10314­10321. https://doi.org/10.1016/j.jpowsour.
+      2011.08.040.
+
+[56] Severson KA, Attia PM, Jin N, et al. Data-driven prediction of battery cycle life before capacity degradation. Nature Energy
+      20194(5):383­391. https://doi.org/10.1038/s41560-019-0356-8.
+
+[57] Li X, Zhao M, Zhong S, Li J, Cui Z, Fu S, Yan Z. Deep transfer learning enabled online state-of-health estimation of lithium-
+      ion batteries under small samples across different cathode materials, ambient temperature and charge-discharge protocols.
+      Journal of Power Sources 2025650:237503. https://doi.org/10.1016/j.jpowsour.2025.237503.
+
+[58] Wu B, Yufit V, Merla Y, Martinez-Botas RF, Brandon NP, Offer GJ. Differential thermal voltammetry for tracking of degra-
+      dation in lithium-ion batteries. Journal of Power Sources 2015273:495­501. https://doi.org/10.1016/j.jpowsour.2014.09.
+      127.
+
+[59] Lin Z, Li D, Zou Y. Energy efficiency of lithium-ion batteries: Influential factors and long-term degradation. Journal of
+      Energy Storage 202374:109386. https://doi.org/10.1016/j.est.2023.109386.
+
+[60] Tang Q, He T, Huang J, Zhu W. A novel state of health estimation method for lithium-ion battery based on multi-feature
+      extraction and fusion model with bidirectional feature extraction. Journal of Energy Storage 2026141:119415. https://doi.
+      org/10.1016/j.est.2025.119415.
+
+[61] Bai J, Huang J, Luo K, Yang F, Xian Y. A feature reuse based multi-model fusion method for state of health estimation of
+      lithium-ion batteries. Journal of Energy Storage 202370:107965. https://doi.org/10.1016/j.est.2023.107965.
+
+                                                                 37
+[62] Zhang Y, Zhang D, Wu T. Method for estimating the state of health of lithium-ion batteries based on differential thermal
+      voltammetry and sparrow search algorithm-Elman neural network. Energy Engineering 2025122(1):203­220. https://doi.
+      org/10.32604/ee.2024.056244.
+
+[63] Zou B, Wang H, Zhang T, et al. A deep learning approach for state-of-health estimation of lithium-ion batteries based on
+      differential thermal voltammetry and attention mechanism. Frontiers in Energy Research 202311:1178151. https://doi.org/
+      10.3389/fenrg.2023.1178151.
+
+[64] Feng H, Zhang L. A heterogeneous learner fusion method with supplementary feature for lithium-ion batteries state of health
+      estimation. Journal of Energy Storage 202492:111896. https://doi.org/10.1016/j.est.2024.111896.
+
+[65] Chollet F. Xception: Deep learning with depthwise separable convolutions. In: Proceedings of the IEEE Conference on
+      Computer Vision and Pattern Recognition 2017. p. 1800­1807. https://doi.org/10.1109/CVPR.2017.195.
+
+[66] Han D, Ye T, Han Y, Xia Z, Pan S, Wan P, Song S, Huang G. Agent Attention: On the integration of Softmax and linear
+      attention. In: Computer Vision--ECCV 2024, Lecture Notes in Computer Science, vol. 15108, Springer, Cham 2025. p.
+      124­140. https://doi.org/10.1007/978-3-031-72973-7_8.
+
+[67] Srivastava N, Hinton G, Krizhevsky A, Sutskever I, Salakhutdinov R. Dropout: A simple way to prevent neural networks
+      from overfitting. Journal of Machine Learning Research 201415(56):1929­1958.
+
+[68] Chicco D, Warrens MJ, Jurman G. The coefficient of determination R-squared is more informative than SMAPE, MAE,
+      MAPE, MSE and RMSE in regression analysis evaluation. PeerJ Computer Science 20217:e623. https://doi.org/10.7717/
+      peerj-cs.623.
+
+[69] Wang R, Song C, Gao M, Zhao J, Xu Z. Model-data fusion domain adaptation for battery state of health estimation with fewer
+      data and simplified feature extractor. Journal of Energy Storage 202360:106686. https://doi.org/10.1016/j.est.2023.106686.
+
+[70] Huang K, Yao K, Guo Y, Lv Z. State of health estimation of lithium-ion batteries based on fine-tuning or rebuilding transfer
+      learning strategies combined with new features mining. Energy 2023282:128739. https://doi.org/10.1016/j.energy.2023.
+      128739.
+
+[71] Liu S, Yu H, Liao C, Li J, Lin W, Liu AX, Dustdar S. Pyraformer: Low-complexity pyramidal attention for long-range time
+      series modeling and forecasting. In: Proceedings of the International Conference on Learning Representations 2022.
+
+[72] Zheng L, Wang C, Kong L. Linear complexity randomized self-attention mechanism. In: Proceedings of the 39th Interna-
+      tional Conference on Machine Learning, PMLR 162 2022. p. 27011­27041.
+
+[73] Li P, Zhang Z, Grosu R, Deng Z, Hou J, Rong Y, Wu R. An end-to-end neural network framework for state-of-health
+      estimation and remaining useful life prediction of electric vehicle lithium batteries. Renewable and Sustainable Energy
+      Reviews 2022156:111843. https://doi.org/10.1016/j.rser.2021.111843.
+
+                                                                 38
+
