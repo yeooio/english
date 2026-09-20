@@ -10,7 +10,7 @@ where $C_{\mathrm{current}}$ and $C_{\mathrm{rated}}$ denote the current availab
 
 The proposed SOH estimation framework is shown in \cref{fig:2-1}.
 
-(1) \textbf{Data acquisition.} Public battery aging data covering different battery chemistries and operating conditions are selected to obtain cycle records of voltage, current, temperature, time, and capacity during charging and discharging.
+(1) \textbf{Data acquisition.} Public battery aging data covering different battery chemistries and operating conditions are selected to obtain cycle records of voltage, current, temperature, time, and capacity during charge-discharge cycling.
 
 (2) \textbf{Systematic feature engineering.} The proposed multi-source health indicator extraction and optimization algorithm constructs a pool of multi-source candidate HIs from these data and determines the model inputs through group-level calibration and selection. A sliding window is then used to segment the HI time series. Each window is paired with the SOH of the next cycle to form an input sample and its label.
 
@@ -20,7 +20,7 @@ The proposed SOH estimation framework is shown in \cref{fig:2-1}.
 
 \subsection{Typical battery datasets}
 
-Four public battery aging datasets, Oxford, CALCE CS2, CALCE CX2, and MIT/Severson, are selected to examine the generalization capability of the proposed method across different battery systems and operating conditions. These datasets include pouch, prismatic, and cylindrical cells and differ considerably in battery chemistries, nominal capacities, and operating conditions, providing diverse experimental data for model evaluation under different battery degradation scenarios. Their main characteristics are summarized in \cref{tab:2-1}. \cref{fig:2-2}(a)--(d) shows the capacity degradation curves of the selected cells, and \cref{fig:2-2}(e)--(h) presents the charging voltage curves of a representative cell from each dataset at different SOH levels. Details of each dataset are given below.
+Four public battery aging datasets, Oxford, CALCE CS2, CALCE CX2, and MIT/Severson (hereafter MIT), are selected to examine the generalization capability of the proposed method across different battery systems and operating conditions. These datasets include pouch, prismatic, and cylindrical cells and differ considerably in battery chemistries, nominal capacities, and operating conditions, providing diverse experimental data for model evaluation under different battery degradation scenarios. Their main characteristics are summarized in \cref{tab:2-1}. \cref{fig:2-2}(a)--(d) shows the capacity degradation curves of the selected cells, and \cref{fig:2-2}(e)--(h) presents the charging voltage curves of a representative cell from each dataset at different SOH levels. Details of each dataset are given below.
 
 
 
@@ -38,10 +38,11 @@ The MIT/Severson dataset was jointly released by the Massachusetts Institute of 
 
 \input{tables/table_2_1}
 \input{figures/figure_2_2}
+\FloatBarrier
 
 \subsection{Feature engineering}
 
-This section presents the multi-source health indicator extraction and optimization algorithm for constructing the inputs to the SOH estimation model. The algorithm first builds a pool of multi-source candidate HIs from charging and discharging data, then optimizes the model inputs through group-level calibration and selection. Specifically, MS-CCCT calibrates the CCCT voltage window, and PCC/SCC results on the feature-development cell set are used for dual-threshold admission and redundancy removal to determine the inputs for each dataset.
+This section presents the multi-source health indicator extraction and optimization algorithm for constructing the inputs to the SOH estimation model. The algorithm first constructs a pool of multi-source candidate HIs from charge-discharge data and then determines the model inputs through group-level calibration and selection. Specifically, MS-CCCT calibrates the CCCT voltage window, and PCC/SCC results on the feature-development cell set are used for dual-threshold admission and redundancy removal to determine the inputs for each dataset.
 
 \subsubsection{Health indicator extraction}
 
@@ -89,18 +90,19 @@ Q_{\mathrm{dch}}(V_h,V_l)=\frac{1}{3600}\int_{\{t:\,V_l\leq V_{\mathrm{dch}}(t)\
 
 where $V_{\mathrm{dch}}(t)$ and $I_{\mathrm{dch}}(t)$ are the discharge voltage and current, respectively, and integration is performed over the discharge time segments in which the voltage lies within $[V_l,V_h]$. Time is measured in s, and $Q_{\mathrm{dch}}$ is measured in Ah. Two candidate indicators of discharge capacity within a voltage window are further constructed by calculating the charge released as the terminal voltage decreases from 3.80 V to 3.40 V and from 3.20 V to 3.00 V. These indicators are denoted as HI13 and HI14, respectively\cite{ref31,ref52}.
 
-Energy efficiency reflects the energy conversion characteristics of a battery during charging and discharging and is defined as the ratio of discharge energy to charge energy in a single cycle\cite{ref66}:
+Energy efficiency is defined as the ratio of discharge energy to charge energy in a single cycle\cite{ref66}:
 
 \begin{equation}
 \eta=\frac{E_{\mathrm{dch}}}{E_{\mathrm{ch}}}=\frac{\int_0^{t_{\mathrm{dch}}}V_{\mathrm{dch}}(t)\left|I_{\mathrm{dch}}(t)\right|\,dt}{\int_0^{t_{\mathrm{ch}}}V_{\mathrm{ch}}(t)\left|I_{\mathrm{ch}}(t)\right|\,dt},
 \end{equation}
 
-where $V_{\mathrm{ch}}(t)$, $|I_{\mathrm{ch}}(t)|$, and $t_{\mathrm{ch}}$ denote the terminal voltage, current magnitude, and duration of charging, respectively; $V_{\mathrm{dch}}(t)$, $|I_{\mathrm{dch}}(t)|$, and $t_{\mathrm{dch}}$ denote those of discharging. The full charging and discharging phases of each cycle are used. This energy efficiency is denoted as HI15 ($\eta$).
+where $V_{\mathrm{ch}}(t)$, $|I_{\mathrm{ch}}(t)|$, and $t_{\mathrm{ch}}$ denote the terminal voltage, current magnitude, and duration of charging, respectively; $V_{\mathrm{dch}}(t)$, $|I_{\mathrm{dch}}(t)|$, and $t_{\mathrm{dch}}$ denote those of discharging. The full charge-discharge phases of each cycle are used. This energy efficiency is denoted as HI15 ($\eta$).
 
 \input{tables/table_2_2}
 \input{figures/figure_2_3}
+\FloatBarrier
 
-\subsubsection{Group-level dual-correlation MS-CCCT}
+\subsubsection{Group-Level Dual-Correlation MS-CCCT}
 \label{sec:ms-ccct}
 
 Constant current charge time can reflect changes in battery capacity with cycling, but its correlation with SOH depends on the voltage interval used for extraction. Some studies directly extract charging-time features from predefined local voltage intervals\cite{ref28,ref63}. However, degradation-sensitive intervals differ across datasets, and a fixed window used for one dataset is difficult to apply directly to others. To improve the correlation between CCCT and SOH and its stability across cells within the same dataset, this study proposes a group-level dual-correlation multi-scale search method (MS-CCCT). Two cells from the same dataset form the feature-development set $\mathcal{B}$. Correlation results within this set are used to construct a group-level robust score, which determines the extraction window for HI1.
@@ -144,7 +146,7 @@ For the Oxford dataset, the 3.55--3.75 V window is finally selected with the hig
 
 HI selection is a key step in lithium-ion battery SOH estimation\cite{ref64,ref55}, as the quality of the selected indicators directly affects the final estimation accuracy. Following HI1 window calibration, 15 features based on constant current charge time, IC, DTV, DTC, discharge capacity within a voltage window, and energy efficiency are considered as candidate HIs. Using the same group-level correlation evaluation, PCC and SCC are calculated both between each candidate HI and SOH and between different candidate HIs.
 
-The correlation results for Oxford Cell1 and Cell2 are shown in \cref{fig:2-4}, including both PCC and SCC between candidate HIs and SOH and among the candidate HIs. The lower triangular part of each matrix lists the correlation coefficients, while the upper triangular part represents correlation strength through circle size and color intensity. Larger, darker circles indicate stronger correlations between the corresponding variables.
+The correlation results for Oxford Cell1 and Cell2 are shown in \cref{fig:2-4}, including both PCC and SCC between candidate HIs and SOH and among the candidate HIs. The lower triangle of each matrix lists the correlation coefficients, while circle size and color in the upper triangle encode correlation strength. Larger, darker circles indicate stronger correlations between the corresponding variables.
 
 The same candidate HI does not show identical correlation performance on the two cells. For HI5 (DTV peak value), the absolute PCC and SCC are 0.949 and 0.966 on Cell1 but decrease to 0.898 and 0.902 on Cell2. In contrast, HI1 maintains high correlations on both cells. Based on the results for Cell1 alone, HI5 would appear to be strongly correlated, but this result does not reflect its correlation level on Cell2. Thus, a correlation ranking based on a single cell cannot fully represent the performance of candidate HIs on other cells.
 
@@ -163,3 +165,4 @@ With its definition fixed, HI1 achieves absolute PCC values of 0.997874--0.99933
 
 \input{tables/table_2_hi_screening_steps}
 \input{tables/table_2_6}
+\FloatBarrier

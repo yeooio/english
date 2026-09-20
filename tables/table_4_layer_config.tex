@@ -1,0 +1,66 @@
+\begin{table}
+\TableStyle
+\caption{Layer configurations of different deep learning models.}
+\label{tab:4-layer-config}
+\begin{tabularx}{\linewidth}{@{\extracolsep{\fill}}L{0.95}L{1.25}L{0.95}L{1.05}L{0.80}@{}}
+\toprule
+MS-AgentNet & CNN-\newline Transformer & Transformer & CNN-LSTM & LSTM \\
+\midrule
+\begin{minipage}[t]{\hsize}\vspace{0pt}\raggedright\setlength{\parskip}{0pt}
+Input\TableLayerSep
+Embedding layer\TableLayerSep
+LGFA module\TableLayerSep
+DSConv-L module\TableLayerSep
+Add \& Norm\TableLayerSep
+FFN\TableLayerSep
+Add \& Norm\TableLayerSep
+Linear
+\end{minipage}
+&
+\begin{minipage}[t]{\hsize}\vspace{0pt}\raggedright\setlength{\parskip}{0pt}
+Input\TableLayerSep
+Embedding layer\TableLayerSep
+Positional Encoder\TableLayerSep
+Softmax Attention\TableLayerSep
+Conv1D (1$\times$3) ReLU\TableLayerSep
+MaxPooling (2$\times$2)\TableLayerSep
+Conv1D (1$\times$3) ReLU, Add \& Norm\TableLayerSep
+Softmax Attention\TableLayerSep
+Add \& Norm
+\end{minipage}
+&
+\begin{minipage}[t]{\hsize}\vspace{0pt}\raggedright\setlength{\parskip}{0pt}
+Input\TableLayerSep
+Embedding layer\TableLayerSep
+Positional Encoder\TableLayerSep
+Softmax Attention\TableLayerSep
+Add \& Norm\TableLayerSep
+Softmax Attention\TableLayerSep
+Add \& Norm\TableLayerSep
+FFN
+\end{minipage}
+&
+\begin{minipage}[t]{\hsize}\vspace{0pt}\raggedright\setlength{\parskip}{0pt}
+Input\TableLayerSep
+Conv1D (1$\times$3) ReLU\TableLayerSep
+MaxPooling (2$\times$2)\TableLayerSep
+Conv1D (1$\times$3) ReLU\TableLayerSep
+LSTM layer\TableLayerSep
+LSTM layer\TableLayerSep
+LSTM layer\TableLayerSep
+Linear
+\end{minipage}
+&
+\begin{minipage}[t]{\hsize}\vspace{0pt}\raggedright\setlength{\parskip}{0pt}
+Input\TableLayerSep
+Linear\TableLayerSep
+LSTM layer\TableLayerSep
+LSTM layer\TableLayerSep
+LSTM layer\TableLayerSep
+Linear
+\end{minipage}
+\\
+\bottomrule
+\end{tabularx}
+\TableNote{FFN denotes the feed-forward network. The embedding and hidden dimensions and the number of stacked blocks or LSTM layers are determined by the hyperparameter grid search in \cref{tab:4-1}.}
+\end{table}

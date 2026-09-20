@@ -1,4 +1,4 @@
-A lightweight Multi-Scale Agent Network (MS-AgentNet) is proposed to represent both local variations and long-term trends in battery degradation while reducing the computational overhead of sequence modeling. The name MS refers to the multi-scale convolutional design comprising small-kernel DSConv-S and large-kernel DSConv-L, which extracts degradation features at different scales with low parameter overhead. Local-Global Fusion Attention (LGFA) combines local convolutional enhancement with efficient attention to connect local degradation information with context across cycles. The following subsections introduce the overall architecture and workflow of MS-AgentNet, describe the designed multi-scale depthwise separable convolution modules, and detail the LGFA module.
+A lightweight Multi-Scale Agent Network (MS-AgentNet) is proposed to represent both local variations and long-term trends in battery degradation while reducing the computational overhead of sequence modeling. The name MS refers to the multi-scale convolutional design comprising small-kernel DSConv-S and large-kernel DSConv-L, which extracts degradation features at different scales with low parameter overhead. Local-Global Fusion Attention (LGFA) combines local convolutional enhancement with efficient attention to connect local degradation information with context across cycles. The following subsections describe the MS-AgentNet architecture, its multi-scale depthwise separable convolutions, and the LGFA module.
 
 \subsection{Architecture overview of MS-AgentNet}
 
@@ -12,7 +12,7 @@ Mathematically, let the input to the $l$th MS-AgentNet Block be $\mathbf X_l\in\
 \mathbf X_l'
 =
 \operatorname{LGFA}(\mathbf X_l).
-\label{eq:block_slfa}
+\label{eq:block_lgfa}
 \end{equation}
 
 \textbf{Step 2: Feature refinement over longer time scales.} The LGFA output $\mathbf X_l'$ passes through layer normalization and then DSConv-L to extract degradation features over longer time scales. The DSConv-L output is scaled by $W_l$ and added to $\mathbf X_l'$ through a residual connection:
@@ -46,6 +46,7 @@ W_l
 The output $\mathbf Y_l$ is used as the input to the next Block, i.e., $\mathbf X_{l+1}=\mathbf Y_l$. Here, $W_l$ is a learnable scaling factor. Both $\operatorname{LN}$ and $\operatorname{LN}_0$ denote layer normalization, but $\operatorname{LN}_0$ uses no additional scale or bias parameters.
 
 \input{figures/figure_3_1}
+\FloatBarrier
 
 \subsection{The designed multi-scale depthwise separable convolution modules}
 
@@ -65,7 +66,7 @@ k\times k\times C_{\mathrm{in}}\times C_{\mathrm{out}}\times D_F\times D_F.
 
 where $k$, $C_{\mathrm{in}}$, $C_{\mathrm{out}}$, and $D_F$ denote the kernel size, number of input channels, number of output channels, and feature map size, respectively.
 
-Unlike standard convolution, depthwise separable convolution (DSConv) decomposes convolution into two stages: depthwise convolution and pointwise convolution\cite{ref71}. Depthwise convolution applies a separate kernel to each input channel to extract local features within that channel. A $1\times1$ pointwise convolution then integrates features across channels and adjusts the number of channels to $C_{\mathrm{out}}$. By separating within-channel feature extraction from cross-channel feature fusion, DSConv reduces the dense cross-channel operations required by standard convolution. Its computational cost can be expressed as:
+Unlike standard convolution, depthwise separable convolution (DSConv) decomposes convolution into two stages: depthwise convolution and pointwise convolution\cite{ref71}. Depthwise convolution applies a separate kernel to each input channel to extract local features within that channel. A $1\times1$ pointwise convolution then integrates features across channels and adjusts the number of channels to $C_{\mathrm{out}}$. By separating within-channel feature extraction from cross-channel feature fusion, DSConv reduces the dense cross-channel operations required by standard convolution. The structures of standard convolution and depthwise separable convolution are illustrated in \cref{fig:3-2}(a) and (b), respectively. Its computational cost can be expressed as:
 
 \begin{equation}
 C_{\mathrm{DSConv}}
@@ -101,9 +102,9 @@ Equation \eqref{eq:dsconv_cost_ratio} shows that, with the same input and output
 
 \subsubsection{DSConv-S: Dual-role local enhancement}
 
-Small-kernel DSConv-S uses a compact $1\times5$ depthwise convolution and is embedded in LGFA before the global interactions in RAA. It serves two roles: input enhancement and local feature preservation:
+Small-kernel DSConv-S uses a compact $1\times5$ depthwise convolution and is embedded in LGFA before the global interactions in RAA. The structure of DSConv-S is illustrated in \cref{fig:3-2}(c). It serves two roles: input enhancement and local feature preservation:
 
-1. \textbf{Input enhancement.} To extract fine-grained degradation information from health indicator sequences, DSConv-S models local relationships between the feature representations of neighboring cycles to form a locally enhanced representation $\mathbf X_S$. Depthwise convolution extracts local dependencies within each channel, while pointwise convolution integrates features across channels. RAA then constructs queries, keys, and values from $\mathbf X_S$ and establishes relationships across cycles through agent aggregation and broadcasting, allowing context aggregation to use the local variation information extracted by convolution.
+1. \textbf{Input enhancement.} To extract fine-grained degradation information from health indicator sequences, DSConv-S models local relationships between the feature representations of neighboring cycles to form a locally enhanced representation $\mathbf X_S$. Depthwise convolution extracts local dependencies within each channel, while pointwise convolution integrates features across channels. RAA then constructs queries, keys, and values from $\mathbf X_S$. This convolution thus supplies local context before RAA aggregates information across cycles.
 
 2. \textbf{Local feature preservation.} Alongside information interactions across cycles, $\mathbf X_S$ passes through layer normalization and is sent directly through the local branch to the fusion stage, where it is added to the RAA branch output. This path combines the locally enhanced health indicator representation with the global context established by RAA within the input window to form a joint local-global representation for SOH estimation.
 
@@ -171,7 +172,7 @@ where $2C_{\mathrm{out}}$ and $D_F\times D_F$ denote the expanded number of chan
 
 \subsubsection{DSConv-L: Feature refinement over longer time scales}
 
-DSConv-S enhances local information before attention, while DSConv-L follows LGFA to further refine the feature representation that combines local information and global context. A $1\times1$ pointwise convolution first expands the channel dimension by a factor of three to extract rich representations, followed by a $1\times31$ depthwise convolution that captures local sequential patterns over longer time scales within each channel. A second $1\times1$ pointwise convolution integrates these features across channels and restores the original channel dimension. The transformation order is the same as in DSConv-S. At the MS-AgentNet Block level, the convolution output is scaled by a learnable factor and added to the original LGFA output through a residual connection, incorporating the further extracted sequence features into the existing representation, as shown in Eq.~\eqref{eq:block_dsconv_l}. The small- and large-kernel convolutions thus jointly enrich multi-scale degradation representations for SOH estimation.
+DSConv-S enhances local information before attention, while DSConv-L follows LGFA to further refine the feature representation that combines local information and global context. A $1\times1$ pointwise convolution first expands the channel dimension by a factor of three to extract rich representations, followed by a $1\times31$ depthwise convolution that captures local sequential patterns over longer time scales within each channel. A second $1\times1$ pointwise convolution integrates these features across channels and restores the original channel dimension. The transformation order is the same as in DSConv-S. At the MS-AgentNet Block level, the convolution output is scaled by a learnable factor and added to the original LGFA output through a residual connection, incorporating the further extracted sequence features into the existing representation, as shown in Eq.~\eqref{eq:block_dsconv_l}. The small- and large-kernel convolutions thus jointly enrich multi-scale degradation representations for SOH estimation. The structure of DSConv-L is illustrated in \cref{fig:3-2}(d).
 
 \textbf{Computational analysis.} With a channel expansion factor of three, the computational cost of DSConv-L can be expressed as:
 
@@ -185,6 +186,7 @@ C_{\mathrm{in}}\times3C_{\mathrm{out}}\times D_F\times D_F
 where $3C_{\mathrm{out}}$ and $D_F\times D_F$ denote the expanded number of channels and the feature map size, respectively.
 
 \input{figures/figure_3_2}
+\FloatBarrier
 
 \subsection{The proposed Local-Global Fusion Attention module}
 
@@ -268,7 +270,7 @@ Linear attention enables global information interactions at a low computational 
 
 \subsubsection{The proposed LGFA module}
 
-To address these requirements, small-kernel depthwise separable convolution (DSConv-S) is combined with ReLU² Agent Attention (RAA) to form the Local-Global Fusion Attention (LGFA) module, as shown in \cref{fig:3-3}(d). DSConv-S first enhances local information in the health indicator sequences, and the resulting representation is fed into the local and RAA branches. The local branch preserves local degradation information, while the RAA branch establishes relationships across cycles within the input window through agent aggregation and broadcasting. The outputs of the two branches are fused by addition.
+To address these requirements, small-kernel depthwise separable convolution (DSConv-S) is combined with ReLU² Agent Attention (RAA) to form the Local-Global Fusion Attention (LGFA) module, as shown in \cref{fig:3-3}(d). DSConv-S first extracts local features, and the resulting representation is fed into the local and RAA branches. The local branch preserves local degradation information, while the RAA branch aggregates these features across sequence positions through agent aggregation and broadcasting. The outputs of the two branches are fused by addition.
 
 \textbf{(1) ReLU² Agent Attention.}
 
@@ -291,7 +293,7 @@ RAA uses $n_a=2$ learnable agents, represented by a matrix $\mathbf A\in\mathbb 
 
 The global agent matrix $\mathbf A$ is divided into $h$ subspaces along the feature dimension. The agent representation for the $i$th attention head is $\mathbf A_i=\operatorname{Split}_i(\mathbf A)\in\mathbb R^{n_a\times d_h}$.
 
-During information broadcasting, each query assigns broadcasting weights according to how it matches the two agents. Standard Agent Attention uses Softmax normalization in both aggregation and broadcasting. When all scores in a row are reduced by a common positive scaling factor, the relative ratios between positive scores remain unchanged, but the weights approach a uniform distribution. The corresponding query therefore reads an increasingly equal mixture of the two agent contexts. To preserve the distinction between positive matches under such scale changes, RAA uses ReLU² row normalization in both stages:
+During information broadcasting, each query assigns broadcasting weights according to how it matches the $n_a$ agents. Standard Agent Attention uses Softmax normalization in both aggregation and broadcasting. When all scores in a row are reduced by a common positive scaling factor, the relative ratios between positive scores remain unchanged, but the weights approach a uniform distribution. The corresponding query therefore reads an increasingly equal mixture of the $n_a$ agent contexts. To preserve the distinction between positive matches under such scale changes, RAA uses ReLU² row normalization in both stages:
 
 \begin{equation}
 \left[\mathcal R_2(\mathbf Z)\right]_{r,c}
@@ -344,7 +346,7 @@ During information broadcasting, each query position reads information from the 
 \label{eq:agent_broadcast}
 \end{equation}
 
-where $\boldsymbol{\Phi}_{q,i}\in\mathbb R^{N\times n_a}$ contains the query-specific broadcasting weights over the agents, and $\mathbf O_i\in\mathbb R^{N\times d_h}$ is the output of the $i$th attention head. ReLU² row normalization converts query-agent similarity scores into broadcasting weights, which combine the two agent contexts to form the corresponding global context representation.
+where $\boldsymbol{\Phi}_{q,i}\in\mathbb R^{N\times n_a}$ contains the query-specific broadcasting weights over the agents, and $\mathbf O_i\in\mathbb R^{N\times d_h}$ is the output of the $i$th attention head. ReLU² row normalization converts query-agent similarity scores into broadcasting weights, which combine the $n_a$ agent contexts to form the corresponding global context representation.
 
 Equations \eqref{eq:agent_aggregation} and \eqref{eq:agent_broadcast} show that the agent-mediated sequence interaction in the $i$th attention head can be represented by the equivalent mapping $\boldsymbol{\Phi}_{q,i}\boldsymbol{\Phi}_{k,i}\in\mathbb R^{N\times N}$, whose rank is at most the number of agents $n_a$. This equivalent matrix is not explicitly constructed; the computation proceeds through agent aggregation and information broadcasting.
 
@@ -376,7 +378,7 @@ W_a
 \left(
 \operatorname{RAA}(\mathbf X_S)
 \right).
-\label{eq:slfa_fusion}
+\label{eq:lgfa_fusion}
 \end{equation}
 
 where $\mathbf X_F$ is the fused LGFA output, $\operatorname{LN}(\mathbf X_S)$ is the normalized local branch representation, and $\operatorname{RAA}(\mathbf X_S)$ is the RAA branch output. $\operatorname{Dropout}(\cdot)$ provides regularization during training\cite{ref75}, and $W_a$ is a learnable scaling factor that adjusts the contribution of the RAA branch.
