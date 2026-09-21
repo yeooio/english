@@ -10,3 +10,15 @@
   \end{picture}%
   \endgroup
 }
+
+% Shared square box for the Chapter 4 accuracy panels.
+% All source images are 2048 x 2048 px; fixing both box dimensions here keeps
+% every panel, title baseline, and row height physically identical.
+\providecommand{\AccuracyPanel}[2]{%
+  \begin{minipage}[t][0.33\textwidth][t]{0.32\textwidth}%
+    \centering
+    {\fontsize{10pt}{12pt}\selectfont\bfseries\strut #1\par}%
+    \vspace{0.4mm}%
+    \includegraphics[width=\linewidth,height=\linewidth]{#2}%
+  \end{minipage}%
+}

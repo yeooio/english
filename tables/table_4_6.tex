@@ -1,53 +1,83 @@
-\begin{table}
 \TableStyle
-\caption{SOH estimation errors of different models on the CALCE and MIT/Severson datasets.}
-\label{tab:4-6}
-\begin{tabularx}{\linewidth}{@{\extracolsep{\fill}}L{0.85}L{1.55}C{0.90}C{0.90}C{0.90}C{0.90}@{}}
+% This dense nine-cell comparison is kept on one page; the compact setting
+% preserves legibility while avoiding an almost-empty continuation page.
+\fontsize{8.5pt}{10pt}\selectfont
+\renewcommand{\arraystretch}{0.95}
+\begin{longtable}{@{}p{28mm}p{37mm}>{\centering\arraybackslash}p{21.5mm}>{\centering\arraybackslash}p{21.5mm}>{\centering\arraybackslash}p{21.5mm}>{\centering\arraybackslash}p{21.5mm}@{}}
+\caption{SOH estimation errors of different models on the CALCE and MIT/Severson datasets.}\label{tab:4-6}\\
 \toprule
 Dataset & Method & $R^2$ & MAE & MAPE & RMSE \\
 \midrule
-\makecell[l]{CALCE CS2\\(CS2\_37$^{*}$)} & MS-AgentNet       & \textbf{0.99262} & \textbf{0.00727} & \textbf{0.00943} & \textbf{0.01159} \\
-                                           & CNN-Transformer   & 0.98722          & 0.01144          & 0.01485          & 0.01520          \\
-                                           & CNN-LSTM          & 0.99015          & 0.00881          & 0.01149          & 0.01339          \\
-                                           & Transformer       & 0.98741          & 0.01087          & 0.01443          & 0.01491          \\
-                                           & LSTM              & 0.99251          & 0.00730          & 0.00947          & 0.01168          \\
-\TableGroupSpace
-\makecell[l]{CALCE CS2\\(CS2\_38)} & MS-AgentNet       & \textbf{0.97921} & \textbf{0.01205} & \textbf{0.01619} & \textbf{0.01767} \\
-                                    & CNN-Transformer   & 0.97211          & 0.01462          & 0.01944          & 0.02035          \\
-                                    & CNN-LSTM          & 0.97454          & 0.01355          & 0.01817          & 0.01954          \\
-                                    & Transformer       & 0.97055          & 0.01478          & 0.02020          & 0.02072          \\
-                                    & LSTM              & 0.97906          & 0.01276          & 0.01708          & 0.01774          \\
-\TableGroupSpace
-\makecell[l]{CALCE CX2\\(CX2\_37$^{*}$)} & MS-AgentNet       & \textbf{0.97548} & 0.01021          & 0.01485          & \textbf{0.01883} \\
-                                           & CNN-Transformer   & 0.97230          & 0.01141          & 0.01635          & 0.01998          \\
-                                           & CNN-LSTM          & 0.97242          & 0.01132          & 0.01627          & 0.01998          \\
-                                           & Transformer       & 0.96190          & 0.01648          & 0.02303          & 0.02333          \\
-                                           & LSTM              & 0.97519          & \textbf{0.00997} & \textbf{0.01442} & 0.01896          \\
-\TableGroupSpace
-\makecell[l]{CALCE CX2\\(CX2\_38)} & MS-AgentNet       & \textbf{0.99025} & \textbf{0.01570} & \textbf{0.08321} & \textbf{0.02594} \\
-                                    & CNN-Transformer   & 0.98736          & 0.01867          & 0.10879          & 0.02970          \\
-                                    & CNN-LSTM          & 0.97793          & 0.02143          & 0.15207          & 0.03875          \\
-                                    & Transformer       & 0.97489          & 0.02703          & 0.16513          & 0.04169          \\
-                                    & LSTM              & 0.97654          & 0.02165          & 0.16073          & 0.04042          \\
-\TableGroupSpace
-\makecell[l]{MIT/Severson\\(b3c13$^{*}$)} & MS-AgentNet      & \textbf{0.99686} & \textbf{0.00143} & \textbf{0.00156} & \textbf{0.00222} \\
-                                            & CNN-Transformer  & 0.99125          & 0.00237          & 0.00261          & 0.00371          \\
-                                            & CNN-LSTM         & 0.99135          & 0.00234          & 0.00256          & 0.00371          \\
-                                            & Transformer      & 0.99083          & 0.00256          & 0.00279          & 0.00379          \\
-                                            & LSTM             & 0.99485          & 0.00181          & 0.00199          & 0.00282          \\
-\TableGroupSpace
-\makecell[l]{MIT/Severson\\(b3c29)} & MS-AgentNet      & \textbf{0.99634} & \textbf{0.00211} & \textbf{0.00227} & \textbf{0.00244} \\
-                                      & CNN-Transformer  & 0.99269          & 0.00304          & 0.00327          & 0.00345          \\
-                                      & CNN-LSTM         & 0.99229          & 0.00302          & 0.00324          & 0.00354          \\
-                                      & Transformer      & 0.98882          & 0.00374          & 0.00400          & 0.00425          \\
-                                      & LSTM             & 0.99457          & 0.00259          & 0.00278          & 0.00290          \\
-\TableGroupSpace
-Average                               & MS-AgentNet      & \textbf{0.98846} & \textbf{0.00813} & \textbf{0.02125} & \textbf{0.01311} \\
-                                      & CNN-Transformer  & 0.98382          & 0.01026          & 0.02755          & 0.01540          \\
-                                      & CNN-LSTM         & 0.98311          & 0.01008          & 0.03397          & 0.01648          \\
-                                      & Transformer      & 0.97907          & 0.01258          & 0.03826          & 0.01811          \\
-                                      & LSTM             & 0.98545          & 0.00935          & 0.03441          & 0.01575          \\
+\endfirsthead
+\multicolumn{6}{@{}l}{\fontsize{8.5pt}{11pt}\selectfont Table~\thetable\ continued}\\
+\toprule
+Dataset & Method & $R^2$ & MAE & MAPE & RMSE \\
+\midrule
+\endhead
+\midrule
+\multicolumn{6}{r}{\fontsize{8pt}{10pt}\selectfont Continued on next page}\\
+\endfoot
 \bottomrule
-\end{tabularx}
-\TableNote{Note: CS2\_37$^{*}$, CX2\_37$^{*}$, and b3c13$^{*}$ denote the validation cells used for hyperparameter selection. The best results are shown in bold.}
-\end{table}
+\endlastfoot
+\makecell[l]{CALCE CS2\\(CS2\_36$^{*}$)} & MS-AgentNet & \textbf{0.99622} & \textbf{0.00757} & \textbf{0.01185} & \textbf{0.01245} \\
+ & CNN-Transformer & 0.99399 & 0.01209 & 0.01909 & 0.01567 \\
+ & CNN-LSTM & 0.99496 & 0.00904 & 0.01498 & 0.01439 \\
+ & Transformer & 0.99341 & 0.01161 & 0.01887 & 0.01629 \\
+ & LSTM & 0.99566 & 0.00821 & 0.01298 & 0.01335 \\
+\TableGroupSpace
+\makecell[l]{CALCE CS2\\(CS2\_37$^{*}$)} & MS-AgentNet & \textbf{0.99262} & \textbf{0.00727} & \textbf{0.00943} & \textbf{0.01159} \\
+ & CNN-Transformer & 0.98722 & 0.01144 & 0.01485 & 0.01520 \\
+ & CNN-LSTM & 0.99015 & 0.00881 & 0.01149 & 0.01339 \\
+ & Transformer & 0.98741 & 0.01087 & 0.01443 & 0.01491 \\
+ & LSTM & 0.99251 & 0.00730 & 0.00947 & 0.01168 \\
+\TableGroupSpace
+\makecell[l]{CALCE CS2\\(CS2\_38)} & MS-AgentNet & \textbf{0.97921} & \textbf{0.01205} & \textbf{0.01619} & \textbf{0.01767} \\
+ & CNN-Transformer & 0.97211 & 0.01462 & 0.01944 & 0.02035 \\
+ & CNN-LSTM & 0.97454 & 0.01355 & 0.01817 & 0.01954 \\
+ & Transformer & 0.97055 & 0.01478 & 0.02020 & 0.02072 \\
+ & LSTM & 0.97906 & 0.01276 & 0.01708 & 0.01774 \\
+\TableGroupSpace
+\makecell[l]{CALCE CX2\\(CX2\_36$^{*}$)} & MS-AgentNet & \textbf{0.98701} & \textbf{0.01232} & 0.02265 & \textbf{0.02034} \\
+ & CNN-Transformer & \textbf{0.98763} & 0.01315 & 0.02338 & 0.01985 \\
+ & CNN-LSTM & 0.98733 & 0.01303 & 0.02374 & 0.02009 \\
+ & Transformer & 0.98204 & 0.01700 & 0.02973 & 0.02374 \\
+ & LSTM & 0.98712 & \textbf{0.01262} & \textbf{0.02309} & 0.02026 \\
+\TableGroupSpace
+\makecell[l]{CALCE CX2\\(CX2\_37$^{*}$)} & MS-AgentNet & \textbf{0.97548} & 0.01021 & 0.01485 & \textbf{0.01883} \\
+ & CNN-Transformer & 0.97230 & 0.01141 & 0.01635 & 0.01998 \\
+ & CNN-LSTM & 0.97242 & 0.01132 & 0.01627 & 0.01998 \\
+ & Transformer & 0.96190 & 0.01648 & 0.02303 & 0.02333 \\
+ & LSTM & 0.97519 & \textbf{0.00997} & \textbf{0.01442} & 0.01896 \\
+\TableGroupSpace
+\makecell[l]{CALCE CX2\\(CX2\_38)} & MS-AgentNet & \textbf{0.99025} & \textbf{0.01570} & \textbf{0.08321} & \textbf{0.02594} \\
+ & CNN-Transformer & 0.98736 & 0.01867 & 0.10879 & 0.02970 \\
+ & CNN-LSTM & 0.97793 & 0.02143 & 0.15208 & 0.03875 \\
+ & Transformer & 0.97489 & 0.02703 & 0.16513 & 0.04169 \\
+ & LSTM & 0.97654 & 0.02165 & 0.16073 & 0.04042 \\
+\TableGroupSpace
+\makecell[l]{MIT/Severson\\(b3c8$^{*}$)} & MS-AgentNet & \textbf{0.99939} & \textbf{0.00066} & \textbf{0.00071} & \textbf{0.00089} \\
+ & CNN-Transformer & 0.99825 & 0.00109 & 0.00117 & 0.00150 \\
+ & CNN-LSTM & 0.99929 & 0.00076 & 0.00081 & 0.00097 \\
+ & Transformer & 0.99824 & 0.00121 & 0.00129 & 0.00152 \\
+ & LSTM & 0.99913 & 0.00082 & 0.00088 & 0.00107 \\
+\TableGroupSpace
+\makecell[l]{MIT/Severson\\(b3c13$^{*}$)} & MS-AgentNet & \textbf{0.99686} & \textbf{0.00143} & \textbf{0.00156} & \textbf{0.00222} \\
+ & CNN-Transformer & 0.99125 & 0.00237 & 0.00261 & 0.00371 \\
+ & CNN-LSTM & 0.99135 & 0.00234 & 0.00256 & 0.00371 \\
+ & Transformer & 0.99083 & 0.00256 & 0.00279 & 0.00379 \\
+ & LSTM & 0.99485 & 0.00181 & 0.00199 & 0.00282 \\
+\TableGroupSpace
+\makecell[l]{MIT/Severson\\(b3c29)} & MS-AgentNet & \textbf{0.99634} & \textbf{0.00211} & \textbf{0.00227} & \textbf{0.00244} \\
+ & CNN-Transformer & 0.99269 & 0.00304 & 0.00327 & 0.00345 \\
+ & CNN-LSTM & 0.99229 & 0.00302 & 0.00324 & 0.00354 \\
+ & Transformer & 0.98882 & 0.00374 & 0.00400 & 0.00425 \\
+ & LSTM & 0.99457 & 0.00259 & 0.00278 & 0.00290 \\
+\TableGroupSpace
+Average & MS-AgentNet & \textbf{0.98973} & \textbf{0.00597} & \textbf{0.01180} & \textbf{0.00905} \\
+ & CNN-Transformer & 0.98313 & 0.00810 & 0.01570 & 0.01115 \\
+ & CNN-LSTM & 0.98422 & 0.00753 & 0.01738 & 0.01116 \\
+ & Transformer & 0.97098 & 0.01031 & 0.02117 & 0.01361 \\
+ & LSTM & 0.98785 & 0.00667 & 0.01679 & 0.01019 \\
+\bottomrule
+\end{longtable}
+\TableNote{Note: * denotes a training or validation cell. All values are averaged over five experiments. The best results are marked in bold.}
